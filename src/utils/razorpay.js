@@ -12,7 +12,7 @@
 //
 // Docs: https://razorpay.com/docs/payments/payment-gateway/web-integration/standard/
 
-export const RAZORPAY_KEY_ID = "rzp_test_XXXXXXXXXXXX"; // TODO: replace with real Key ID
+export const RAZORPAY_KEY_ID = import.meta.env.VITE_RAZORPAY_KEY_ID || "rzp_test_XXXXXXXXXXXX";
 
 export function loadRazorpayScript() {
   return new Promise((resolve) => {
@@ -35,7 +35,7 @@ export function loadRazorpayScript() {
  * @param {Function} opts.onSuccess - called with (paymentId) on success
  * @param {Function} opts.onFailure - called with (error) on failure/cancel
  */
-export async function payWithRazorpay({ amount, name, email, contact, onSuccess, onFailure }) {
+export async function payWithRazorpay({ amount, name, email, contact, orderId, onSuccess, onFailure }) {
   const loaded = await loadRazorpayScript();
   if (!loaded) {
     onFailure && onFailure("Could not load Razorpay SDK. Check your internet connection.");
@@ -63,7 +63,7 @@ export async function payWithRazorpay({ amount, name, email, contact, onSuccess,
     currency: "INR",
     name: "Shri Shahu Prabodhini",
     description: "Sankalp Scholarship Exam Registration Fee",
-    // order_id: order.id, // <-- attach real backend order id here in production
+    order_id: orderId,
     handler: function (response) {
       onSuccess && onSuccess(response.razorpay_payment_id);
     },

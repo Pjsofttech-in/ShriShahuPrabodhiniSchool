@@ -1,10 +1,8 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { LayoutDashboard, User, FileText } from "lucide-react";
 import DashboardShell from "../../components/DashboardShell.jsx";
 import { useAuth } from "../../context/AuthContext.jsx";
-import { studentsData } from "../../data/studentsData.js";
-import { centersData } from "../../data/centersData.js";
-import { coordinatorsData } from "../../data/coordinatorsData.js";
+import { fetchStudentById, fetchCoordinators, fetchCenters } from "../../services/backendService.js";
 
 const tabs = [
   { key: "overview", label: "Overview", icon: LayoutDashboard },
@@ -14,12 +12,33 @@ const tabs = [
 
 export default function StudentDashboard() {
   const [tab, setTab] = useState("overview");
+  const [student, setStudent] = useState(null);
+  const [center, setCenter] = useState(null);
+  const [coordinator, setCoordinator] = useState(null);
   const { user } = useAuth();
-  const student = studentsData.find((s) => s.id === user.id);
-  const center = centersData.find((c) => c.id === student?.examCenterId);
-  const coordinator = coordinatorsData.find((c) => c.id === student?.coordinatorId);
 
-  if (!student) return null;
+  useEffect(() => {
+    if (!user?.id) return;
+
+    async function loadData() {
+      try {
+        const [studentData, centers, coordinators] = await Promise.all([
+          fetchStudentById(user.id),
+          fetchCenters(),
+          fetchCoordinators(),
+        ]);
+        setStudent(studentData);
+        setCenter(centers.find((c) => c.id === studentData?.examCenterId) || null);
+        setCoordinator(coordinators.find((c) => c.id === studentData?.coordinatorId) || null);
+      } catch (err) {
+        console.error("Could not load student dashboard data", err);
+      }
+    }
+
+    loadData();
+  }, [user]);
+
+  if (!student) return <div className="min-h-[60vh] flex items-center justify-center">Loading profile...</div>;
 
   const marks = 70 + (student.rollNo.charCodeAt(student.rollNo.length - 1) % 30);
 

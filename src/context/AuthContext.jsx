@@ -1,9 +1,6 @@
 import React, { createContext, useContext, useState } from "react";
-import { coordinatorsData } from "../data/coordinatorsData.js";
-import { studentsData } from "../data/studentsData.js";
-
-// Dummy admin credential (in a real build this must come from a secure backend)
-const ADMIN_CREDENTIALS = { username: "admin", password: "admin@123" };
+import { loginUser, getMyProfile } from "../services/backendService.js";
+import { setAuthToken } from "../utils/api.js";
 
 const AuthContext = createContext(null);
 
@@ -13,52 +10,54 @@ export function AuthProvider({ children }) {
     return saved ? JSON.parse(saved) : null;
   });
 
-  function persist(u) {
-    setUser(u);
-    if (u) sessionStorage.setItem("ssp_user", JSON.stringify(u));
-    else sessionStorage.removeItem("ssp_user");
+  async function persistUser(authResponse) {
+    if (authResponse?.token && authResponse?.user) {
+      setAuthToken(authResponse.token);
+      const u = authResponse.user;
+      setUser(u);
+      sessionStorage.setItem("ssp_user", JSON.stringify(u));
+      return { success: true, user: u };
+    }
+
+    return { success: false, message: authResponse?.message || "Login failed." };
   }
 
-  function loginAdmin(username, password) {
-    if (username === ADMIN_CREDENTIALS.username && password === ADMIN_CREDENTIALS.password) {
-      const u = { role: "admin", name: "Administrator", username };
-      persist(u);
-      return { success: true };
-    }
-    return { success: false, message: "Invalid admin username or password." };
+  async function loginAdmin(username, password) {
+    const response = await loginUser("admin", { username, password });
+    return persistUser(response);
   }
 
-  function loginCoordinator(username, password) {
-    const found = coordinatorsData.find(
-      (c) => c.username === username && c.password === password
-    );
-    if (found) {
-      const u = { role: "coordinator", name: found.name, username, id: found.id, centerId: found.centerId };
-      persist(u);
-      return { success: true };
-    }
-    return { success: false, message: "Invalid coordinator username or password." };
+  async function loginCoordinator(username, password) {
+    const response = await loginUser("coordinator", { username, password });
+    return persistUser(response);
   }
 
-  function loginStudent(rollNo, password) {
-    const found = studentsData.find(
-      (s) => s.rollNo === rollNo && s.password === password
-    );
-    if (found) {
-      const u = { role: "student", name: found.name, rollNo, id: found.id };
-      persist(u);
-      return { success: true };
+  async function loginStudent(rollNo, password) {
+    const response = await loginUser("student", { rollNo, password });
+    return persistUser(response);
+  }
+
+  async function refreshProfile() {
+    try {
+      const profile = await getMyProfile();
+      if (profile) {
+        setUser(profile);
+        sessionStorage.setItem("ssp_user", JSON.stringify(profile));
+      }
+    } catch (err) {
+      console.error("Profile refresh failed", err);
     }
-    return { success: false, message: "Invalid roll number or password." };
   }
 
   function logout() {
-    persist(null);
+    setAuthToken(null);
+    setUser(null);
+    sessionStorage.removeItem("ssp_user");
   }
 
   return (
     <AuthContext.Provider
-      value={{ user, loginAdmin, loginCoordinator, loginStudent, logout }}
+      value={{ user, loginAdmin, loginCoordinator, loginStudent, logout, refreshProfile }}
     >
       {children}
     </AuthContext.Provider>

@@ -39,24 +39,29 @@ export default function Login() {
 
   const current = roles.find((r) => r.key === role);
 
-  function handleSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault();
     setError("");
 
     let res;
 
-    if (role === "admin") {
-      res = loginAdmin(id, password);
-    } else if (role === "coordinator") {
-      res = loginCoordinator(id, password);
-    } else {
-      res = loginStudent(id, password);
+    try {
+      if (role === "admin") {
+        res = await loginAdmin(id, password);
+      } else if (role === "coordinator") {
+        res = await loginCoordinator(id, password);
+      } else {
+        res = await loginStudent(id, password);
+      }
+    } catch (err) {
+      setError(err?.response?.data?.message || err.message || "Login failed. Please try again.");
+      return;
     }
 
     if (res.success) {
       navigate(`/${role}/dashboard`);
     } else {
-      setError(res.message);
+      setError(res.message || "Invalid credentials.");
     }
   }
 

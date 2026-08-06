@@ -1,9 +1,8 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { LayoutDashboard, Users } from "lucide-react";
 import DashboardShell from "../../components/DashboardShell.jsx";
 import { useAuth } from "../../context/AuthContext.jsx";
-import { studentsData } from "../../data/studentsData.js";
-import { centersData } from "../../data/centersData.js";
+import { fetchStudents, fetchCenters } from "../../services/backendService.js";
 
 const tabs = [
   { key: "overview", label: "Overview", icon: LayoutDashboard },
@@ -12,9 +11,28 @@ const tabs = [
 
 export default function CoordinatorDashboard() {
   const [tab, setTab] = useState("overview");
+  const [center, setCenter] = useState(null);
+  const [myStudents, setMyStudents] = useState([]);
   const { user } = useAuth();
-  const center = centersData.find((c) => c.id === user.centerId);
-  const myStudents = studentsData.filter((s) => s.examCenterId === user.centerId);
+
+  useEffect(() => {
+    if (!user?.centerId) return;
+
+    async function loadData() {
+      try {
+        const [students, centers] = await Promise.all([
+          fetchStudents({ examCenterId: user.centerId }),
+          fetchCenters(),
+        ]);
+        setMyStudents(students);
+        setCenter(centers.find((c) => c.id === user.centerId) || null);
+      } catch (err) {
+        console.error("Could not load coordinator dashboard data", err);
+      }
+    }
+
+    loadData();
+  }, [user]);
 
   return (
     <DashboardShell title="Coordinator" roleLabel="Coordinator" tabs={tabs} activeTab={tab} onTabChange={setTab}>
