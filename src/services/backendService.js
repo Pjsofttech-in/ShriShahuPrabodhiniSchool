@@ -5,13 +5,13 @@ export async function fetchDistricts() {
   return response.data || [];
 }
 
-export async function fetchTalukas() {
-  const response = await api.get("/api/talukas");
+export async function fetchTalukas(districtId) {
+  const response = await api.get(`/api/talukas/district/${districtId}`);
   return response.data || [];
 }
 
-export async function fetchCenters() {
-  const response = await api.get("/api/centers");
+export async function fetchCenters(talukaId) {
+  const response = await api.get(`/api/centers/taluka/${talukaId}`);
   return response.data || [];
 }
 

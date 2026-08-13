@@ -1,8 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { CheckCircle2, Copy, IndianRupee } from "lucide-react";
-import { centersData as localCenters } from "../data/centersData.js";
-import { coordinatorsData as localCoordinators } from "../data/coordinatorsData.js";
 import { payWithRazorpay } from "../utils/razorpay.js";
 import { createRazorpayOrder, fetchCenters, fetchCoordinators, fetchDistricts, fetchTalukas, registerStudent } from "../services/backendService.js";
 
@@ -19,68 +17,100 @@ export default function StudentRegistration() {
   const [registered, setRegistered] = useState(null);
   const [districts, setDistricts] = useState([]);
   const [talukas, setTalukas] = useState([]);
-  const [centers, setCenters] = useState(localCenters);
-  const [coordinators, setCoordinators] = useState(localCoordinators);
+  const [centers, setCenters] = useState([]);
+const [coordinators, setCoordinators] = useState([]);
+  // const districtNames = useMemo(
+  //   () => {
+  //     if (districts.length) {
+  //       return [...new Set(districts.map((item) => item.name || item.district || item.districtName))].sort();
+  //     }
+  //     return [...new Set(centers.map((c) => c.district))].sort();
+  //   },
+  //   [districts, centers]
+  // );
+  const districtNames = districts;
+const talukaNames = talukas;
+  // const talukaNames = useMemo(() => {
+  //   if (!form.district) return [];
+  //   if (talukas.length) {
+  //     return [...new Set(
+  //       talukas
+  //         .filter((item) =>
+  //           item.district === form.district || item.districtName === form.district || item.districtId === form.district
+  //         )
+  //         .map((item) => item.name || item.taluka || item.talukaName)
+  //     )].sort();
+  //   }
+  //   return [...new Set(centers.filter((c) => c.district === form.district).map((c) => c.taluka))].sort();
+  // }, [talukas, centers, form.district]);
 
-  const districtNames = useMemo(
-    () => {
-      if (districts.length) {
-        return [...new Set(districts.map((item) => item.name || item.district || item.districtName))].sort();
-      }
-      return [...new Set(centers.map((c) => c.district))].sort();
-    },
-    [districts, centers]
-  );
-
-  const talukaNames = useMemo(() => {
-    if (!form.district) return [];
-    if (talukas.length) {
-      return [...new Set(
-        talukas
-          .filter((item) =>
-            item.district === form.district || item.districtName === form.district || item.districtId === form.district
-          )
-          .map((item) => item.name || item.taluka || item.talukaName)
-      )].sort();
-    }
-    return [...new Set(centers.filter((c) => c.district === form.district).map((c) => c.taluka))].sort();
-  }, [talukas, centers, form.district]);
-
-  const eligibleCenters = useMemo(
-    () =>
-      centers.filter(
-        (c) => (!form.district || c.district === form.district) && (!form.taluka || c.taluka === form.taluka)
-      ),
-    [centers, form.district, form.taluka]
-  );
-
+  // const eligibleCenters = useMemo(
+  //   () =>
+  //     centers.filter(
+  //       (c) => (!form.district || c.district === form.district) && (!form.taluka || c.taluka === form.taluka)
+  //     ),
+  //   [centers, form.district, form.taluka]
+  // );
+const eligibleCenters = centers;
   const eligibleCoordinators = useMemo(
     () => coordinators.filter((c) => c.centerId === form.examCenterId),
     [coordinators, form.examCenterId]
   );
 
-  function update(field, value) {
-    setForm((f) => {
-      const next = { ...f, [field]: value };
-      if (field === "district") { next.taluka = ""; next.examCenterId = ""; next.coordinatorId = ""; }
-      if (field === "taluka") { next.examCenterId = ""; next.coordinatorId = ""; }
-      if (field === "examCenterId") { next.coordinatorId = ""; }
-      return next;
-    });
+  async function update(field, value) {
+
+  if (field === "district") {
+
+    setForm((prev) => ({
+      ...prev,
+      district: value,
+      taluka: "",
+      examCenterId: "",
+      coordinatorId: "",
+    }));
+
+    setCenters([]);
+    setTalukas([]);
+
+    const talukaList = await fetchTalukas(value);
+    setTalukas(talukaList);
+
+    return;
   }
+
+  if (field === "taluka") {
+
+    setForm((prev) => ({
+      ...prev,
+      taluka: value,
+      examCenterId: "",
+      coordinatorId: "",
+    }));
+
+    setCenters([]);
+
+    const centerList = await fetchCenters(value);
+    setCenters(centerList);
+
+    return;
+  }
+
+  setForm((prev) => ({
+    ...prev,
+    [field]: value,
+  }));
+}
 
   useEffect(() => {
     async function loadLookupData() {
       try {
         const [loadedDistricts, loadedTalukas, loadedCenters, loadedCoordinators] = await Promise.all([
           fetchDistricts(),
-          fetchTalukas(),
-          fetchCenters(),
+        
           fetchCoordinators(),
         ]);
         if (loadedDistricts?.length) setDistricts(loadedDistricts);
-        if (loadedTalukas?.length) setTalukas(loadedTalukas);
-        if (loadedCenters?.length) setCenters(loadedCenters);
+       
         if (loadedCoordinators?.length) setCoordinators(loadedCoordinators);
       } catch (err) {
         console.warn("Unable to load backend lookup data, using local fallbacks.", err);
@@ -223,12 +253,46 @@ export default function StudentRegistration() {
               </select>
             </Field>
             <Field label="Taluka">
+  <select
+    required
+    disabled={!form.district}
+    className="input-field"
+    value={form.taluka}
+    onChange={(e) => update("taluka", e.target.value)}
+  >
+    <option value="">Select Taluka</option>
+
+    {talukaNames.map((t) => (
+      <option key={t.id} value={t.id}>
+        {t.name}
+      </option>
+    ))}
+  </select>
+</Field>
+            {/* <Field label="Taluka">
               <select required disabled={!form.district} className="input-field" value={form.taluka} onChange={(e) => update("taluka", e.target.value)}>
                 <option value="">{form.district ? "Select Taluka" : "Select District First"}</option>
                 {talukaNames.map((t) => <option key={t} value={t}>{t}</option>)}
               </select>
-            </Field>
+            </Field> */}
             <Field label="Exam Center">
+  <select
+    required
+    disabled={!form.taluka}
+    className="input-field"
+    value={form.examCenterId}
+    onChange={(e) => update("examCenterId", e.target.value)}
+  >
+    <option value="">Select Center</option>
+
+    {eligibleCenters.map((c) => (
+      <option key={c.id} value={c.id}>
+        {c.centerName}
+      </option>
+    ))}
+  </select>
+</Field>
+            {/* <Field label="Exam Center">
               <select required disabled={!form.taluka} className="input-field" value={form.examCenterId} onChange={(e) => update("examCenterId", e.target.value)}>
                 <option value="">{form.taluka ? "Select Center" : "Select Taluka First"}</option>
                 {eligibleCenters.map((c) => <option key={c.id} value={c.id}>{c.centerName || c.name || c.center}</option>)}
@@ -236,7 +300,7 @@ export default function StudentRegistration() {
               {form.taluka && eligibleCenters.length === 0 && (
                 <p className="text-[10px] text-red-500 mt-0.5">No center in this taluka yet.</p>
               )}
-            </Field>
+            </Field> */}
             <Field label="Co-ordinator">
               <select required disabled={!form.examCenterId} className="input-field" value={form.coordinatorId} onChange={(e) => update("coordinatorId", e.target.value)}>
                 <option value="">{form.examCenterId ? "Select Co-ordinator" : "Select Center First"}</option>
