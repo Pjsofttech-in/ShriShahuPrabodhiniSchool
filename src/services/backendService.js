@@ -1,23 +1,102 @@
 import api from "../utils/api.js";
 
+function normalizeList(payload) {
+  if (Array.isArray(payload)) return payload;
+  if (!payload || typeof payload !== "object") return [];
+
+  const queue = [payload];
+  const visited = new Set();
+
+  while (queue.length) {
+    const current = queue.shift();
+    if (!current || typeof current !== "object") continue;
+    if (visited.has(current)) continue;
+    visited.add(current);
+
+    if (Array.isArray(current)) return current;
+
+    for (const key of ["data", "content", "items", "list", "rows", "result", "records", "values"]) {
+      const value = current[key];
+      if (Array.isArray(value)) return value;
+      if (value && typeof value === "object") queue.push(value);
+    }
+  }
+
+  return [];
+}
+
+async function requestFirstAvailable(endpoints, label) {
+  let lastError = null;
+
+  for (const endpoint of endpoints) {
+    try {
+      const response = await api.get(endpoint);
+      const items = normalizeList(response.data);
+      if (items.length > 0) return items;
+    } catch (error) {
+      lastError = error;
+    }
+  }
+
+  if (lastError) {
+    console.warn(`No data returned for ${label}. Last backend error:`, lastError.message || lastError);
+  }
+
+  return [];
+}
+
 export async function fetchDistricts() {
-  const response = await api.get("/api/districts");
-  return response.data || [];
+  return requestFirstAvailable(["/api/districts"], "districts");
 }
 
 export async function fetchTalukas(districtId) {
-  const response = await api.get(`/api/talukas/district/${districtId}`);
-  return response.data || [];
+  if (!districtId) return [];
+  return requestFirstAvailable(
+    [
+      `/api/talukas/district/${encodeURIComponent(districtId)}`,
+      `/api/talukas?districtId=${encodeURIComponent(districtId)}`,
+      "/api/talukas",
+    ],
+    "talukas"
+  );
+}
+
+export async function fetchSchools(talukaId) {
+  if (!talukaId) return [];
+  return requestFirstAvailable(
+    [
+      `/api/schools/taluka/${encodeURIComponent(talukaId)}`,
+      `/api/schools?talukaId=${encodeURIComponent(talukaId)}`,
+      "/api/schools",
+    ],
+    "schools"
+  );
 }
 
 export async function fetchCenters(talukaId) {
-  const response = await api.get(`/api/centers/taluka/${talukaId}`);
-  return response.data || [];
+  if (!talukaId) return [];
+  return requestFirstAvailable(
+    [
+      `/api/centers/taluka/${encodeURIComponent(talukaId)}`,
+      `/api/centers?talukaId=${encodeURIComponent(talukaId)}`,
+      "/api/centers",
+    ],
+    "centers"
+  );
 }
 
-export async function fetchCoordinators() {
-  const response = await api.get("/api/coordinators");
-  return response.data || [];
+export async function fetchCoordinators(centerId = null) {
+  if (centerId) {
+    return requestFirstAvailable(
+      [
+        `/api/coordinators/center/${encodeURIComponent(centerId)}`,
+        `/api/coordinators?centerId=${encodeURIComponent(centerId)}`,
+      ],
+      "coordinators"
+    );
+  }
+
+  return requestFirstAvailable(["/api/coordinators"], "coordinators");
 }
 
 export async function fetchStudents(query = {}) {
