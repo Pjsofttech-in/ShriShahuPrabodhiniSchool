@@ -7,15 +7,17 @@ import {
   fetchCenters,
   fetchCoordinators,
   fetchDistricts,
-  fetchSchools,
   fetchTalukas,
   registerStudent,
+  verifyRazorpayPayment,
 } from "../services/backendService.js";
 
 const initialForm = {
   name: "",
   mobile: "",
   email: "",
+  password: "",
+  confirmPassword: "",
   gender: "",
   dateOfBirth: "",
   class: "",
@@ -24,9 +26,9 @@ const initialForm = {
   village: "",
   state: "",
   pincode: "",
+  schoolName: "",
   districtId: "",
   talukaId: "",
-  schoolId: "",
   centerId: "",
   coordinatorId: "",
   userId: null,
@@ -76,7 +78,65 @@ function getOptionLabel(item) {
 }
 
 function normalizeOptions(items) {
-  return Array.isArray(items) ? items : [];
+  if (Array.isArray(items)) return items;
+  if (!items || typeof items !== "object") return [];
+
+  const queue = [items];
+  const seen = new Set();
+
+  while (queue.length) {
+    const current = queue.shift();
+    if (!current || typeof current !== "object" || seen.has(current)) continue;
+    seen.add(current);
+
+    if (Array.isArray(current)) return current;
+
+    for (const key of [
+      "data",
+      "content",
+      "items",
+      "list",
+      "rows",
+      "result",
+      "records",
+      "values",
+      "districts",
+      "talukas",
+      "schools",
+      "centers",
+      "coordinators",
+      "students",
+    ]) {
+      const value = current[key];
+      if (Array.isArray(value)) return value;
+      if (value && typeof value === "object") queue.push(value);
+    }
+
+    if (Object.keys(current).some((key) => ["id", "districtId", "talukaId", "schoolId", "centerId", "coordinatorId", "districtName", "talukaName", "schoolName", "centerName", "coordinatorName", "name"].includes(key))) {
+      return [current];
+    }
+  }
+
+  return [];
+}
+
+function buildOptions(items) {
+  return normalizeOptions(items)
+    .filter((item) => item && typeof item === "object")
+    .map((item) => {
+      const id = getOptionId(item);
+      const name = getOptionLabel(item);
+
+      if ((id === "" && name === "") || typeof id === "object" || typeof name === "object") {
+        return null;
+      }
+
+      return {
+        id: String(id ?? ""),
+        name: String(name ?? ""),
+      };
+    })
+    .filter((item) => item && item.id && item.name);
 }
 
 export default function StudentRegistration() {
@@ -86,53 +146,23 @@ export default function StudentRegistration() {
   const [registered, setRegistered] = useState(null);
   const [districts, setDistricts] = useState([]);
   const [talukas, setTalukas] = useState([]);
-  const [schools, setSchools] = useState([]);
   const [centers, setCenters] = useState([]);
   const [coordinators, setCoordinators] = useState([]);
 
-  const districtOptions = useMemo(
-    () => normalizeOptions(districts).map((item) => ({ id: getOptionId(item), name: getOptionLabel(item) })),
-    [districts]
-  );
-
-  const talukaOptions = useMemo(
-    () => normalizeOptions(talukas).map((item) => ({ id: getOptionId(item), name: getOptionLabel(item) })),
-    [talukas]
-  );
-
-  const schoolOptions = useMemo(
-    () => normalizeOptions(schools).map((item) => ({ id: getOptionId(item), name: getOptionLabel(item), address: item.address ?? item.schoolAddress ?? "" })),
-    [schools]
-  );
-
-  const centerOptions = useMemo(
-    () => normalizeOptions(centers).map((item) => ({ id: getOptionId(item), name: getOptionLabel(item) })),
-    [centers]
-  );
-
-  const coordinatorOptions = useMemo(
-    () => normalizeOptions(coordinators).map((item) => ({ id: getOptionId(item), name: getOptionLabel(item) })),
-    [coordinators]
-  );
-
-  const selectedSchool = useMemo(
-    () => schoolOptions.find((s) => String(s.id) === String(form.schoolId)) || null,
-    [schoolOptions, form.schoolId]
-  );
+  const districtOptions = useMemo(() => buildOptions(districts), [districts]);
+  const talukaOptions = useMemo(() => buildOptions(talukas), [talukas]);
+  const centerOptions = useMemo(() => buildOptions(centers), [centers]);
+  const coordinatorOptions = useMemo(() => buildOptions(coordinators), [coordinators]);
 
   async function update(field, value) {
     setForm((prev) => {
       let next = { ...prev, [field]: value };
 
       if (field === "districtId") {
-        next = { ...next, talukaId: "", schoolId: "", centerId: "", coordinatorId: "" };
+        next = { ...next, talukaId: "", centerId: "", coordinatorId: "" };
       }
 
       if (field === "talukaId") {
-        next = { ...next, schoolId: "", centerId: "", coordinatorId: "" };
-      }
-
-      if (field === "schoolId") {
         next = { ...next, centerId: "", coordinatorId: "" };
       }
 
@@ -145,7 +175,6 @@ export default function StudentRegistration() {
 
     if (field === "districtId") {
       setTalukas([]);
-      setSchools([]);
       setCenters([]);
       setCoordinators([]);
 
@@ -162,19 +191,16 @@ export default function StudentRegistration() {
     }
 
     if (field === "talukaId") {
-      setSchools([]);
       setCenters([]);
       setCoordinators([]);
 
       if (!value) return;
 
       try {
-        const [schoolList, centerList] = await Promise.all([fetchSchools(value), fetchCenters(value)]);
-        setSchools(Array.isArray(schoolList) ? schoolList : []);
+        const centerList = await fetchCenters(value);
         setCenters(Array.isArray(centerList) ? centerList : []);
       } catch (error) {
-        console.warn("Could not load schools or centers.", error);
-        setSchools([]);
+        console.warn("Could not load centers.", error);
         setCenters([]);
       }
       return;
@@ -213,6 +239,7 @@ export default function StudentRegistration() {
       studentName: form.name,
       mobile: form.mobile,
       email: form.email,
+      password: form.password,
       gender: form.gender,
       studentClass: form.class,
       medium: form.medium,
@@ -220,14 +247,15 @@ export default function StudentRegistration() {
       village: form.village,
       state: form.state,
       pincode: form.pincode,
+      schoolName: form.schoolName,
       dateOfBirth: form.dateOfBirth || null,
       active: true,
       userId: form.userId || null,
-      schoolId: Number(form.schoolId),
       districtId: Number(form.districtId),
       talukaId: Number(form.talukaId),
       centerId: Number(form.centerId),
       coordinatorId: Number(form.coordinatorId),
+      paymentId,
     };
 
     return await registerStudent(payload);
@@ -239,36 +267,70 @@ export default function StudentRegistration() {
 
     if (!form.districtId) return setError("Please select a District.");
     if (!form.talukaId) return setError("Please select a Taluka.");
-    if (!form.schoolId) return setError("Please select a School.");
+    if (!form.schoolName.trim()) return setError("Please enter your School Name.");
     if (!form.centerId) return setError("Please select an Exam Center.");
     if (!form.coordinatorId) return setError("Please select a Co-ordinator assigned to your center.");
+    if (!form.password) return setError("Please enter a password.");
+    if (form.password.length < 6) return setError("Password must be at least 6 characters long.");
+    if (form.password !== form.confirmPassword) return setError("Password and Confirm Password do not match.");
 
-    setStep("paying");
+    try {
+      setStep("paying");
 
-    const order = await createRazorpayOrder(250);
-    const orderId = order?.id || null;
+      const order = await createRazorpayOrder(250, form.mobile);
 
-    payWithRazorpay({
-      amount: 250,
-      name: form.name,
-      contact: form.mobile,
-      orderId,
-      onSuccess: async (paymentId) => {
-        setStep("saving");
-        try {
-          const saved = await saveToBackend(paymentId);
-          setRegistered(saved);
-          setStep("success");
-        } catch (err) {
-          setError(err.message || err?.response?.data?.message || "Payment succeeded but saving your registration failed. Please contact support with your payment ID: " + paymentId);
+      if (!order?.id) {
+        throw new Error("Unable to create payment order.");
+      }
+
+      const orderId = order.id;
+
+      payWithRazorpay({
+        amount: 250,
+        name: form.name,
+        contact: form.mobile,
+        orderId,
+        onSuccess: async ({ paymentId, orderId: razorpayOrderId, signature }) => {
+          setStep("saving");
+
+          try {
+            const verification = await verifyRazorpayPayment({
+              orderId: razorpayOrderId || orderId,
+              paymentId,
+              signature,
+            });
+
+            if (verification !== "Payment Successful") {
+              throw new Error("Payment verification failed.");
+            }
+
+            const saved = await saveToBackend(paymentId);
+            setRegistered(saved);
+            setStep("success");
+          } catch (error) {
+            console.error("Registration failed:", error);
+            setError(
+              error?.response?.data?.message ||
+                error?.message ||
+                `Payment succeeded but registration failed. Payment ID: ${paymentId}`
+            );
+            setStep("form");
+          }
+        },
+        onFailure: (message) => {
+          setError(message || "Payment was not completed. Please try again.");
           setStep("form");
-        }
-      },
-      onFailure: (msg) => {
-        setError(msg || "Payment was not completed. Please try again.");
-        setStep("form");
-      },
-    });
+        },
+      });
+    } catch (error) {
+      console.error("Payment order creation failed:", error);
+      setError(
+        error?.response?.data?.message ||
+          error?.message ||
+          "Unable to create payment order. Please try again."
+      );
+      setStep("form");
+    }
   }
 
   if (step === "success" && registered) {
@@ -316,6 +378,12 @@ export default function StudentRegistration() {
             <Field label="Email">
               <input required type="email" className="input-field" value={form.email} onChange={(e) => update("email", e.target.value)} />
             </Field>
+            <Field label="Password">
+              <input required type="password" minLength={6} className="input-field" value={form.password} onChange={(e) => update("password", e.target.value)} />
+            </Field>
+            <Field label="Confirm Password">
+              <input required type="password" minLength={6} className="input-field" value={form.confirmPassword} onChange={(e) => update("confirmPassword", e.target.value)} />
+            </Field>
             <Field label="Gender">
               <select required className="input-field" value={form.gender} onChange={(e) => update("gender", e.target.value)}>
                 <option value="">Select</option>
@@ -362,6 +430,9 @@ export default function StudentRegistration() {
             <Field label="Pincode">
               <input required inputMode="numeric" pattern="[0-9]{6}" title="6 digit pincode" className="input-field" value={form.pincode} onChange={(e) => update("pincode", e.target.value)} />
             </Field>
+            <Field label="School Name">
+              <input required className="input-field" value={form.schoolName} onChange={(e) => update("schoolName", e.target.value)} placeholder="Write your school name" />
+            </Field>
             <Field label="District">
               <select required className="input-field" value={form.districtId} onChange={(e) => update("districtId", e.target.value)}>
                 <option value="">Select District</option>
@@ -379,19 +450,8 @@ export default function StudentRegistration() {
                 ))}
               </select>
             </Field>
-            <Field label="School">
-              <select required disabled={!form.talukaId} className="input-field" value={form.schoolId} onChange={(e) => update("schoolId", e.target.value)}>
-                <option value="">{form.talukaId ? "Select School" : "Select Taluka First"}</option>
-                {schoolOptions.map((school) => (
-                  <option key={school.id} value={school.id}>{school.name}</option>
-                ))}
-              </select>
-              {selectedSchool && (
-                <p className="text-[10px] text-muted mt-1">{selectedSchool.address || "School details available from backend."}</p>
-              )}
-            </Field>
             <Field label="Exam Center">
-              <select required disabled={!form.talukaId || !form.schoolId} className="input-field" value={form.centerId} onChange={(e) => update("centerId", e.target.value)}>
+              <select required disabled={!form.talukaId} className="input-field" value={form.centerId} onChange={(e) => update("centerId", e.target.value)}>
                 <option value="">{form.talukaId ? "Select Center" : "Select Taluka First"}</option>
                 {centerOptions.map((center) => (
                   <option key={center.id} value={center.id}>{center.name}</option>

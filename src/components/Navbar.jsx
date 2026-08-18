@@ -80,7 +80,7 @@ export default function Navbar() {
       ? "/admin/dashboard"
       : user.role === "coordinator"
       ? "/coordinator/dashboard"
-      : "/student/dashboard"
+      : "/student/profile"
     : "/login";
 
   return (
@@ -160,7 +160,7 @@ export default function Navbar() {
   className="ml-3 flex-shrink-0 flex items-center gap-2 bg-gold hover:bg-gold-dark text-navy-dark font-semibold px-4 py-2 rounded-lg transition-all duration-300"
 >
   <LogIn size={16} />
-  {user ? "Dashboard" : "Login"}
+  {user ? (user.role === "student" ? "Profile" : "Dashboard") : "Login"}
 </Link>
           </div>
 
@@ -188,7 +188,7 @@ export default function Navbar() {
                 { to: "/vision-mission", label: "Vision & Mission" },
                 { to: "/download", label: "Downloads" },
 { to: "/notifications", label: "Notifications" },
-                { to: loginTarget, label: user ? "Dashboard" : "Login" },
+                { to: loginTarget, label: user ? (user.role === "student" ? "Profile" : "Dashboard") : "Login" },
               ].map((l) => (
                 <Link
                   key={l.to + l.label}

@@ -1,5 +1,28 @@
 import api from "../utils/api.js";
 
+function looksLikeEntity(value) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+
+  const keys = Object.keys(value);
+  return keys.some((key) => [
+    "id",
+    "_id",
+    "districtId",
+    "talukaId",
+    "schoolId",
+    "centerId",
+    "coordinatorId",
+    "districtName",
+    "talukaName",
+    "schoolName",
+    "centerName",
+    "coordinatorName",
+    "name",
+    "label",
+    "fullName",
+  ].includes(key));
+}
+
 function normalizeList(payload) {
   if (Array.isArray(payload)) return payload;
   if (!payload || typeof payload !== "object") return [];
@@ -15,11 +38,29 @@ function normalizeList(payload) {
 
     if (Array.isArray(current)) return current;
 
-    for (const key of ["data", "content", "items", "list", "rows", "result", "records", "values"]) {
+    for (const key of [
+      "data",
+      "content",
+      "items",
+      "list",
+      "rows",
+      "result",
+      "records",
+      "values",
+      "districts",
+      "talukas",
+      "schools",
+      "centers",
+      "coordinators",
+      "students",
+      "users",
+    ]) {
       const value = current[key];
       if (Array.isArray(value)) return value;
       if (value && typeof value === "object") queue.push(value);
     }
+
+    if (looksLikeEntity(current)) return [current];
   }
 
   return [];
@@ -101,7 +142,8 @@ export async function fetchCoordinators(centerId = null) {
 
 export async function fetchStudents(query = {}) {
   const response = await api.get("/api/students", { params: query });
-  return response.data || [];
+  const payload = response.data;
+  return Array.isArray(payload) ? payload : payload?.data || payload?.content || payload?.items || payload?.result || payload?.students || [];
 }
 
 export async function fetchStudentById(studentId) {
@@ -111,6 +153,13 @@ export async function fetchStudentById(studentId) {
 
 export async function fetchStudentByRollNo(rollNo) {
   const response = await api.get("/api/students", { params: { rollNo } });
+  const student = Array.isArray(response.data) ? response.data[0] : response.data;
+  return student || null;
+}
+
+export async function fetchStudentByMobile(mobile) {
+  if (!mobile) return null;
+  const response = await api.get("/api/students", { params: { mobile } });
   const student = Array.isArray(response.data) ? response.data[0] : response.data;
   return student || null;
 }
@@ -130,12 +179,40 @@ export async function getMyProfile() {
   return response.data;
 }
 
-export async function createRazorpayOrder(amount) {
+export async function createRazorpayOrder(amount, mobileNo) {
   try {
-    const response = await api.post("/api/razorpay/order", { amount });
+    const response = await api.post("/api/payments/create-order", {
+      amount,
+      mobileNo,
+      paymentStatus: "PENDING",
+    });
+
     return response.data;
   } catch (error) {
-    console.error("Could not create Razorpay order", error);
-    return null;
+    console.error(
+      "Could not create Razorpay order:",
+      error?.response?.data || error
+    );
+
+    throw error;
+  }
+}
+
+export async function verifyRazorpayPayment({ orderId, paymentId, signature }) {
+  try {
+    const response = await api.post("/api/payments/verify", {
+      orderId,
+      paymentId,
+      signature,
+    });
+
+    return response.data;
+  } catch (error) {
+    console.error(
+      "Payment verification failed:",
+      error?.response?.data || error
+    );
+
+    throw error;
   }
 }

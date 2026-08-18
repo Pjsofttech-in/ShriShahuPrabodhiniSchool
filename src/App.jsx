@@ -1,5 +1,5 @@
 import React from "react";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext.jsx";
 import Layout from "./components/Layout.jsx";
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
@@ -70,9 +70,14 @@ export default function App() {
               path="/coordinator/dashboard"
               element={<ProtectedRoute role="coordinator"><CoordinatorDashboard /></ProtectedRoute>}
             />
+            <Route path="/student" element={<Navigate to="/student/profile" replace />} />
             <Route
               path="/student/dashboard"
-              element={<ProtectedRoute role="student"><StudentDashboard /></ProtectedRoute>}
+              element={<ProtectedRoute role="student"><StudentDashboard defaultTab="profile" /></ProtectedRoute>}
+            />
+            <Route
+              path="/student/profile"
+              element={<ProtectedRoute role="student"><StudentDashboard defaultTab="profile" /></ProtectedRoute>}
             />
           </Route>
         </Routes>

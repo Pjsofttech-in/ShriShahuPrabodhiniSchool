@@ -9,8 +9,8 @@ const roles = [
     key: "student",
     label: "Student",
     icon: GraduationCap,
-    idLabel: "Roll Number",
-    idPlaceholder: "e.g. SSP2026-0001",
+    idLabel: "Student Email / Mobile",
+    idPlaceholder: "e.g. student@gmail.com or 9876543210",
   },
   {
     key: "coordinator",
@@ -59,7 +59,11 @@ export default function Login() {
     }
 
     if (res.success) {
-      navigate(`/${role}/dashboard`);
+      if (role === "student") {
+        navigate("/student/profile");
+      } else {
+        navigate(`/${role}/dashboard`);
+      }
     } else {
       setError(res.message || "Invalid credentials.");
     }

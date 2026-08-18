@@ -32,7 +32,7 @@ export function loadRazorpayScript() {
  * @param {string} opts.name - Student / payer name
  * @param {string} opts.email - Payer email (optional)
  * @param {string} opts.contact - Payer mobile number
- * @param {Function} opts.onSuccess - called with (paymentId) on success
+ * @param {Function} opts.onSuccess - called with { paymentId, orderId, signature } on success
  * @param {Function} opts.onFailure - called with (error) on failure/cancel
  */
 export async function payWithRazorpay({ amount, name, email, contact, orderId, onSuccess, onFailure }) {
@@ -42,15 +42,16 @@ export async function payWithRazorpay({ amount, name, email, contact, orderId, o
     return;
   }
 
-  // DEMO MODE: since there is no live backend in this dummy build, we simulate
-  // a successful checkout when a real Key ID hasn't been configured yet, so the
-  // rest of the registration flow (roll no. + login) can still be demonstrated.
   if (RAZORPAY_KEY_ID.includes("XXXX")) {
     const confirmed = window.confirm(
       `Demo Payment Gateway\n\nAmount: ₹${amount}\nName: ${name}\n\n(No real Razorpay key configured yet — click OK to simulate a successful payment.)`
     );
     if (confirmed) {
-      onSuccess && onSuccess("pay_demo_" + Math.random().toString(36).slice(2, 12));
+      onSuccess && onSuccess({
+        paymentId: "pay_demo_" + Math.random().toString(36).slice(2, 12),
+        orderId: "order_demo_" + Math.random().toString(36).slice(2, 12),
+        signature: "demo_signature_" + Math.random().toString(36).slice(2, 12),
+      });
     } else {
       onFailure && onFailure("Payment cancelled by user.");
     }
@@ -59,13 +60,17 @@ export async function payWithRazorpay({ amount, name, email, contact, orderId, o
 
   const options = {
     key: RAZORPAY_KEY_ID,
-    amount: amount * 100, // Razorpay expects paise
+    amount: amount * 100,
     currency: "INR",
     name: "Shri Shahu Prabodhini",
     description: "Sankalp Scholarship Exam Registration Fee",
     order_id: orderId,
     handler: function (response) {
-      onSuccess && onSuccess(response.razorpay_payment_id);
+      onSuccess && onSuccess({
+        paymentId: response.razorpay_payment_id,
+        orderId: response.razorpay_order_id,
+        signature: response.razorpay_signature,
+      });
     },
     prefill: { name, email, contact },
     theme: { color: "#0B2545" },

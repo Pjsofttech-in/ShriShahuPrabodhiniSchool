@@ -4,8 +4,12 @@ import { useAuth } from "../context/AuthContext.jsx";
 
 export default function ProtectedRoute({ role, children }) {
   const { user } = useAuth();
-  if (!user || user.role !== role) {
+  const currentRole = String(user?.role || user?.userRole || "").toLowerCase();
+  const expectedRole = String(role || "").toLowerCase();
+
+  if (!user || (currentRole !== expectedRole && !currentRole.includes(expectedRole))) {
     return <Navigate to="/login" replace />;
   }
+
   return children;
 }
