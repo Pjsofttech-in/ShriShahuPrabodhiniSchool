@@ -143,6 +143,7 @@ export default function StudentRegistration() {
   const [form, setForm] = useState(initialForm);
   const [step, setStep] = useState("form");
   const [error, setError] = useState("");
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [registered, setRegistered] = useState(null);
   const [districts, setDistricts] = useState([]);
   const [talukas, setTalukas] = useState([]);
@@ -273,6 +274,7 @@ export default function StudentRegistration() {
     if (!form.password) return setError("Please enter a password.");
     if (form.password.length < 6) return setError("Password must be at least 6 characters long.");
     if (form.password !== form.confirmPassword) return setError("Password and Confirm Password do not match.");
+    if (!acceptedTerms) return setError("Please agree to the Terms and Conditions before paying.");
 
     try {
       setStep("paying");
@@ -476,6 +478,17 @@ export default function StudentRegistration() {
               <span className="text-sm text-muted">Registration Fee:</span>
               <span className="font-display font-bold text-navy text-lg flex items-center"><IndianRupee size={16} /> 250</span>
             </div>
+            <label className="flex items-start gap-2 text-xs text-muted max-w-xl">
+              <input
+                type="checkbox"
+                checked={acceptedTerms}
+                onChange={(e) => setAcceptedTerms(e.target.checked)}
+                className="mt-0.5 accent-gold"
+              />
+              <span>
+                I agree to the <Link to="/terms-and-conditions" className="text-navy font-semibold hover:text-gold">Terms and Conditions</Link> and understand that the ₹250 registration fee is processed through Razorpay.
+              </span>
+            </label>
             <button
               type="submit"
               disabled={step === "paying" || step === "saving"}

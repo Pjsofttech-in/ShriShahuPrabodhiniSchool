@@ -17,6 +17,7 @@ import VisionMission from "./pages/VisionMission.jsx";
 import Download from "./pages/Download.jsx";
 import PrivacyPolicy from "./pages/PrivacyPolicy.jsx";
 import RefundPolicy from "./pages/RefundPolicy.jsx";
+import TermsAndConditions from "./pages/TermsAndConditions.jsx";
 import StudentRegistration from "./pages/StudentRegistration.jsx";
 import Login from "./pages/Login.jsx";
 
@@ -58,6 +59,7 @@ export default function App() {
             <Route path="/notifications" element={<Notification />} />
             <Route path="/privacy-policy" element={<PrivacyPolicy />} />
             <Route path="/refund-policy" element={<RefundPolicy />} />
+            <Route path="/terms-and-conditions" element={<TermsAndConditions />} />
 
             <Route path="/register" element={<StudentRegistration />} />
             <Route path="/login" element={<Login />} />
