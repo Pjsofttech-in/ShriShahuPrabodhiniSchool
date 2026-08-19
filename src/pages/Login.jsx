@@ -9,7 +9,7 @@ const roles = [
     key: "student",
     label: "Student",
     icon: GraduationCap,
-    idLabel: "Student Email / Mobile",
+    idLabel: "Email or Mobile Number",
     idPlaceholder: "e.g. student@gmail.com or 9876543210",
   },
   {
@@ -30,6 +30,7 @@ const roles = [
 
 export default function Login() {
   const [role, setRole] = useState("student");
+  const [loginMethod, setLoginMethod] = useState("mobile");
   const [id, setId] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -51,7 +52,7 @@ export default function Login() {
       } else if (role === "coordinator") {
         res = await loginCoordinator(id, password);
       } else {
-        res = await loginStudent(id, password);
+        res = await loginStudent(id, password, loginMethod);
       }
     } catch (err) {
       setError(err?.response?.data?.message || err.message || "Login failed. Please try again.");
@@ -128,25 +129,65 @@ export default function Login() {
 
             </div>
 
+            {role === "student" && (
+              <div className="mb-4">
+                <div className="bg-[#F7F0DF] rounded-full p-1 flex">
+                  {[
+                    ["mobile", "Mobile Number"],
+                    ["email", "Email"],
+                  ].map(([method, label]) => (
+                    <button
+                      key={method}
+                      type="button"
+                      onClick={() => {
+                        setLoginMethod(method);
+                        setId("");
+                        setError("");
+                      }}
+                      className={`flex-1 py-2 rounded-full text-[13px] font-semibold transition-all duration-300 ${
+                        loginMethod === method
+                          ? "bg-navy text-white shadow-md"
+                          : "text-gray-700 hover:text-navy"
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {error && (
               <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-600">
                 {error}
               </div>
             )}
 
-            {/* User ID */}
+            {/* Student accounts support either registered email or mobile number. */}
 
             <div className="mb-4">
 
               <label className="block mb-1.5 text-[14px] font-semibold text-navy">
-                {current.idLabel}
+                {role === "student"
+                  ? loginMethod === "mobile"
+                    ? "Mobile Number"
+                    : "Email Address"
+                  : current.idLabel}
               </label>
 
               <input
                 required
                 value={id}
                 onChange={(e) => setId(e.target.value)}
-                placeholder={current.idPlaceholder}
+                placeholder={
+                  role === "student" && loginMethod === "mobile"
+                    ? "e.g. 9876543210"
+                    : role === "student"
+                    ? "e.g. student@gmail.com"
+                    : current.idPlaceholder
+                }
+                type={role === "student" && loginMethod === "email" ? "email" : "tel"}
+                inputMode={role === "student" && loginMethod === "mobile" ? "numeric" : undefined}
                 className="w-full rounded-xl border border-gray-200 bg-[#EEF4FF] px-4 py-3 outline-none transition-all duration-300 focus:border-[#F0A500] focus:ring-2 focus:ring-[#F0A500]/20"
               />
 

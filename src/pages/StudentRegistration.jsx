@@ -239,7 +239,7 @@ export default function StudentRegistration() {
     const payload = {
       studentName: form.name,
       mobile: form.mobile,
-      email: form.email,
+      email: form.email.trim() || null,
       password: form.password,
       gender: form.gender,
       studentClass: form.class,
@@ -378,7 +378,7 @@ export default function StudentRegistration() {
               <input required pattern="[0-9]{10}" title="10 digit mobile number" className="input-field" value={form.mobile} onChange={(e) => update("mobile", e.target.value)} />
             </Field>
             <Field label="Email">
-              <input required type="email" className="input-field" value={form.email} onChange={(e) => update("email", e.target.value)} />
+              <input type="email" className="input-field" value={form.email} onChange={(e) => update("email", e.target.value)} placeholder="Optional" />
             </Field>
             <Field label="Password">
               <input required type="password" minLength={6} className="input-field" value={form.password} onChange={(e) => update("password", e.target.value)} />

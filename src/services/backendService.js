@@ -142,25 +142,33 @@ export async function fetchCoordinators(centerId = null) {
 
 export async function fetchStudents(query = {}) {
   const response = await api.get("/api/students", { params: query });
-  const payload = response.data;
-  return Array.isArray(payload) ? payload : payload?.data || payload?.content || payload?.items || payload?.result || payload?.students || [];
+  return normalizeList(response.data);
 }
 
 export async function fetchStudentById(studentId) {
   const response = await api.get(`/api/students/${encodeURIComponent(studentId)}`);
-  return response.data;
+  const payload = response.data;
+  return payload?.data ?? payload?.student ?? payload?.user ?? payload;
 }
 
 export async function fetchStudentByRollNo(rollNo) {
   const response = await api.get("/api/students", { params: { rollNo } });
-  const student = Array.isArray(response.data) ? response.data[0] : response.data;
+  const payload = response.data;
+  const students = Array.isArray(payload)
+    ? payload
+    : payload?.data || payload?.content || payload?.items || payload?.students || [];
+  const student = Array.isArray(students) ? students[0] : students;
   return student || null;
 }
 
 export async function fetchStudentByMobile(mobile) {
   if (!mobile) return null;
   const response = await api.get("/api/students", { params: { mobile } });
-  const student = Array.isArray(response.data) ? response.data[0] : response.data;
+  const payload = response.data;
+  const students = Array.isArray(payload)
+    ? payload
+    : payload?.data || payload?.content || payload?.items || payload?.students || [];
+  const student = Array.isArray(students) ? students[0] : students;
   return student || null;
 }
 

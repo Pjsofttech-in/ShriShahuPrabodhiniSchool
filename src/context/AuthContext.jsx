@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState } from "react";
-import { loginUser, getMyProfile } from "../services/backendService.js";
+import { fetchStudentByMobile, loginUser, getMyProfile } from "../services/backendService.js";
 import { setAuthToken } from "../utils/api.js";
 
 const AuthContext = createContext(null);
@@ -43,24 +43,48 @@ export function AuthProvider({ children }) {
     return persistUser(response);
   }
 
-  async function loginStudent(identifier, password) {
+  async function loginStudent(identifier, password, loginMethod) {
     const value = String(identifier || "").trim();
-    const payload = {
-      password,
-      email: value,
-      mobile: value,
-      rollNo: value,
-      username: value,
-    };
+    const isEmail = loginMethod === "email" || (!loginMethod && value.includes("@"));
 
     try {
+      let payload;
+      let resolvedStudent = null;
+
+      if (isEmail) {
+        payload = { email: value, password };
+      } else {
+        resolvedStudent = await fetchStudentByMobile(value);
+        const rollNo = resolvedStudent?.rollNo || resolvedStudent?.student?.rollNo;
+
+        if (!rollNo) {
+          return { success: false, message: "No student account found for this mobile number." };
+        }
+
+        payload = { rollNo, password };
+      }
+
       const response = await loginUser("student", payload);
       const persisted = await persistUser(response);
-      if (persisted.success) return persisted;
+      if (persisted.success) {
+        const enrichedUser = {
+          ...persisted.user,
+          ...(isEmail
+            ? { email: value }
+            : {
+                mobile: value,
+                rollNo: resolvedStudent?.rollNo || resolvedStudent?.student?.rollNo,
+                studentId: resolvedStudent?.id || resolvedStudent?.studentId,
+              }),
+        };
+        setUser(enrichedUser);
+        sessionStorage.setItem("ssp_user", JSON.stringify(enrichedUser));
+        return { ...persisted, user: enrichedUser };
+      }
 
       return {
         success: false,
-        message: response?.message || response?.error || "Invalid email or password.",
+        message: response?.message || response?.error || "Invalid email, mobile number, or password.",
       };
     } catch (error) {
       return {
@@ -68,7 +92,7 @@ export function AuthProvider({ children }) {
         message:
           error?.response?.data?.message ||
           error?.message ||
-          "Invalid email or password.",
+          "Invalid email, mobile number, or password.",
       };
     }
   }

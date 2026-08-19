@@ -4,10 +4,19 @@ import { useAuth } from "../context/AuthContext.jsx";
 
 export default function ProtectedRoute({ role, children }) {
   const { user } = useAuth();
-  const currentRole = String(user?.role || user?.userRole || "").toLowerCase();
+  let storedUser = null;
+
+  try {
+    storedUser = JSON.parse(sessionStorage.getItem("ssp_user") || "null");
+  } catch {
+    storedUser = null;
+  }
+
+  const activeUser = user || storedUser;
+  const currentRole = String(activeUser?.role || activeUser?.userRole || "").toLowerCase();
   const expectedRole = String(role || "").toLowerCase();
 
-  if (!user || (currentRole !== expectedRole && !currentRole.includes(expectedRole))) {
+  if (!activeUser || (currentRole !== expectedRole && !currentRole.includes(expectedRole))) {
     return <Navigate to="/login" replace />;
   }
 

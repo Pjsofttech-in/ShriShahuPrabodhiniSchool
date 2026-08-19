@@ -1,12 +1,11 @@
 import React, { useEffect, useState } from "react";
-import { LayoutDashboard, User, FileText } from "lucide-react";
+import { CheckCircle2, IndianRupee, LayoutDashboard, User, FileText } from "lucide-react";
 import DashboardShell from "../../components/DashboardShell.jsx";
 import { useAuth } from "../../context/AuthContext.jsx";
 import {
   fetchStudentById,
   fetchStudentByMobile,
   fetchStudentByRollNo,
-  fetchStudents,
   fetchCoordinators,
   fetchCenters,
 } from "../../services/backendService.js";
@@ -58,34 +57,6 @@ export default function StudentDashboard({ defaultTab = "profile" }) {
         }
 
         if (!studentData) {
-          try {
-            const allStudents = await fetchStudents();
-            const match = allStudents.find((studentRow) => {
-              return [
-                studentRow?.id,
-                studentRow?.studentId,
-                studentRow?.userId,
-                studentRow?.email,
-                studentRow?.mobile,
-                studentRow?.rollNo,
-                studentRow?.roll_number,
-                studentRow?.rollNumber,
-                studentRow?.username,
-              ].some((value) =>
-                lookupIds.includes(value) ||
-                lookupValues.includes(value) ||
-                String(value).toLowerCase() === String(user?.email || "").toLowerCase() ||
-                String(value).toLowerCase() === String(user?.mobile || "").toLowerCase()
-              );
-            });
-
-            if (match) studentData = match;
-          } catch (err) {
-            console.warn("Student list lookup failed.", err);
-          }
-        }
-
-        if (!studentData) {
           for (const value of lookupValues) {
             try {
               const found = value && value.toString().length >= 10
@@ -131,6 +102,10 @@ export default function StudentDashboard({ defaultTab = "profile" }) {
   if (!student) return <div className="min-h-[60vh] flex items-center justify-center">Loading profile...</div>;
 
   const rollNo = student.rollNo || student.roll_number || student.rollNumber || "—";
+  const paymentStatus = student.paymentStatus || student.payment_status || (student.paymentId ? "Success" : "Pending");
+  const paymentId = student.paymentId || student.payment_id || student.razorpayPaymentId || "—";
+  const paymentAmount = student.amount ?? student.registrationFee ?? student.paymentAmount ?? 250;
+  const isPaymentSuccessful = ["paid", "success", "successful", "completed", "payment successful"].includes(String(paymentStatus).toLowerCase());
   const marks = 70 + (String(rollNo).charCodeAt(String(rollNo).length - 1 || 0) % 30);
 
   return (
@@ -163,8 +138,21 @@ export default function StudentDashboard({ defaultTab = "profile" }) {
             <Row label="Exam Center" value={center?.centerName || center?.name || "—"} />
             <Row label="Co-ordinator" value={coordinator?.name || coordinator?.fullName || "—"} />
             <Row label="Roll Number" value={rollNo} />
-            <Row label="Payment Status" value={student.paymentStatus || "Paid"} />
+            <Row label="Payment Status" value={paymentStatus} />
+            <Row label="Payment ID" value={paymentId} />
+            <Row label="Registration Fee" value={`₹${paymentAmount}`} />
           </dl>
+          <div className={`mt-6 rounded-xl border p-4 flex items-center gap-3 ${isPaymentSuccessful ? "border-green-200 bg-green-50" : "border-amber-200 bg-amber-50"}`}>
+            <CheckCircle2 className={isPaymentSuccessful ? "text-green-600 shrink-0" : "text-amber-600 shrink-0"} size={28} />
+            <div>
+              <p className={`font-semibold ${isPaymentSuccessful ? "text-green-700" : "text-amber-700"}`}>
+                {isPaymentSuccessful ? "Payment Successful" : "Payment Pending"}
+              </p>
+              <p className={`text-sm flex items-center gap-1 ${isPaymentSuccessful ? "text-green-700/80" : "text-amber-700/80"}`}>
+                Registration fee paid: <IndianRupee size={14} />{paymentAmount}
+              </p>
+            </div>
+          </div>
         </div>
       )}
       {tab === "result" && (
