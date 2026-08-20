@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { CheckCircle2, Copy, IndianRupee } from "lucide-react";
+import { CheckCircle2, Copy, Eye, EyeOff, IndianRupee } from "lucide-react";
 import { payWithRazorpay } from "../utils/razorpay.js";
 import {
   createRazorpayOrder,
@@ -24,7 +24,7 @@ const initialForm = {
   medium: "",
   address: "",
   village: "",
-  state: "",
+  state: "Maharashtra",
   pincode: "",
   schoolName: "",
   districtId: "",
@@ -144,6 +144,8 @@ export default function StudentRegistration() {
   const [step, setStep] = useState("form");
   const [error, setError] = useState("");
   const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [registered, setRegistered] = useState(null);
   const [districts, setDistricts] = useState([]);
   const [talukas, setTalukas] = useState([]);
@@ -158,6 +160,10 @@ export default function StudentRegistration() {
   async function update(field, value) {
     setForm((prev) => {
       let next = { ...prev, [field]: value };
+
+      if (field === "mobile") {
+        next = { ...next, password: value, confirmPassword: value };
+      }
 
       if (field === "districtId") {
         next = { ...next, talukaId: "", centerId: "", coordinatorId: "" };
@@ -370,21 +376,31 @@ export default function StudentRegistration() {
             <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-md p-2.5">{error}</div>
           )}
 
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 items-start">
             <Field label="Student Name">
               <input required className="input-field" value={form.name} onChange={(e) => update("name", e.target.value)} />
             </Field>
             <Field label="Mobile">
               <input required pattern="[0-9]{10}" title="10 digit mobile number" className="input-field" value={form.mobile} onChange={(e) => update("mobile", e.target.value)} />
             </Field>
-            <Field label="Email">
-              <input type="email" className="input-field" value={form.email} onChange={(e) => update("email", e.target.value)} placeholder="Optional" />
-            </Field>
             <Field label="Password">
-              <input required type="password" minLength={6} className="input-field" value={form.password} onChange={(e) => update("password", e.target.value)} />
+              <div className="relative">
+                <input required type={showPassword ? "text" : "password"} minLength={6} className="input-field pr-10" value={form.password} onChange={(e) => update("password", e.target.value)} />
+                <button type="button" onClick={() => setShowPassword((visible) => !visible)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted hover:text-navy" aria-label={showPassword ? "Hide password" : "Show password"}>
+                  {showPassword ? <EyeOff size={17} /> : <Eye size={17} />}
+                </button>
+              </div>
             </Field>
             <Field label="Confirm Password">
-              <input required type="password" minLength={6} className="input-field" value={form.confirmPassword} onChange={(e) => update("confirmPassword", e.target.value)} />
+              <div className="relative">
+                <input required type={showConfirmPassword ? "text" : "password"} minLength={6} className="input-field pr-10" value={form.confirmPassword} onChange={(e) => update("confirmPassword", e.target.value)} />
+                <button type="button" onClick={() => setShowConfirmPassword((visible) => !visible)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted hover:text-navy" aria-label={showConfirmPassword ? "Hide confirm password" : "Show confirm password"}>
+                  {showConfirmPassword ? <EyeOff size={17} /> : <Eye size={17} />}
+                </button>
+              </div>
+            </Field>
+            <Field label="Email">
+              <input type="email" className="input-field" value={form.email} onChange={(e) => update("email", e.target.value)} placeholder="Optional" />
             </Field>
             <Field label="Gender">
               <select required className="input-field" value={form.gender} onChange={(e) => update("gender", e.target.value)}>
@@ -402,12 +418,14 @@ export default function StudentRegistration() {
               <select required className="input-field" value={form.class} onChange={(e) => update("class", e.target.value)}>
                 <option value="">Select</option>
                 {[
+                  "4th",
                   "5th",
                   "6th",
                   "7th",
                   "8th",
                   "9th",
                   "10th",
+                  "None",
                 ].map((c) => <option key={c}>{c}</option>)}
               </select>
             </Field>
@@ -423,14 +441,8 @@ export default function StudentRegistration() {
               <input required className="input-field" value={form.address} onChange={(e) => update("address", e.target.value)} />
             </Field>
 
-            <Field label="Village">
-              <input required className="input-field" value={form.village} onChange={(e) => update("village", e.target.value)} />
-            </Field>
             <Field label="State">
               <input required className="input-field" value={form.state} onChange={(e) => update("state", e.target.value)} />
-            </Field>
-            <Field label="Pincode">
-              <input required inputMode="numeric" pattern="[0-9]{6}" title="6 digit pincode" className="input-field" value={form.pincode} onChange={(e) => update("pincode", e.target.value)} />
             </Field>
             <Field label="School Name">
               <input required className="input-field" value={form.schoolName} onChange={(e) => update("schoolName", e.target.value)} placeholder="Write your school name" />
@@ -451,6 +463,12 @@ export default function StudentRegistration() {
                   <option key={t.id} value={t.id}>{t.name}</option>
                 ))}
               </select>
+            </Field>
+            <Field label="Village">
+              <input required className="input-field" value={form.village} onChange={(e) => update("village", e.target.value)} />
+            </Field>
+            <Field label="Pincode">
+              <input required inputMode="numeric" pattern="[0-9]{6}" title="6 digit pincode" className="input-field" value={form.pincode} onChange={(e) => update("pincode", e.target.value)} />
             </Field>
             <Field label="Exam Center">
               <select required disabled={!form.talukaId} className="input-field" value={form.centerId} onChange={(e) => update("centerId", e.target.value)}>
