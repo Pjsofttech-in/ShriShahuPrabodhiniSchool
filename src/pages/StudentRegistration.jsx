@@ -444,13 +444,9 @@ export default function StudentRegistration() {
               <input required className="input-field" value={form.schoolName} onChange={(e) => update("schoolName", e.target.value)} placeholder="Write your school name" />
             </Field>
             <Field label="State">
-              <select required className="input-field" value={form.state} onChange={(e) => update("state", e.target.value)}>
-                <option value="">Select State</option>
-                <option value="Maharashtra">Maharashtra</option>
-                <option value="Goa">Goa</option>
-                <option value="Karnataka">Karnataka</option>
-                <option value="Gujarat">Gujarat</option>
-              </select>
+              <div className="input-field flex items-center bg-gray-50 text-navy font-medium">
+                Maharashtra
+              </div>
             </Field>
             <Field label="District">
               <select required className="input-field" value={form.districtId} onChange={(e) => update("districtId", e.target.value)}>
