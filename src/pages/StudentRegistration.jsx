@@ -7,6 +7,7 @@ import {
   fetchCenters,
   fetchCoordinators,
   fetchDistricts,
+  fetchSchools,
   fetchTalukas,
   registerStudent,
   verifyRazorpayPayment,
@@ -439,11 +440,17 @@ export default function StudentRegistration() {
               <input required className="input-field" value={form.address} onChange={(e) => update("address", e.target.value)} />
             </Field>
 
-            <Field label="State">
-              <input required className="input-field" value={form.state} onChange={(e) => update("state", e.target.value)} />
-            </Field>
             <Field label="School Name">
               <input required className="input-field" value={form.schoolName} onChange={(e) => update("schoolName", e.target.value)} placeholder="Write your school name" />
+            </Field>
+            <Field label="State">
+              <select required className="input-field" value={form.state} onChange={(e) => update("state", e.target.value)}>
+                <option value="">Select State</option>
+                <option value="Maharashtra">Maharashtra</option>
+                <option value="Goa">Goa</option>
+                <option value="Karnataka">Karnataka</option>
+                <option value="Gujarat">Gujarat</option>
+              </select>
             </Field>
             <Field label="District">
               <select required className="input-field" value={form.districtId} onChange={(e) => update("districtId", e.target.value)}>
