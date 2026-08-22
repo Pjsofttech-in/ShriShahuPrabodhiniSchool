@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "http://localhost:8080").replace(/\/+$/, "");
 const STATIC_ADMIN_TOKEN = import.meta.env.VITE_ADMIN_TOKEN || "";
 
 function getAuthToken() {
@@ -22,6 +22,9 @@ function isPublicRequest(config) {
 
   if (method === "get" && (
     url === "/api/districts" ||
+    url === "/api/downloads" ||
+    url.startsWith("/api/downloads/") ||
+    url === "/api2/contact-us" ||
     url.startsWith("/api/talukas") ||
     url.startsWith("/api/centers/taluka/") ||
     url.startsWith("/api/coordinators/center/")

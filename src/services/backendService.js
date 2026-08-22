@@ -166,6 +166,52 @@ export async function fetchStudents(query = {}) {
   return normalizeList(response.data);
 }
 
+export async function fetchContactInfo() {
+  try {
+    const response = await api.get("/api2/contact-us");
+    const payload = response?.data || {};
+
+    return {
+      id: payload.id ?? null,
+      address: payload.address ?? "",
+      contactNo: payload.contactNo ?? "",
+      email: payload.email ?? "",
+      mapLink: payload.mapLink ?? "",
+    };
+  } catch (error) {
+    console.error("Failed to fetch contact information:", error);
+    return null;
+  }
+}
+
+export async function fetchDownloads() {
+  const response = await api.get("/api/downloads");
+  const downloadList = normalizeList(response.data);
+
+  return downloadList.map((item, index) => {
+    const title = item?.title ?? item?.name ?? item?.fileName ?? `Download ${index + 1}`;
+    const fileUrl =
+      item?.filePath ??
+      item?.fileUrl ??
+      item?.pdf ??
+      item?.pdfUrl ??
+      item?.url ??
+      item?.link ??
+      item?.file ??
+      "#";
+
+    return {
+      id: item?.id ?? index + 1,
+      title,
+      file: fileUrl,
+      fileName: item?.fileName ?? item?.name ?? title,
+      description: item?.description ?? "",
+      size: item?.size ?? item?.fileSize ?? "",
+      pdf: fileUrl,
+    };
+  });
+}
+
 export async function fetchStudentById(studentId) {
   const response = await api.get(`/api/students/${encodeURIComponent(studentId)}`);
   const payload = response.data;

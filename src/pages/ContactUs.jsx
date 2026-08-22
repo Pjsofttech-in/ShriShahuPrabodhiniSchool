@@ -1,10 +1,38 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { MapPin, Phone, Mail } from "lucide-react";
 import PageHeader from "../components/PageHeader.jsx";
 import { schoolInfo } from "../data/siteData.js";
+import { fetchContactInfo } from "../services/backendService.js";
 
 export default function ContactUs() {
   const [sent, setSent] = useState(false);
+  const [contactInfo, setContactInfo] = useState({
+    address: schoolInfo.address,
+    contactNo: `${schoolInfo.phone} / ${schoolInfo.altPhone}`,
+    email: schoolInfo.email,
+    mapLink: schoolInfo.mapEmbed,
+  });
+
+  useEffect(() => {
+    let mounted = true;
+
+    const loadContactInfo = async () => {
+      const data = await fetchContactInfo();
+      if (!mounted || !data) return;
+
+      setContactInfo({
+        address: data.address || schoolInfo.address,
+        contactNo: data.contactNo || `${schoolInfo.phone} / ${schoolInfo.altPhone}`,
+        email: data.email || schoolInfo.email,
+        mapLink: data.mapLink || schoolInfo.mapEmbed,
+      });
+    };
+
+    loadContactInfo();
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   function submit(e) {
     e.preventDefault();
@@ -20,21 +48,21 @@ export default function ContactUs() {
             <MapPin className="text-gold-dark shrink-0" />
             <div>
               <p className="font-bold text-navy text-sm mb-1">Our Address</p>
-              <p className="text-sm text-muted">{schoolInfo.address}</p>
+              <p className="text-sm text-muted">{contactInfo.address}</p>
             </div>
           </div>
           <div className="card p-6 flex items-start gap-3">
             <Phone className="text-gold-dark shrink-0" />
             <div>
               <p className="font-bold text-navy text-sm mb-1">Call Us</p>
-              <p className="text-sm text-muted">{schoolInfo.phone} / {schoolInfo.altPhone}</p>
+              <p className="text-sm text-muted">{contactInfo.contactNo}</p>
             </div>
           </div>
           <div className="card p-6 flex items-start gap-3">
             <Mail className="text-gold-dark shrink-0" />
             <div>
               <p className="font-bold text-navy text-sm mb-1">Email Us</p>
-              <p className="text-sm text-muted">{schoolInfo.email}</p>
+              <p className="text-sm text-muted">{contactInfo.email}</p>
             </div>
           </div>
         </div>
@@ -60,7 +88,7 @@ export default function ContactUs() {
             )}
           </div>
           <div className="rounded-xl overflow-hidden shadow-lg border border-black/5 min-h-[400px]">
-            <iframe title="School location map" src={schoolInfo.mapEmbed} className="w-full h-full min-h-[400px]" loading="lazy" />
+            <iframe title="School location map" src={contactInfo.mapLink} className="w-full h-full min-h-[400px]" loading="lazy" />
           </div>
         </div>
       </section>
