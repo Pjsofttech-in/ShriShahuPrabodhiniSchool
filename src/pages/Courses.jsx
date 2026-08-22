@@ -1,9 +1,27 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import PageHeader from "../components/PageHeader.jsx";
-import { courses } from "../data/siteData.js";
+import { fetchCourses } from "../services/backendService.js";
 
 export default function Courses() {
+  const [courses, setCourses] = useState([]);
+
+  useEffect(() => {
+    let mounted = true;
+
+    fetchCourses()
+      .then((data) => {
+        if (mounted) setCourses(data);
+      })
+      .catch((error) => {
+        console.error("Failed to fetch courses:", error);
+      });
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
   return (
     <div>
       <PageHeader title="Our Courses" />

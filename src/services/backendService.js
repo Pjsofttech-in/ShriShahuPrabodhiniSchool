@@ -1,5 +1,8 @@
 import api from "../utils/api.js";
 
+const DYNAMIC_PROFILE_URL =
+  import.meta.env.VITE_DYNAMIC_PROFILE_URL || window.location.hostname;
+
 function looksLikeEntity(value) {
   if (!value || typeof value !== "object" || Array.isArray(value)) return false;
 
@@ -182,6 +185,22 @@ export async function fetchContactInfo() {
     console.error("Failed to fetch contact information:", error);
     return null;
   }
+}
+
+export async function fetchCourses() {
+  const response = await api.get("/api2/getAllCourses", {
+    params: { url: DYNAMIC_PROFILE_URL },
+  });
+
+  return normalizeList(response.data).map((course) => ({
+    id: course?.id,
+    name: course?.courseName ?? "",
+    desc: course?.courseDescription ?? "",
+    image: course?.courseImage ?? "",
+    color: course?.courseColor ?? "",
+    duration: course?.duration ?? "",
+    fee: course?.price != null ? String(course.price) : "",
+  }));
 }
 
 export async function fetchDownloads() {

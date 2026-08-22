@@ -24,6 +24,7 @@ function isPublicRequest(config) {
     url === "/api/districts" ||
     url === "/api/downloads" ||
     url.startsWith("/api/downloads/") ||
+    url === "/api2/getAllCourses" ||
     url === "/api2/contact-us" ||
     url.startsWith("/api/talukas") ||
     url.startsWith("/api/centers/taluka/") ||
