@@ -53,26 +53,24 @@ function getOptionId(item) {
   );
 }
 
-function getOptionLabel(item) {
+function getOptionLabel(item, type) {
   if (!item) return "";
+
+  const typeLabels = {
+    district: [item.districtName, item?.district?.name, item?.district?.districtName],
+    taluka: [item.talukaName, item?.taluka?.name, item?.taluka?.talukaName],
+    center: [item.centerName, item?.center?.centerName, item?.center?.name],
+    coordinator: [item.coordinatorName, item?.coordinator?.name],
+  };
+
+  const specificLabel = typeLabels[type]?.find(Boolean);
+  if (specificLabel) return specificLabel;
+
   return (
     item.name ??
     item.label ??
     item.fullName ??
-    item.districtName ??
-    item.talukaName ??
     item.schoolName ??
-    item.centerName ??
-    item.coordinatorName ??
-    item?.district?.name ??
-    item?.district?.districtName ??
-    item?.taluka?.name ??
-    item?.taluka?.talukaName ??
-    item?.school?.schoolName ??
-    item?.school?.name ??
-    item?.center?.centerName ??
-    item?.center?.name ??
-    item?.coordinator?.name ??
     ""
   );
 }
@@ -120,12 +118,12 @@ function normalizeOptions(items) {
   return [];
 }
 
-function buildOptions(items) {
+function buildOptions(items, type) {
   return normalizeOptions(items)
     .filter((item) => item && typeof item === "object")
     .map((item) => {
       const id = getOptionId(item);
-      const name = getOptionLabel(item);
+      const name = getOptionLabel(item, type);
 
       if ((id === "" && name === "") || typeof id === "object" || typeof name === "object") {
         return null;
@@ -152,10 +150,10 @@ export default function StudentRegistration() {
   const [centers, setCenters] = useState([]);
   const [coordinators, setCoordinators] = useState([]);
 
-  const districtOptions = useMemo(() => buildOptions(districts), [districts]);
-  const talukaOptions = useMemo(() => buildOptions(talukas), [talukas]);
-  const centerOptions = useMemo(() => buildOptions(centers), [centers]);
-  const coordinatorOptions = useMemo(() => buildOptions(coordinators), [coordinators]);
+  const districtOptions = useMemo(() => buildOptions(districts, "district"), [districts]);
+  const talukaOptions = useMemo(() => buildOptions(talukas, "taluka"), [talukas]);
+  const centerOptions = useMemo(() => buildOptions(centers, "center"), [centers]);
+  const coordinatorOptions = useMemo(() => buildOptions(coordinators, "coordinator"), [coordinators]);
 
   async function update(field, value) {
     setForm((prev) => {

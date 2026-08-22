@@ -1,5 +1,4 @@
 // Dummy Center data — Admin > Settings > Center Form
-// Each Center belongs to a District & Taluka, and has Coordinators allocated to it.
 export const districts = [
   "Pune", "Kolhapur", "Satara", "Sangli", "Solapur", "Nashik", "Ahmednagar"
 ];
@@ -15,30 +14,9 @@ export const talukasByDistrict = {
 };
 
 export let centersData = [
-  {
-    id: "CTR001",
-    centerName: "Shri Shahu Prabodhini Main Center",
-    district: "Pune",
-    taluka: "Haveli",
-    address: "Near Shivaji Chowk, Pune - 411001",
-    status: "Active",
-  },
-  {
-    id: "CTR002",
-    centerName: "Prabodhini Study Center - Karad",
-    district: "Satara",
-    taluka: "Karad",
-    address: "Station Road, Karad - 415110",
-    status: "Active",
-  },
-  {
-    id: "CTR003",
-    centerName: "Prabodhini Study Center - Miraj",
-    district: "Sangli",
-    taluka: "Miraj",
-    address: "College Road, Miraj - 416410",
-    status: "Active",
-  },
+  { id: "CTR001", centerName: "Shri Shahu Prabodhini Main Center", district: "Pune", taluka: "Haveli", address: "Near Shivaji Chowk, Pune - 411001", status: "Active" },
+  { id: "CTR002", centerName: "Prabodhini Study Center - Karad", district: "Satara", taluka: "Karad", address: "Station Road, Karad - 415110", status: "Active" },
+  { id: "CTR003", centerName: "Prabodhini Study Center - Miraj", district: "Sangli", taluka: "Miraj", address: "College Road, Miraj - 416410", status: "Active" },
 ];
 
 export function addCenter(center) {

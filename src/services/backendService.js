@@ -86,20 +86,45 @@ async function requestFirstAvailable(endpoints, label) {
   return [];
 }
 
+function getRelatedDistrictId(taluka) {
+  return (
+    taluka?.districtId ??
+    taluka?.district_id ??
+    taluka?.district?.id ??
+    taluka?.district?.districtId ??
+    taluka?.district?.district_id ??
+    null
+  );
+}
+
+function filterTalukasByDistrict(talukas, districtId) {
+  const selectedDistrictId = String(districtId);
+  const relatedTalukas = talukas.filter((taluka) => {
+    const relatedDistrictId = getRelatedDistrictId(taluka);
+    return relatedDistrictId !== null && String(relatedDistrictId) === selectedDistrictId;
+  });
+
+  const hasDistrictRelationship = talukas.some(
+    (taluka) => getRelatedDistrictId(taluka) !== null
+  );
+  return hasDistrictRelationship ? relatedTalukas : talukas;
+}
+
 export async function fetchDistricts() {
   return requestFirstAvailable(["/api/districts"], "districts");
 }
 
 export async function fetchTalukas(districtId) {
   if (!districtId) return [];
-  return requestFirstAvailable(
+  const talukas = await requestFirstAvailable(
     [
       `/api/talukas/district/${encodeURIComponent(districtId)}`,
       `/api/talukas?districtId=${encodeURIComponent(districtId)}`,
-      "/api/talukas",
     ],
     "talukas"
   );
+
+  return filterTalukasByDistrict(talukas, districtId);
 }
 
 export async function fetchSchools(talukaId) {
@@ -117,11 +142,7 @@ export async function fetchSchools(talukaId) {
 export async function fetchCenters(talukaId) {
   if (!talukaId) return [];
   return requestFirstAvailable(
-    [
-      `/api/centers/taluka/${encodeURIComponent(talukaId)}`,
-      `/api/centers?talukaId=${encodeURIComponent(talukaId)}`,
-      "/api/centers",
-    ],
+    [`/api/centers/taluka/${encodeURIComponent(talukaId)}`],
     "centers"
   );
 }

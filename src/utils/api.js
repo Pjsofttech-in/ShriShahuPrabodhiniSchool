@@ -7,6 +7,35 @@ function getAuthToken() {
   return sessionStorage.getItem("ssp_token") || STATIC_ADMIN_TOKEN;
 }
 
+function isPublicRequest(config) {
+  const method = (config.method || "get").toLowerCase();
+  const url = config.url || "";
+
+  if (url === "/api/auth/login") return true;
+  if (method === "post" && [
+    "/api/students",
+    "/api/payments/create-order",
+    "/api/payments/verify",
+  ].includes(url)) {
+    return true;
+  }
+
+  if (method === "get" && (
+    url === "/api/districts" ||
+    url.startsWith("/api/talukas") ||
+    url.startsWith("/api/centers/taluka/") ||
+    url.startsWith("/api/coordinators/center/")
+  )) {
+    return true;
+  }
+
+  if (method === "get" && url === "/api/students") {
+    return Boolean(config.params?.mobile || config.params?.rollNo);
+  }
+
+  return false;
+}
+
 const api = axios.create({
   baseURL: API_BASE_URL,
   headers: {
@@ -17,7 +46,7 @@ const api = axios.create({
 
 api.interceptors.request.use((config) => {
   const token = getAuthToken();
-  if (token) {
+  if (token && !isPublicRequest(config)) {
     config.headers.Authorization = `Bearer ${token}`;
   }
   return config;
