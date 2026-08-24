@@ -1,62 +1,24 @@
-import React from "react";
-import { Eye, Target } from "lucide-react";
+import React, { useEffect, useState } from "react";
+import { Eye, ImageOff, LoaderCircle, Target } from "lucide-react";
 import PageHeader from "../components/PageHeader.jsx";
+import { API_BASE_URL } from "../utils/api.js";
+import { fetchVisionMissions } from "../services/backendService.js";
+
+function imageUrl(image) {
+  if (!image) return "";
+  return /^(https?:|data:|blob:)/i.test(image) ? image : `${API_BASE_URL.replace(/\/+$/, "")}/${String(image).replace(/^\/+/, "")}`;
+}
 
 export default function VisionMission() {
-  return (
-    <div>
-      <PageHeader title="Vision & Mission" crumb="Director's Message" />
-      <section className="section-pad">
-        <div className="container-app grid md:grid-cols-[280px_1fr] gap-10 items-start mb-16">
-          <div className="mx-auto text-center">
-            <img
-              src="https://images.unsplash.com/photo-1560250097-0b93528c311a?q=80&w=500&auto=format&fit=crop"
-              alt="Director"
-              className="w-56 h-56 rounded-full object-cover ring-8 ring-cream shadow-xl mx-auto"
-            />
-            <p className="font-display font-bold text-navy mt-4">Dr. Vijay Shinde</p>
-            <p className="text-xs text-muted">Director, Shri Shahu Prabodhini</p>
-          </div>
-          <div>
-            <span className="eyebrow">Director's Message</span>
-            <h2 className="text-2xl md:text-3xl font-bold text-navy mb-4">
-              "Education is the one investment that never depreciates."
-            </h2>
-            <p className="text-muted leading-relaxed mb-4">
-              When we started Shri Shahu Prabodhini, our aim was never to simply run coaching
-              classes — it was to build a culture of discipline, curiosity and self-belief among
-              students who often don't get a fair shot at competitive exams. The Sankalp
-              Scholarship Exam grew out of that mission: a rigorous, fair, and accessible
-              platform that rewards genuine merit.
-            </p>
-            <p className="text-muted leading-relaxed">
-              I am proud of every coordinator, faculty member and student who has been part of
-              this journey, and I invite every parent to trust us with their child's academic
-              future. We promise transparency, quality and results.
-            </p>
-          </div>
-        </div>
+  const [content, setContent] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  useEffect(() => { let active = true; fetchVisionMissions().then((items) => active && setContent(items[0] || null)).catch(() => active && setError("Vision and mission information is temporarily unavailable.")).finally(() => active && setLoading(false)); return () => { active = false; }; }, []);
 
-        <div className="grid md:grid-cols-2 gap-6">
-          <div className="card p-8">
-            <div className="w-12 h-12 rounded-xl bg-navy/5 text-navy flex items-center justify-center mb-4"><Eye size={22} /></div>
-            <h3 className="font-display font-bold text-navy text-xl mb-3">Our Vision</h3>
-            <p className="text-muted leading-relaxed">
-              To be Maharashtra's most trusted platform for student assessment and scholarship,
-              recognised for fairness, quality and accessibility across every district.
-            </p>
-          </div>
-          <div className="card p-8">
-            <div className="w-12 h-12 rounded-xl bg-navy/5 text-navy flex items-center justify-center mb-4"><Target size={22} /></div>
-            <h3 className="font-display font-bold text-navy text-xl mb-3">Our Mission</h3>
-            <p className="text-muted leading-relaxed">
-              To deliver rigorous, transparent scholarship examinations backed by dedicated
-              faculty and coordinators, ensuring every deserving student is discovered and
-              rewarded — regardless of geography or background.
-            </p>
-          </div>
-        </div>
-      </section>
-    </div>
-  );
+  return <div><PageHeader title="Vision & Mission" crumb="Vision & Mission" /><section className="bg-cream py-8 md:py-12"><div className="container-app">
+    {loading && <div className="flex justify-center gap-3 py-20 text-muted"><LoaderCircle className="animate-spin text-gold" size={24} /> Loading vision and mission...</div>}
+    {!loading && error && <p className="py-16 text-center text-maroon">{error}</p>}
+    {!loading && !error && !content && <p className="py-16 text-center text-muted">Vision and mission information has not been published yet.</p>}
+    {!loading && !error && content && <><div className="grid items-center gap-8 md:grid-cols-[220px_1fr]"><div className="mx-auto w-full max-w-[220px]">{content.directorImage ? <img src={imageUrl(content.directorImage)} alt={content.directorName || "Director"} className="aspect-square w-full rounded-full object-cover ring-8 ring-white shadow-xl" /> : <div className="flex aspect-square flex-col items-center justify-center gap-3 rounded-full bg-navy text-center text-white/80 ring-8 ring-white shadow-xl"><ImageOff className="text-gold" size={38} /><span className="text-sm">Image not available</span></div>}<p className="mt-4 text-center font-bold text-navy">{content.directorName || "Director"}</p></div><div className="bg-white p-6 shadow-sm md:p-8"><span className="eyebrow">A message from our leadership</span><p className="mt-2 text-xl font-bold leading-8 text-navy md:text-2xl">{content.directorMessage || "No director message available."}</p>{content.description && <p className="mt-4 whitespace-pre-line leading-7 text-muted">{content.description}</p>}</div></div><div className="mt-8 grid gap-5 md:grid-cols-2"><article className="content-reveal border-t-4 border-gold bg-white p-6 shadow-sm"><Eye className="text-gold-dark" size={28} /><h2 className="mt-4 text-2xl font-bold text-navy">Our vision</h2><p className="mt-3 whitespace-pre-line leading-7 text-muted">{content.vision || "No vision available."}</p></article><article className="content-reveal border-t-4 border-maroon bg-white p-6 shadow-sm"><Target className="text-maroon" size={28} /><h2 className="mt-4 text-2xl font-bold text-navy">Our mission</h2><p className="mt-3 whitespace-pre-line leading-7 text-muted">{content.mission || "No mission available."}</p></article></div></>}
+  </div></section></div>;
 }

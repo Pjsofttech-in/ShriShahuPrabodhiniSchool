@@ -16,6 +16,7 @@ function isPublicRequest(config) {
     "/api/students",
     "/api/payments/create-order",
     "/api/payments/verify",
+    "/api2/createContactForm",
   ].includes(url)) {
     return true;
   }
@@ -24,8 +25,7 @@ function isPublicRequest(config) {
     url === "/api/districts" ||
     url === "/api/downloads" ||
     url.startsWith("/api/downloads/") ||
-    url === "/api2/getAllCourses" ||
-    url === "/api2/contact-us" ||
+    url.startsWith("/api2/") ||
     url.startsWith("/api/talukas") ||
     url.startsWith("/api/centers/taluka/") ||
     url.startsWith("/api/coordinators/center/")

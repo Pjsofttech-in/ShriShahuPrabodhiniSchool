@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState } from "react";
-import { fetchStudentByMobile, loginUser, getMyProfile } from "../services/backendService.js";
+import { loginUser, getMyProfile } from "../services/backendService.js";
 import { setAuthToken } from "../utils/api.js";
 
 const AuthContext = createContext(null);
@@ -12,7 +12,7 @@ export function AuthProvider({ children }) {
 
   async function persistUser(authResponse) {
     const payload = authResponse?.data ?? authResponse;
-    const userData = payload?.user ?? payload?.student ?? authResponse?.user ?? authResponse?.student;
+    const userData = payload?.user ?? payload?.student ?? authResponse?.user ?? authResponse?.student ?? payload;
     const token = payload?.token ?? authResponse?.token;
 
     if (token && userData) {
@@ -48,34 +48,24 @@ export function AuthProvider({ children }) {
     const isEmail = loginMethod === "email" || (!loginMethod && value.includes("@"));
 
     try {
-      let payload;
-      let resolvedStudent = null;
-
-      if (isEmail) {
-        payload = { email: value, password };
-      } else {
-        resolvedStudent = await fetchStudentByMobile(value);
-        const rollNo = resolvedStudent?.rollNo || resolvedStudent?.student?.rollNo;
-
-        if (!rollNo) {
-          return { success: false, message: "No student account found for this mobile number." };
-        }
-
-        payload = { rollNo, password };
-      }
+      const payload = isEmail
+        ? { email: value, password }
+        : { mobile: value, password };
 
       const response = await loginUser("student", payload);
       const persisted = await persistUser(response);
       if (persisted.success) {
+        const authPayload = response?.data ?? response;
+        const responseUser = authPayload?.user ?? authPayload?.student ?? {};
         const enrichedUser = {
           ...persisted.user,
-          ...(isEmail
-            ? { email: value }
-            : {
-                mobile: value,
-                rollNo: resolvedStudent?.rollNo || resolvedStudent?.student?.rollNo,
-                studentId: resolvedStudent?.id || resolvedStudent?.studentId,
-              }),
+          ...(isEmail ? { email: value } : { mobile: value }),
+          studentId:
+            persisted.user?.studentId ??
+            responseUser?.studentId ??
+            responseUser?.student?.id ??
+            (responseUser?.role ? responseUser?.id : undefined),
+          rollNo: persisted.user?.rollNo ?? responseUser?.rollNo,
         };
         setUser(enrichedUser);
         sessionStorage.setItem("ssp_user", JSON.stringify(enrichedUser));

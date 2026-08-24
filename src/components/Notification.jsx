@@ -1,143 +1,17 @@
-import {
-  Bell,
-  CalendarDays,
-  Award,
-  FileText,
-  BookOpen,
-  CheckCircle2,
-} from "lucide-react";
-
-const notifications = [
-  {
-    id: 1,
-    title: "Sankalp Scholarship Registration Open",
-    desc: "Online registrations have started for the 2026 examination.",
-    time: "5 min ago",
-    icon: Bell,
-    unread: true,
-  },
-  {
-    id: 2,
-    title: "Exam Schedule Published",
-    desc: "Check the latest examination dates and reporting time.",
-    time: "Today",
-    icon: CalendarDays,
-    unread: true,
-  },
-  {
-    id: 3,
-    title: "New Study Material Added",
-    desc: "Practice papers and notes are now available for download.",
-    time: "Yesterday",
-    icon: BookOpen,
-    unread: false,
-  },
-  {
-    id: 4,
-    title: "Scholarship Results Released",
-    desc: "View your Sankalp Scholarship examination result online.",
-    time: "2 Days Ago",
-    icon: Award,
-    unread: false,
-  },
-  {
-    id: 5,
-    title: "Answer Key Updated",
-    desc: "Final answer key has been uploaded for all students.",
-    time: "Last Week",
-    icon: FileText,
-    unread: false,
-  },
-];
+import React, { useEffect, useState } from "react";
+import { Bell, CheckCircle2, LoaderCircle } from "lucide-react";
+import { fetchNotifications } from "../services/backendService.js";
 
 export default function Notification() {
-  return (
-    <section className="min-h-screen bg-slate-50 py-12">
-      <div className="container-app max-w-3xl">
+  const [notifications, setNotifications] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  useEffect(() => { let active = true; fetchNotifications().then((items) => active && setNotifications(items)).catch(() => active && setError("Notifications are temporarily unavailable.")).finally(() => active && setLoading(false)); return () => { active = false; }; }, []);
 
-        {/* Header */}
-        <div className="bg-gradient-to-r from-navy to-blue-900 rounded-2xl p-6 shadow-lg text-white mb-8">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="w-14 h-14 rounded-full bg-white/15 flex items-center justify-center">
-                <Bell size={28} />
-              </div>
-
-              <div>
-                <h1 className="text-2xl font-bold font-display">
-                  Notifications
-                </h1>
-                <p className="text-sm text-white/80 mt-1">
-                  Stay updated with the latest announcements.
-                </p>
-              </div>
-            </div>
-
-            <div className="hidden sm:flex items-center gap-2 bg-gold text-navy-dark px-4 py-2 rounded-full font-semibold text-sm">
-              {notifications.filter((n) => n.unread).length} New
-            </div>
-          </div>
-        </div>
-
-        {/* Notifications */}
-        <div className="space-y-4">
-          {notifications.map((item) => {
-            const Icon = item.icon;
-
-            return (
-              <div
-                key={item.id}
-                className={`bg-white rounded-xl shadow-sm border transition-all duration-300 hover:shadow-md hover:-translate-y-1 ${
-                  item.unread
-                    ? "border-gold/50"
-                    : "border-slate-200"
-                }`}
-              >
-                <div className="flex items-start gap-4 p-5">
-
-                  <div
-                    className={`w-12 h-12 rounded-full flex items-center justify-center ${
-                      item.unread
-                        ? "bg-gold/20 text-gold-dark"
-                        : "bg-slate-100 text-slate-600"
-                    }`}
-                  >
-                    <Icon size={22} />
-                  </div>
-
-                  <div className="flex-1">
-                    <div className="flex items-center justify-between flex-wrap gap-2">
-                      <h3 className="font-semibold text-navy text-base">
-                        {item.title}
-                      </h3>
-
-                      {item.unread && (
-                        <span className="text-xs bg-gold text-navy-dark font-semibold px-2 py-1 rounded-full">
-                          NEW
-                        </span>
-                      )}
-                    </div>
-
-                    <p className="text-sm text-slate-600 mt-1 leading-6">
-                      {item.desc}
-                    </p>
-
-                    <div className="flex items-center gap-2 mt-3 text-xs text-slate-500">
-                      <CheckCircle2 size={14} />
-                      {item.time}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Footer */}
-        <div className="text-center mt-10 text-sm text-slate-500">
-          You're all caught up 🎉
-        </div>
-      </div>
-    </section>
-  );
+  return <section className="min-h-[70vh] bg-cream py-8 md:py-12"><div className="container-app max-w-4xl"><div className="mb-7 flex items-center gap-4 border-b-4 border-gold bg-navy p-5 text-white shadow-lg md:p-7"><div className="flex h-12 w-12 items-center justify-center rounded-full bg-white/10"><Bell size={25} className="text-gold" /></div><div><h1 className="text-2xl font-bold md:text-3xl">Notifications</h1><p className="mt-1 text-sm text-white/70">Important updates from Shri Shahu Prabodhini</p></div></div>
+    {loading && <div className="flex justify-center gap-3 py-20 text-muted"><LoaderCircle className="animate-spin text-gold" size={24} /> Loading notifications...</div>}
+    {!loading && error && <p className="py-16 text-center text-maroon">{error}</p>}
+    {!loading && !error && notifications.length === 0 && <p className="py-16 text-center text-muted">No notifications have been published yet.</p>}
+    {!loading && !error && notifications.length > 0 && <div className="grid gap-3">{notifications.map((item, index) => <article key={item.id} className="content-reveal flex gap-4 border-l-4 border-gold bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md" style={{ animationDelay: `${index * 70}ms` }}><div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gold/15 text-gold-dark"><Bell size={19} /></div><div><h2 className="font-bold text-navy">{item.title}</h2><p className="mt-1 text-sm leading-6 text-muted">{item.description || "No description available."}</p><p className="mt-3 flex items-center gap-1.5 text-xs text-muted"><CheckCircle2 size={14} className="text-gold-dark" /> Official announcement</p></div></article>)}</div>}
+  </div></section>;
 }

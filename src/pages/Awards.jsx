@@ -1,130 +1,58 @@
-import React from "react";
-import {
-  Award,
-  Trophy,
-  Medal,
-  Star,
-  BadgeCheck,
-} from "lucide-react";
+import React, { useEffect, useState } from "react";
+import { Award, BadgeCheck, CalendarDays, LoaderCircle, Medal, Trophy } from "lucide-react";
 import PageHeader from "../components/PageHeader";
-import { awards } from "../data/siteData";
+import { fetchAwards } from "../services/backendService";
+import { API_BASE_URL } from "../utils/api";
 
-const icons = [Trophy, Medal, Star, BadgeCheck];
+const icons = [Trophy, Medal, Award, BadgeCheck];
 
 export default function Awards() {
+  const [awards, setAwards] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    let active = true;
+    fetchAwards()
+      .then((items) => {
+        if (active) setAwards(items.sort((first, second) => Number(second.year) - Number(first.year)));
+      })
+      .catch(() => active && setError("Awards are temporarily unavailable. Please check back soon."))
+      .finally(() => active && setLoading(false));
+    return () => { active = false; };
+  }, []);
+
   return (
     <>
-      <PageHeader
-        title="Awards & Recognition"
-        subtitle="Celebrating excellence, achievements and our commitment towards quality education."
-      />
-
-      <section className="section-pad bg-gradient-to-b from-white to-slate-50">
-        <div className="container-app">
-
-          {/* Statistics */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-14">
-
-            <div className="rounded-2xl bg-white shadow-lg border border-slate-100 p-8 text-center">
-              <Award className="mx-auto text-gold mb-3" size={36} />
-              <h2 className="text-3xl font-bold text-navy">
-                {awards.length}+
-              </h2>
-              <p className="text-muted mt-1">Recognitions</p>
-            </div>
-
-            <div className="rounded-2xl bg-white shadow-lg border border-slate-100 p-8 text-center">
-              <Trophy className="mx-auto text-gold mb-3" size={36} />
-              <h2 className="text-3xl font-bold text-navy">
-                25+
-              </h2>
-              <p className="text-muted mt-1">
-                Years of Excellence
-              </p>
-            </div>
-
-            <div className="rounded-2xl bg-white shadow-lg border border-slate-100 p-8 text-center">
-              <Star className="mx-auto text-gold mb-3" size={36} />
-              <h2 className="text-3xl font-bold text-navy">
-                10K+
-              </h2>
-              <p className="text-muted mt-1">
-                Students Benefited
-              </p>
-            </div>
-
+      <PageHeader title="Awards & Recognition" crumb="Awards" />
+      <section className="relative overflow-hidden bg-cream section-pad">
+        <div className="absolute right-0 top-0 h-72 w-72 translate-x-1/3 -translate-y-1/3 rounded-full bg-gold/10" />
+        <div className="container-app relative">
+          <div className="mx-auto mb-12 max-w-3xl text-center">
+            <span className="eyebrow">A record worth celebrating</span>
+            <h2 className="text-3xl font-bold text-navy md:text-5xl">Milestones that inspire</h2>
+            <p className="mx-auto mt-4 max-w-2xl leading-7 text-muted">Every recognition reflects our commitment to helping students learn with confidence and achieve their full potential.</p>
           </div>
-
-          {/* Heading */}
-          <div className="text-center mb-12">
-            <span className="inline-block px-4 py-1 rounded-full bg-gold/10 text-gold-dark font-semibold text-sm tracking-wide">
-              OUR ACHIEVEMENTS
-            </span>
-
-            <h2 className="mt-4 text-4xl font-display font-bold text-navy">
-              Milestones That Inspire
-            </h2>
-
-            <p className="max-w-2xl mx-auto mt-3 text-muted">
-              Every recognition reflects our dedication towards academic
-              excellence and holistic student development.
-            </p>
+          <div className="mb-12 grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <div className="border-l-4 border-gold bg-white p-6 shadow-sm"><p className="text-3xl font-bold text-navy">{loading ? "--" : awards.length}</p><p className="mt-1 text-sm font-semibold uppercase tracking-wider text-muted">Recognitions</p></div>
+            <div className="border-l-4 border-maroon bg-white p-6 shadow-sm"><p className="text-3xl font-bold text-navy">1987</p><p className="mt-1 text-sm font-semibold uppercase tracking-wider text-muted">Established</p></div>
+            <div className="border-l-4 border-navy bg-white p-6 shadow-sm"><p className="text-3xl font-bold text-navy">40K+</p><p className="mt-1 text-sm font-semibold uppercase tracking-wider text-muted">Students served</p></div>
           </div>
-
-          {/* Award Cards */}
-          <div className="grid md:grid-cols-2 gap-8">
-
+          {loading && <div className="flex items-center justify-center gap-3 py-20 text-muted"><LoaderCircle className="animate-spin text-gold" size={24} /> Loading recognitions...</div>}
+          {!loading && error && <p className="py-16 text-center text-maroon">{error}</p>}
+          {!loading && !error && awards.length === 0 && <p className="py-16 text-center text-muted">No recognitions have been published yet.</p>}
+          {!loading && !error && awards.length > 0 && <div className="grid gap-7 md:grid-cols-2">
             {awards.map((award, index) => {
-
               const Icon = icons[index % icons.length];
-
-              return (
-                <div
-                  key={award.title}
-                  className="group bg-white rounded-3xl border border-slate-200 shadow-sm hover:shadow-xl hover:-translate-y-2 transition duration-300 overflow-hidden"
-                >
-
-                  <div className="h-2 bg-gradient-to-r from-gold via-yellow-400 to-gold" />
-
-                  <div className="p-8">
-
-                    <div className="flex justify-between items-start mb-6">
-
-                      <div className="w-16 h-16 rounded-2xl bg-gold/10 flex items-center justify-center group-hover:bg-gold transition">
-
-                        <Icon
-                          size={30}
-                          className="text-gold-dark group-hover:text-navy"
-                        />
-
-                      </div>
-
-                      <span className="px-4 py-2 rounded-full bg-navy text-white text-sm font-semibold">
-                        {award.year}
-                      </span>
-
-                    </div>
-
-                    <h3 className="text-2xl font-display font-bold text-navy mb-3">
-                      {award.title}
-                    </h3>
-
-                    <div className="inline-flex items-center gap-2 bg-slate-100 rounded-full px-4 py-2 text-sm text-slate-700">
-
-                      <Award size={15} />
-
-                      Awarded by <strong>{award.by}</strong>
-
-                    </div>
-
-                  </div>
-
+              const image = award.image && (/^(https?:|data:|blob:)/i.test(award.image) ? award.image : `${API_BASE_URL.replace(/\/+$/, "")}/${award.image.replace(/^\/+/, "")}`);
+              return <article key={award.id} className="group overflow-hidden bg-white shadow-[0_8px_30px_rgba(11,37,69,0.08)] transition duration-300 hover:-translate-y-1 hover:shadow-xl">
+                <div className="grid min-h-[250px] sm:grid-cols-[42%_58%]">
+                  <div className="relative min-h-[220px] overflow-hidden bg-navy">{image ? <img src={image} alt={award.title} className="h-full w-full object-cover transition duration-500 group-hover:scale-105" /> : <div className="flex h-full items-center justify-center bg-navy-light"><Icon size={64} className="text-gold" strokeWidth={1.2} /></div>}<span className="absolute left-4 top-4 inline-flex items-center gap-1.5 bg-gold px-3 py-1.5 text-sm font-bold text-navy"><CalendarDays size={15} /> {award.year || "Recognition"}</span></div>
+                  <div className="flex flex-col justify-center p-6 sm:p-7"><div className="mb-4 flex h-10 w-10 items-center justify-center rounded-full bg-gold/15 text-gold-dark"><Icon size={20} /></div><h3 className="text-xl font-bold leading-tight text-navy">{award.title}</h3>{award.description && <p className="mt-3 text-sm leading-6 text-muted">{award.description}</p>}<p className="mt-5 border-t border-slate-100 pt-4 text-sm text-muted">Awarded by <strong className="text-navy">{award.by}</strong></p>{award.awardedTo && <p className="mt-1 text-xs uppercase tracking-wider text-gold-dark">Presented to {award.awardedTo}</p>}</div>
                 </div>
-              );
+              </article>;
             })}
-
-          </div>
-
+          </div>}
         </div>
       </section>
     </>

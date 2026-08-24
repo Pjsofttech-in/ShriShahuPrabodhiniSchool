@@ -1,46 +1,25 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
+import { BookOpen, ImageOff, LoaderCircle, MapPin, Users } from "lucide-react";
 import PageHeader from "../components/PageHeader.jsx";
-import { schoolInfo, featureCounts } from "../data/siteData.js";
+import { API_BASE_URL } from "../utils/api.js";
+import { fetchAboutUs } from "../services/backendService.js";
+
+function imageUrl(image) {
+  if (!image) return "";
+  return /^(https?:|data:|blob:)/i.test(image) ? image : `${API_BASE_URL.replace(/\/+$/, "")}/${String(image).replace(/^\/+/, "")}`;
+}
 
 export default function AboutUs() {
-  return (
-    <div>
-      <PageHeader title="About Us" />
-      <section className="section-pad">
-        <div className="container-app grid md:grid-cols-2 gap-10 items-center mb-16">
-          <img
-            src="https://images.unsplash.com/photo-1580582932707-520aed937b7b?q=80&w=900&auto=format&fit=crop"
-            alt="Campus"
-            className="rounded-2xl shadow-lg w-full h-80 object-cover"
-          />
-          <div>
-            <span className="eyebrow">Our Story</span>
-            <h2 className="text-2xl md:text-3xl font-bold text-navy mb-4">
-              Since {schoolInfo.established}, Educating with Purpose
-            </h2>
-            <p className="text-muted leading-relaxed mb-4">
-              {schoolInfo.schoolName} was founded with a simple belief: talent is everywhere,
-              opportunity is not. Starting from a single classroom in {schoolInfo.village}, we
-              have grown into a statewide network of exam centers running the Sankalp
-              Scholarship Exam, helping thousands of students access quality assessment,
-              mentorship and recognition every year.
-            </p>
-            <p className="text-muted leading-relaxed">
-              Today, our coordinators and faculty operate across {featureCounts[2].value}+
-              centers, supported by a dedicated administrative team ensuring every student's
-              journey — from registration to result — is transparent and smooth.
-            </p>
-          </div>
-        </div>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-6 bg-cream rounded-2xl p-8">
-          {featureCounts.map((c) => (
-            <div key={c.label} className="text-center">
-              <p className="font-display text-3xl font-bold text-navy">{c.value.toLocaleString()}{c.suffix}</p>
-              <p className="text-sm text-muted font-medium mt-1">{c.label}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-    </div>
-  );
+  const [about, setAbout] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  useEffect(() => { let active = true; fetchAboutUs().then((items) => active && setAbout(items[0] || null)).catch(() => active && setError("About information is temporarily unavailable.")).finally(() => active && setLoading(false)); return () => { active = false; }; }, []);
+  const stats = about ? [[about.years, "Years of excellence", BookOpen], [about.centers, "Exam centres", MapPin], [about.faculties, "Expert faculty", Users], [about.students, "Students reached", Users]] : [];
+
+  return <div><PageHeader title="About Us" crumb="About Us" /><section className="bg-cream py-8 md:py-12"><div className="container-app">
+    {loading && <div className="flex justify-center gap-3 py-20 text-muted"><LoaderCircle className="animate-spin text-gold" size={24} /> Loading about information...</div>}
+    {!loading && error && <p className="py-16 text-center text-maroon">{error}</p>}
+    {!loading && !error && !about && <p className="py-16 text-center text-muted">About information has not been published yet.</p>}
+    {!loading && !error && about && <><div className="grid items-center gap-8 md:grid-cols-[0.9fr_1.1fr]"><div className="relative min-h-[260px] overflow-hidden bg-navy shadow-xl">{about.image ? <img src={imageUrl(about.image)} alt={about.title} className="h-full min-h-[260px] w-full object-cover" /> : <div className="flex min-h-[260px] flex-col items-center justify-center gap-3 text-white/80"><ImageOff className="text-gold" size={42} /><span>Image not available</span></div>}</div><div><span className="eyebrow">Our story</span><h2 className="text-3xl font-bold leading-tight text-navy md:text-4xl">{about.title}</h2><p className="mt-5 whitespace-pre-line leading-7 text-muted">{about.description || "No description available."}</p></div></div><div className="mt-8 grid grid-cols-2 gap-3 md:grid-cols-4">{stats.map(([value, label, Icon]) => <div key={label} className="content-reveal border-l-4 border-gold bg-white p-4 shadow-sm"><Icon size={19} className="text-gold-dark" /><p className="mt-3 text-2xl font-bold text-navy">{value || "-"}</p><p className="mt-1 text-xs font-semibold uppercase tracking-wider text-muted">{label}</p></div>)}</div></>}
+  </div></section></div>;
 }

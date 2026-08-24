@@ -4,8 +4,6 @@ import DashboardShell from "../../components/DashboardShell.jsx";
 import { useAuth } from "../../context/AuthContext.jsx";
 import {
   fetchStudentById,
-  fetchStudentByMobile,
-  fetchStudentByRollNo,
   fetchCoordinators,
   fetchCenters,
 } from "../../services/backendService.js";
@@ -32,18 +30,7 @@ export default function StudentDashboard({ defaultTab = "profile" }) {
       try {
         let studentData = null;
 
-        const lookupIds = [user?.id, user?.studentId, user?.student?.id, user?.userId].filter(Boolean);
-        const lookupValues = [
-          user?.email,
-          user?.student?.email,
-          user?.mobile,
-          user?.student?.mobile,
-          user?.rollNo,
-          user?.student?.rollNo,
-          user?.username,
-          user?.student?.username,
-        ].filter(Boolean);
-
+        const lookupIds = [user?.studentId, user?.student?.id, user?.id, user?.userId].filter(Boolean);
         for (const id of lookupIds) {
           try {
             const found = await fetchStudentById(id);
@@ -53,23 +40,6 @@ export default function StudentDashboard({ defaultTab = "profile" }) {
             }
           } catch (err) {
             console.warn("Student lookup by id failed.", err);
-          }
-        }
-
-        if (!studentData) {
-          for (const value of lookupValues) {
-            try {
-              const found = value && value.toString().length >= 10
-                ? await fetchStudentByMobile(value)
-                : await fetchStudentByRollNo(value);
-
-              if (found) {
-                studentData = found;
-                break;
-              }
-            } catch (err) {
-              console.warn("Student lookup by mobile/roll failed.", err);
-            }
           }
         }
 

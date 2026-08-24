@@ -49,6 +49,7 @@ function normalizeList(payload) {
       "rows",
       "result",
       "records",
+      "value",
       "values",
       "districts",
       "talukas",
@@ -187,6 +188,13 @@ export async function fetchContactInfo() {
   }
 }
 
+export async function submitContactForm(formData) {
+  const response = await api.post("/api2/createContactForm", formData, {
+    params: { url: DYNAMIC_PROFILE_URL },
+  });
+  return response.data;
+}
+
 export async function fetchCourses() {
   const response = await api.get("/api2/getAllCourses", {
     params: { url: DYNAMIC_PROFILE_URL },
@@ -200,6 +208,130 @@ export async function fetchCourses() {
     color: course?.courseColor ?? "",
     duration: course?.duration ?? "",
     fee: course?.price != null ? String(course.price) : "",
+  }));
+}
+
+export async function fetchAwards() {
+  const response = await api.get("/api2/getAllAwards", {
+    params: { url: DYNAMIC_PROFILE_URL },
+  });
+
+  return normalizeList(response.data).map((award, index) => ({
+    id: award?.id ?? index + 1,
+    title: award?.awardName ?? "Recognition",
+    description: award?.description ?? "",
+    by: award?.awardedBy ?? "Shri Shahu Prabodhini",
+    awardedTo: award?.awardTo ?? "",
+    year: award?.year ?? "",
+    image: award?.awardImage ?? "",
+  }));
+}
+
+export async function fetchToppers() {
+  const response = await api.get("/api2/getAllToppers", {
+    params: { url: DYNAMIC_PROFILE_URL },
+  });
+
+  return normalizeList(response.data).map((topper, index) => ({
+    id: topper?.topperId ?? index + 1,
+    name: topper?.name ?? "Sankalp Topper",
+    score: topper?.totalMarks ?? "",
+    className: topper?.className ?? "",
+    post: topper?.post ?? "",
+    rank: topper?.rank ?? "",
+    year: topper?.year ?? "",
+    image: topper?.topperImage || topper?.topperImages?.[0] || "",
+    images: Array.isArray(topper?.topperImages) ? topper.topperImages : [],
+  }));
+}
+
+export async function fetchGallery() {
+  const response = await api.get("/api2/getAllGalleries", {
+    params: { url: DYNAMIC_PROFILE_URL },
+  });
+
+  return normalizeList(response.data).map((gallery, index) => ({
+    id: gallery?.galleryId ?? index + 1,
+    eventName: gallery?.eventName ?? "",
+    month: gallery?.month ?? "",
+    title: gallery?.title ?? "Gallery",
+    year: gallery?.year ?? "",
+    link: gallery?.link ?? "",
+    color: gallery?.galleryColor ?? "",
+    images: Array.isArray(gallery?.galleryImages) ? gallery.galleryImages : [],
+  }));
+}
+
+export async function fetchFaculties() {
+  const response = await api.get("/api2/getAllFacilities", {
+    params: { url: DYNAMIC_PROFILE_URL },
+  });
+
+  return normalizeList(response.data).map((faculty, index) => ({
+    id: faculty?.id ?? index + 1,
+    name: faculty?.facilityName ?? "Faculty",
+    experience: faculty?.experienceInYear ?? "",
+    subject: faculty?.subject ?? "",
+    education: faculty?.facilityEducation ?? "",
+    description: faculty?.description ?? "",
+    image: faculty?.facilityImage ?? "",
+  }));
+}
+
+export async function fetchTestimonials() {
+  const response = await api.get("/api2/getAllTestimonials", {
+    params: { url: DYNAMIC_PROFILE_URL },
+  });
+
+  return normalizeList(response.data).map((testimonial, index) => ({
+    id: testimonial?.testimonialId ?? index + 1,
+    title: testimonial?.testimonialTitle ?? "Student voice",
+    name: testimonial?.testimonialName ?? "Student",
+    exam: testimonial?.exam ?? "",
+    post: testimonial?.post ?? "",
+    rank: testimonial?.rank ?? "",
+    description: testimonial?.description ?? "",
+    image: testimonial?.testimonialImage ?? "",
+  }));
+}
+
+export async function fetchAboutUs() {
+  const response = await api.get("/api2/getAllAboutUs", {
+    params: { url: DYNAMIC_PROFILE_URL },
+  });
+  return normalizeList(response.data).map((about, index) => ({
+    id: about?.id ?? index + 1,
+    title: about?.aboutUsTitle ?? "About Shri Shahu Prabodhini",
+    description: about?.aboutUsDescription ?? "",
+    image: about?.aboutUsImage ?? "",
+    years: about?.totalYearsOfExcellence ?? "",
+    centers: about?.totalExamCenters ?? "",
+    faculties: about?.totalFaculties ?? "",
+    students: about?.totalStudents ?? "",
+  }));
+}
+
+export async function fetchVisionMissions() {
+  const response = await api.get("/api2/getAllVisionMissions", {
+    params: { url: DYNAMIC_PROFILE_URL },
+  });
+  return normalizeList(response.data).map((visionMission, index) => ({
+    id: visionMission?.id ?? index + 1,
+    vision: visionMission?.vision ?? "",
+    mission: visionMission?.mission ?? "",
+    directorMessage: visionMission?.directorMessage ?? "",
+    directorName: visionMission?.directorName ?? "",
+    directorImage: visionMission?.directorImage ?? "",
+    description: visionMission?.description ?? "",
+  }));
+}
+
+export async function fetchNotifications() {
+  const response = await api.get("/api2/notifications");
+  return normalizeList(response.data).map((notification, index) => ({
+    id: notification?.id ?? index + 1,
+    title: notification?.title ?? "Notification",
+    description: notification?.description ?? "",
   }));
 }
 
