@@ -2,6 +2,15 @@ import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import PageHeader from "../components/PageHeader.jsx";
 import { fetchCourses } from "../services/backendService.js";
+import { API_BASE_URL } from "../utils/api.js";
+
+const fallbackCourseImage = "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?q=80&w=800&auto=format&fit=crop";
+
+function resolveImageUrl(image) {
+  if (!image) return fallbackCourseImage;
+  if (/^(https?:|data:|blob:)/i.test(image)) return image;
+  return `${API_BASE_URL.replace(/\/+$/, "")}/${String(image).replace(/^\/+/, "")}`;
+}
 
 export default function Courses() {
   const [courses, setCourses] = useState([]);
@@ -30,7 +39,12 @@ export default function Courses() {
           {courses.map((c) => (
             <div key={c.id} className="card overflow-hidden group">
               <div className="h-48 overflow-hidden">
-                <img src={c.image} alt={c.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                <img
+                  src={resolveImageUrl(c.image)}
+                  alt={c.name}
+                  onError={(event) => { event.currentTarget.src = fallbackCourseImage; }}
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                />
               </div>
               <div className="p-5">
                 <h3 className="font-bold text-navy mb-1.5">{c.name}</h3>

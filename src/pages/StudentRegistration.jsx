@@ -15,6 +15,8 @@ import {
 
 const initialForm = {
   name: "",
+  fatherName: "",
+  fatherSurname: "",
   mobile: "",
   email: "",
   password: "",
@@ -243,6 +245,8 @@ export default function StudentRegistration() {
   async function saveToBackend(paymentId) {
     const payload = {
       studentName: form.name,
+      fatherName: form.fatherName,
+      fatherSurname: form.fatherSurname,
       mobile: form.mobile,
       email: form.email.trim() || null,
       password: form.password,
@@ -378,6 +382,12 @@ export default function StudentRegistration() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 items-start">
             <Field label="Student Name">
               <input required className="input-field" value={form.name} onChange={(e) => update("name", e.target.value)} />
+            </Field>
+            <Field label="Father Name">
+              <input required className="input-field" value={form.fatherName} onChange={(e) => update("fatherName", e.target.value)} />
+            </Field>
+            <Field label="Father Surname">
+              <input required className="input-field" value={form.fatherSurname} onChange={(e) => update("fatherSurname", e.target.value)} />
             </Field>
             <Field label="Mobile">
               <input required pattern="[0-9]{10}" title="10 digit mobile number" className="input-field" value={form.mobile} onChange={(e) => update("mobile", e.target.value)} />

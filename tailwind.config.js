@@ -1,34 +1,35 @@
 /** @type {import('tailwindcss').Config} */
 export default {
+  darkMode: "class",
   content: ["./index.html", "./src/**/*.{js,jsx}"],
   theme: {
     extend: {
       colors: {
         navy: {
-          DEFAULT: '#0B2545',
-          light: '#12345E',
-          dark: '#071830',
+          DEFAULT: '#263238',
+          light: '#455A64',
+          dark: '#172126',
         },
         gold: {
-          DEFAULT: '#F0A500',
-          light: '#FFC94A',
-          dark: '#C77F00',
+          DEFAULT: '#FF6D00',
+          light: '#FFB74D',
+          dark: '#E65100',
         },
         maroon: {
-          DEFAULT: '#A62639',
-          dark: '#7A1B2A',
+          DEFAULT: '#EF5350',
+          dark: '#C62828',
         },
-        cream: '#FBF8F2',
-        ink: '#1E2A38',
-        muted: '#5B6B7C',
+          cream: '#F5F7FA',
+          ink: '#263238',
+          muted: '#60727B',
       },
       fontFamily: {
-        display: ['"Fraunces"', 'serif'],
-        body: ['"Manrope"', 'sans-serif'],
+        display: ['"Poppins"', 'sans-serif'],
+        body: ['"Poppins"', 'sans-serif'],
         mono: ['"JetBrains Mono"', 'monospace'],
       },
       backgroundImage: {
-        'ribbon': "linear-gradient(135deg, #F0A500 0%, #C77F00 100%)",
+          'ribbon': "linear-gradient(135deg, #FF6D00 0%, #E65100 100%)",
       },
     },
   },

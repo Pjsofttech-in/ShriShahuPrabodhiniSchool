@@ -1,23 +1,29 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 html { scroll-behavior: smooth; }
-body { @apply bg-white text-ink font-body; }
+body { @apply bg-white text-ink font-body; transition: background-color 300ms ease, color 300ms ease; }
 h1,h2,h3,h4 { @apply font-display; }
 
 .container-app { @apply max-w-7xl mx-auto px-5 md:px-8; }
 .section-pad { @apply py-14 md:py-20; }
+.dark body { @apply bg-[#172126] text-white; }
+.dark .card { @apply bg-[#263238] border-white/10 shadow-[0_8px_30px_rgba(23,33,38,0.3)]; }
+.dark .bg-white { background-color: #263238; }
+.dark .bg-cream { background-color: #202B30; }
 .eyebrow { @apply inline-block text-xs md:text-sm tracking-[0.2em] uppercase font-bold text-gold-dark mb-3; }
-.btn-primary { @apply inline-flex items-center gap-2 bg-gold hover:bg-gold-dark text-navy-dark font-bold px-6 py-3 rounded-md transition-all duration-200 shadow-md hover:shadow-lg hover:-translate-y-0.5; }
-.btn-outline { @apply inline-flex items-center gap-2 border-2 border-navy text-navy font-bold px-6 py-3 rounded-md hover:bg-navy hover:text-white transition-all duration-200; }
-.card { @apply bg-white rounded-xl shadow-[0_4px_20px_rgba(11,37,69,0.08)] border border-black/5; }
+.btn-primary { @apply inline-flex items-center gap-2 bg-gradient-to-r from-gold to-gold-dark text-white font-bold px-6 py-3 rounded-md transition-all duration-300 shadow-[0_6px_16px_rgba(255,109,0,0.28)] hover:shadow-[0_10px_24px_rgba(38,50,56,0.28)] hover:-translate-y-1 hover:brightness-105; }
+.btn-outline { @apply inline-flex items-center gap-2 border-2 border-navy text-navy font-bold px-6 py-3 rounded-md transition-all duration-300 hover:bg-navy hover:text-white hover:-translate-y-1 hover:shadow-lg; }
+.card { @apply bg-white rounded-xl shadow-[0_4px_20px_rgba(11,37,69,0.08)] border border-black/5 transition-all duration-300; }
 .input-field { @apply w-full border border-black/15 rounded-md px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-gold focus:border-transparent transition; }
 .label-field { @apply block text-sm font-semibold text-navy mb-1.5; }
 
-::selection { background: #F0A500; color: #0B2545; }
+::selection { background: #FF6D00; color: #FFFFFF; }
 
-.focus-ring:focus-visible { outline: 3px solid #F0A500; outline-offset: 2px; }
+.focus-ring:focus-visible { outline: 3px solid #FF6D00; outline-offset: 2px; }
 
 @keyframes topper-reveal {
   from { opacity: 0; transform: translateY(14px); }
@@ -31,6 +37,50 @@ h1,h2,h3,h4 { @apply font-display; }
 .content-reveal {
   animation: topper-reveal 500ms ease-out both;
 }
+
+.scroll-reveal {
+  opacity: 0;
+  transform: translateY(28px) scale(.985);
+  transition: opacity 700ms cubic-bezier(.22, 1, .36, 1), transform 700ms cubic-bezier(.22, 1, .36, 1);
+  transition-delay: var(--reveal-delay, 0ms);
+}
+
+.scroll-reveal.is-visible {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+
+.announcement-track {
+  animation: announcement-scroll 24s linear infinite;
+}
+
+@keyframes announcement-scroll {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
+.page-transition { animation: page-enter 650ms cubic-bezier(.22, 1, .36, 1) both; }
+
+@keyframes page-enter {
+  from { opacity: 0; transform: translateY(18px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.page-header-title { animation: title-enter 700ms cubic-bezier(.22, 1, .36, 1) both; }
+.page-header-subtitle { animation: title-enter 700ms 100ms cubic-bezier(.22, 1, .36, 1) both; }
+
+@keyframes title-enter {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.dark .text-ink, .dark .text-navy { color: #f8fafc; }
+.dark .text-muted { color: #b8c6d8; }
+.dark .border-black\/5, .dark .border-black\/15 { border-color: rgba(255,255,255,.14); }
+.dark .input-field { @apply bg-[#102b4b] text-white border-white/20; }
+
+.interactive-lift { @apply transition-all duration-300; }
+.interactive-lift:hover { @apply -translate-y-1 shadow-xl; }
 
 @media (prefers-reduced-motion: reduce) {
   * { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; }

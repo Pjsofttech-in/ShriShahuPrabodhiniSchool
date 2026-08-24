@@ -184,10 +184,8 @@ export default function Home() {
         <div className="container-app">
           <SectionHeading
   eyebrow="Features"
-  title="What Our Students Say"
+  title="Built For Better Outcomes"
   center
-  titleClassName="!text-white"
-eyebrowClassName="text-[#F0A500] text-[30px]"
 />
           <div className="grid sm:grid-cols-2 md:grid-cols-4 gap-6 mb-16">
             {schoolFeatures.map((f) => {
@@ -239,7 +237,7 @@ eyebrowClassName="text-[#F0A500] text-[30px]"
             hover:-translate-y-2
             hover:shadow-2xl
             hover:ring-2
-            hover:ring-[#F0A500]/40
+            hover:ring-gold/40
           "
         >
           <div className="h-44 overflow-hidden">
@@ -247,7 +245,7 @@ eyebrowClassName="text-[#F0A500] text-[30px]"
           </div>
 
           <div className="p-5">
-            <h3 className="font-bold text-navy mb-1.5 transition-colors duration-300 group-hover:text-[#F0A500]">
+            <h3 className="font-bold text-navy mb-1.5 transition-colors duration-300 group-hover:text-gold">
               {c.name}
             </h3>
 
@@ -310,7 +308,7 @@ eyebrowClassName="text-[#F0A500] text-[30px]"
             hover:-translate-y-2
             hover:shadow-2xl
             hover:ring-2
-            hover:ring-[#F0A500]/40
+            hover:ring-gold/40
           "
         >
           {/* Score Badge */}
@@ -323,7 +321,7 @@ eyebrowClassName="text-[#F0A500] text-[30px]"
 
           {/* Content */}
           <div className="p-4">
-            <h3 className="font-bold text-navy transition-colors duration-300 group-hover:text-[#F0A500]">
+            <h3 className="font-bold text-navy transition-colors duration-300 group-hover:text-gold">
               {t.name}
             </h3>
 
@@ -372,7 +370,7 @@ eyebrowClassName="text-[#F0A500] text-[30px]"
             hover:-translate-y-2
             hover:shadow-2xl
             hover:ring-2
-            hover:ring-[#F0A500]/40
+            hover:ring-gold/40
           "
         >
           {g.images?.[0] ? <img src={resolveImageUrl(g.images[0])} alt={g.title} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" /> : <MissingImage />}
@@ -422,17 +420,17 @@ eyebrowClassName="text-[#F0A500] text-[30px]"
             hover:-translate-y-2
             hover:shadow-2xl
             hover:ring-2
-            hover:ring-[#F0A500]/40
+            hover:ring-gold/40
           "
         >
           {f.image ? <img src={resolveImageUrl(f.image)} alt={f.name} className="w-full h-48 object-cover transition-transform duration-500 group-hover:scale-105" /> : <MissingImage className="h-48" />}
 
           <div className="p-4">
-            <h3 className="font-bold text-navy transition-colors duration-300 group-hover:text-[#F0A500]">
+            <h3 className="font-bold text-navy transition-colors duration-300 group-hover:text-gold">
               {f.name}
             </h3>
 
-            <p className="text-xs text-gold-dark font-semibold transition-colors duration-300 group-hover:text-[#F0A500]">
+            <p className="text-xs text-gold-dark font-semibold transition-colors duration-300 group-hover:text-gold">
               {f.subject}
             </p>
 

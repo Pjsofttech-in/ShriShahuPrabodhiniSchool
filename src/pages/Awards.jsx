@@ -28,11 +28,6 @@ export default function Awards() {
       <section className="relative overflow-hidden bg-cream section-pad">
         <div className="absolute right-0 top-0 h-72 w-72 translate-x-1/3 -translate-y-1/3 rounded-full bg-gold/10" />
         <div className="container-app relative">
-          <div className="mx-auto mb-12 max-w-3xl text-center">
-            <span className="eyebrow">A record worth celebrating</span>
-            <h2 className="text-3xl font-bold text-navy md:text-5xl">Milestones that inspire</h2>
-            <p className="mx-auto mt-4 max-w-2xl leading-7 text-muted">Every recognition reflects our commitment to helping students learn with confidence and achieve their full potential.</p>
-          </div>
           <div className="mb-12 grid grid-cols-1 gap-4 sm:grid-cols-3">
             <div className="border-l-4 border-gold bg-white p-6 shadow-sm"><p className="text-3xl font-bold text-navy">{loading ? "--" : awards.length}</p><p className="mt-1 text-sm font-semibold uppercase tracking-wider text-muted">Recognitions</p></div>
             <div className="border-l-4 border-maroon bg-white p-6 shadow-sm"><p className="text-3xl font-bold text-navy">1987</p><p className="mt-1 text-sm font-semibold uppercase tracking-wider text-muted">Established</p></div>

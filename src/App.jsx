@@ -38,6 +38,7 @@ export default function App() {
         <Routes>
           <Route element={<Layout />}>
             <Route path="/" element={<Home />} />
+            <Route path="/home" element={<Home />} />
 
             <Route path="/sankalp/exam-information" element={<ExamInformation />} />
             <Route path="/sankalp/syllabus" element={<Syllabus />} />

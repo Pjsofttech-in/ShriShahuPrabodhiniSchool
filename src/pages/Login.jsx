@@ -188,7 +188,7 @@ export default function Login() {
                 }
                 type={role === "student" && loginMethod === "email" ? "email" : "tel"}
                 inputMode={role === "student" && loginMethod === "mobile" ? "numeric" : undefined}
-                className="w-full rounded-xl border border-gray-200 bg-[#EEF4FF] px-4 py-3 outline-none transition-all duration-300 focus:border-[#F0A500] focus:ring-2 focus:ring-[#F0A500]/20"
+                className="w-full rounded-xl border border-gray-200 bg-[#EEF4FF] px-4 py-3 outline-none transition-all duration-300 focus:border-gold focus:ring-2 focus:ring-gold/20"
               />
 
             </div>
@@ -206,7 +206,7 @@ export default function Login() {
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full rounded-xl border border-gray-200 bg-[#EEF4FF] px-4 py-3 outline-none transition-all duration-300 focus:border-[#F0A500] focus:ring-2 focus:ring-[#F0A500]/20"
+                className="w-full rounded-xl border border-gray-200 bg-[#EEF4FF] px-4 py-3 outline-none transition-all duration-300 focus:border-gold focus:ring-2 focus:ring-gold/20"
               />
             </div>
                         {/* Login Button */}
