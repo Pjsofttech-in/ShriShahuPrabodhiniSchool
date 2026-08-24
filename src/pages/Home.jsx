@@ -2,13 +2,17 @@ import React, { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   GraduationCap, Target, MapPin, FileCheck2, ArrowRight, CalendarDays,
-  Quote, MapPinned,
+  Quote, MapPinned, ImageOff,
 } from "lucide-react";
 import ImageSlider from "../components/ImageSlider.jsx";
 import {
-  sliderSlides, featureCounts, schoolFeatures, courses, toppers, gallery,
-  faculties, testimonials, examInfo, schoolInfo,
+  sliderSlides, featureCounts, schoolFeatures, examInfo, schoolInfo,
 } from "../data/siteData.js";
+import {
+  fetchCourses, fetchFaculties, fetchGallery, fetchTestimonials,
+  fetchToppers, fetchVisionMissions,
+} from "../services/backendService.js";
+import { API_BASE_URL } from "../utils/api.js";
 
 const icons = { GraduationCap, Target, MapPin, FileCheck2 };
 
@@ -76,7 +80,38 @@ function SectionHeading({
   );
 }
 
+function resolveImageUrl(image) {
+  if (!image) return "";
+  if (/^(https?:|data:|blob:)/i.test(image)) return image;
+  return `${API_BASE_URL.replace(/\/+$/, "")}/${String(image).replace(/^\/+/, "")}`;
+}
+
+function MissingImage({ className = "" }) {
+  return <div className={`flex h-full min-h-24 flex-col items-center justify-center gap-2 bg-navy-light text-white/70 ${className}`}><ImageOff className="text-gold" size={28} /><span className="text-xs">Image not available</span></div>;
+}
+
 export default function Home() {
+  const [liveData, setLiveData] = React.useState({ courses: [], toppers: [], gallery: [], faculties: [], testimonials: [], visionMission: null });
+
+  React.useEffect(() => {
+    let active = true;
+    Promise.allSettled([fetchCourses(), fetchToppers(), fetchGallery(), fetchFaculties(), fetchTestimonials(), fetchVisionMissions()]).then((results) => {
+      if (!active) return;
+      const [coursesResult, toppersResult, galleryResult, facultiesResult, testimonialsResult, visionResult] = results;
+      setLiveData({
+        courses: coursesResult.status === "fulfilled" ? coursesResult.value : [],
+        toppers: toppersResult.status === "fulfilled" ? toppersResult.value : [],
+        gallery: galleryResult.status === "fulfilled" ? galleryResult.value : [],
+        faculties: facultiesResult.status === "fulfilled" ? facultiesResult.value : [],
+        testimonials: testimonialsResult.status === "fulfilled" ? testimonialsResult.value : [],
+        visionMission: visionResult.status === "fulfilled" ? visionResult.value[0] || null : null,
+      });
+    });
+    return () => { active = false; };
+  }, []);
+
+  const { courses, toppers, gallery, faculties, testimonials, visionMission } = liveData;
+
   return (
     <div>
       {/* 1. Image Slider */}
@@ -87,11 +122,7 @@ export default function Home() {
         <div className="container-app grid md:grid-cols-[280px_1fr] gap-10 items-center">
           <div className="relative mx-auto">
             <div className="w-56 h-56 md:w-64 md:h-64 rounded-full overflow-hidden ring-8 ring-white shadow-xl">
-              <img
-                src="https://images.unsplash.com/photo-1560250097-0b93528c311a?q=80&w=500&auto=format&fit=crop"
-                alt="Director"
-                className="w-full h-full object-cover"
-              />
+              {visionMission?.directorImage ? <img src={resolveImageUrl(visionMission.directorImage)} alt={visionMission.directorName || "Director"} className="w-full h-full object-cover" /> : <MissingImage className="min-h-full" />}
             </div>
             <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 bg-gold text-navy-dark text-xs font-bold px-4 py-1.5 rounded-full shadow-md whitespace-nowrap">
               Director's Message
@@ -100,16 +131,12 @@ export default function Home() {
           <div>
             <span className="eyebrow">A Word From Our Sanchalak</span>
             <h2 className="text-2xl md:text-4xl font-bold text-navy mb-4">
-              "Every child carries a spark — Sankalp helps it become a flame."
+              {visionMission?.directorMessage || "Every child carries a spark — Sankalp helps it become a flame."}
             </h2>
             <p className="text-muted leading-relaxed mb-4">
-              For nearly four decades, Shri Shahu Prabodhini has stood beside students across
-              rural and urban Maharashtra, guiding them not just to clear an exam, but to
-              believe in their own potential. The Sankalp Scholarship Exam was built with one
-              goal — to give every child, regardless of where they come from, a fair chance to
-              shine.
+              {visionMission?.description || "Shri Shahu Prabodhini stands beside students across rural and urban Maharashtra, helping every child discover their potential and earn a fair chance to shine."}
             </p>
-            <p className="font-display font-semibold text-navy">— Dr. Vijay Shinde, Director</p>
+            <p className="font-display font-semibold text-navy">— {visionMission?.directorName || "Director"}, Director</p>
             <Link to="/vision-mission" className="btn-outline mt-6">
               Read Full Message <ArrowRight size={16} />
             </Link>
@@ -200,7 +227,7 @@ eyebrowClassName="text-[#F0A500] text-[30px]"
 
     {/* Courses Grid */}
     <div className="grid md:grid-cols-3 gap-6 mt-10">
-      {courses.map((c) => (
+      {courses.slice(0, 3).map((c) => (
         <div
           key={c.id}
           className="
@@ -216,11 +243,7 @@ eyebrowClassName="text-[#F0A500] text-[30px]"
           "
         >
           <div className="h-44 overflow-hidden">
-            <img
-              src={c.image}
-              alt={c.name}
-              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-            />
+            {c.image ? <img src={resolveImageUrl(c.image)} alt={c.name} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" /> : <MissingImage />}
           </div>
 
           <div className="p-5">
@@ -296,11 +319,7 @@ eyebrowClassName="text-[#F0A500] text-[30px]"
           </div>
 
           {/* Student Image */}
-          <img
-            src={t.photo}
-            alt={t.name}
-            className="w-full h-48 object-cover transition-transform duration-500 group-hover:scale-105"
-          />
+          {t.image ? <img src={resolveImageUrl(t.image)} alt={t.name} className="w-full h-48 object-cover transition-transform duration-500 group-hover:scale-105" /> : <MissingImage className="h-48" />}
 
           {/* Content */}
           <div className="p-4">
@@ -309,7 +328,7 @@ eyebrowClassName="text-[#F0A500] text-[30px]"
             </h3>
 
             <p className="text-xs text-muted">
-              Class {t.class} · {t.center}
+              Class {t.className || t.post || "-"} · {t.year || "Sankalp Exam"}
             </p>
           </div>
         </div>
@@ -356,15 +375,11 @@ eyebrowClassName="text-[#F0A500] text-[30px]"
             hover:ring-[#F0A500]/40
           "
         >
-          <img
-            src={g.image}
-            alt={g.caption}
-            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-          />
+          {g.images?.[0] ? <img src={resolveImageUrl(g.images[0])} alt={g.title} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" /> : <MissingImage />}
 
           <div className="absolute inset-0 bg-navy-dark/0 group-hover:bg-navy-dark/50 transition-colors duration-500 flex items-end p-3">
             <p className="text-white text-xs font-semibold opacity-0 translate-y-3 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-500">
-              {g.caption}
+              {g.title}
             </p>
           </div>
         </div>
@@ -394,7 +409,7 @@ eyebrowClassName="text-[#F0A500] text-[30px]"
 
     {/* Faculties Grid */}
     <div className="grid sm:grid-cols-2 md:grid-cols-4 gap-6 mt-10">
-      {faculties.map((f) => (
+            {faculties.slice(0, 4).map((f) => (
         <div
           key={f.id}
           className="
@@ -410,11 +425,7 @@ eyebrowClassName="text-[#F0A500] text-[30px]"
             hover:ring-[#F0A500]/40
           "
         >
-          <img
-            src={f.photo}
-            alt={f.name}
-            className="w-full h-48 object-cover transition-transform duration-500 group-hover:scale-105"
-          />
+          {f.image ? <img src={resolveImageUrl(f.image)} alt={f.name} className="w-full h-48 object-cover transition-transform duration-500 group-hover:scale-105" /> : <MissingImage className="h-48" />}
 
           <div className="p-4">
             <h3 className="font-bold text-navy transition-colors duration-300 group-hover:text-[#F0A500]">
@@ -426,7 +437,7 @@ eyebrowClassName="text-[#F0A500] text-[30px]"
             </p>
 
             <p className="text-xs text-muted mt-1">
-              {f.exp}
+              {f.experience ? `${f.experience} years experience` : "Experience not available"}
             </p>
           </div>
         </div>
@@ -453,15 +464,15 @@ eyebrowClassName="text-[#F0A500] text-[30px]"
   titleClassName="text-white"
 />
           <div className="grid md:grid-cols-3 gap-6">
-            {testimonials.map((t) => (
+            {testimonials.slice(0, 3).map((t) => (
               <div key={t.id} className="bg-white/5 border border-white/10 rounded-xl p-6 relative">
                 <Quote className="text-gold mb-3" size={26} />
-                <p className="text-white/85 text-sm leading-relaxed mb-5">"{t.quote}"</p>
+                <p className="text-white/85 text-sm leading-relaxed mb-5">"{t.description || "No testimonial text available."}"</p>
                 <div className="flex items-center gap-3">
-                  <img src={t.photo} alt={t.name} className="w-11 h-11 rounded-full object-cover" />
+                  {t.image ? <img src={resolveImageUrl(t.image)} alt={t.name} className="w-11 h-11 rounded-full object-cover" /> : <MissingImage className="h-11 w-11 min-h-0 rounded-full" />}
                   <div>
                     <p className="text-white font-bold text-sm">{t.name}</p>
-                    <p className="text-white/50 text-xs">{t.role}</p>
+                    <p className="text-white/50 text-xs">{[t.exam, t.post].filter(Boolean).join(" · ") || "Student"}</p>
                   </div>
                 </div>
               </div>
