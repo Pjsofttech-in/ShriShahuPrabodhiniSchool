@@ -23,7 +23,7 @@ export default function ImageSlider({ slides, interval = 5000 }) {
 
   return (
     <section
-      className="relative w-full h-[68vh] min-h-[480px] max-h-[720px] overflow-hidden"
+      className="relative w-full h-[62vh] min-h-[360px] max-h-[680px] overflow-hidden"
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
     >

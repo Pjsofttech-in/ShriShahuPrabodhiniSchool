@@ -104,7 +104,7 @@ export default function Navbar() {
       </div>
 
       <nav className="bg-white shadow-[0_8px_24px_rgba(38,50,56,0.12)]">
-      <div className="w-full flex items-center justify-between h-20 px-3 xl:px-6">  
+      <div className="w-full flex items-center justify-between h-16 xl:h-20 px-3 xl:px-6">
        <Link
   to="/"
   className="flex items-center gap-3 shrink-0 -ml-2 xl:-ml-4"
@@ -130,7 +130,7 @@ export default function Navbar() {
   </div>
 </Link>
           {/* Desktop nav */}
-        <div className="hidden xl:flex items-center gap-1 ml-20 flex-1">
+        <div className="hidden xl:flex items-center gap-1 ml-4 xl:ml-10 flex-1">
           <NavLink to="/home" className={navItemClass}>Home</NavLink>
             <Dropdown label="Sankalp" links={examLinks} />
             <NavLink to="/courses" className={navItemClass}>Courses</NavLink>
@@ -186,14 +186,14 @@ export default function Navbar() {
           </div>
 
           {/* Mobile toggle */}
-          <button className="lg:hidden text-navy" onClick={() => setMobileOpen((o) => !o)} aria-label="Toggle menu">
+          <button className="xl:hidden text-navy" onClick={() => setMobileOpen((o) => !o)} aria-label="Toggle menu">
             {mobileOpen ? <X size={26} /> : <Menu size={26} />}
           </button>
         </div>
 
         {/* Mobile nav */}
         {mobileOpen && (
-          <div className="lg:hidden bg-white border-t border-black/10 max-h-[80vh] overflow-y-auto">
+          <div className="xl:hidden bg-white border-t border-black/10 max-h-[80vh] overflow-y-auto">
             <div className="flex flex-col py-2">
               {[
                 { to: "/", label: "Home" },

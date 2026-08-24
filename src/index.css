@@ -4,11 +4,11 @@
 @tailwind components;
 @tailwind utilities;
 
-html { scroll-behavior: smooth; }
+html { scroll-behavior: smooth; overflow-x: hidden; }
 body { @apply bg-white text-ink font-body; transition: background-color 300ms ease, color 300ms ease; }
 h1,h2,h3,h4 { @apply font-display; }
 
-.container-app { @apply max-w-7xl mx-auto px-5 md:px-8; }
+.container-app { @apply w-full max-w-7xl mx-auto px-4 sm:px-5 md:px-8; }
 .section-pad { @apply py-14 md:py-20; }
 .dark body { @apply bg-[#172126] text-white; }
 .dark .card { @apply bg-[#263238] border-white/10 shadow-[0_8px_30px_rgba(23,33,38,0.3)]; }
