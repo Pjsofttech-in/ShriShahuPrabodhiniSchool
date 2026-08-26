@@ -10,7 +10,7 @@ import {
 } from "../data/siteData.js";
 import {
   fetchCourses, fetchFaculties, fetchGallery, fetchTestimonials,
-  fetchToppers, fetchVisionMissions,
+  fetchToppers, fetchVisionMissions, fetchHeroSections,
 } from "../services/backendService.js";
 import { API_BASE_URL } from "../utils/api.js";
 
@@ -91,14 +91,15 @@ function MissingImage({ className = "" }) {
 }
 
 export default function Home() {
-  const [liveData, setLiveData] = React.useState({ courses: [], toppers: [], gallery: [], faculties: [], testimonials: [], visionMission: null });
+  const [liveData, setLiveData] = React.useState({ heroSections: [], courses: [], toppers: [], gallery: [], faculties: [], testimonials: [], visionMission: null });
 
   React.useEffect(() => {
     let active = true;
-    Promise.allSettled([fetchCourses(), fetchToppers(), fetchGallery(), fetchFaculties(), fetchTestimonials(), fetchVisionMissions()]).then((results) => {
+    Promise.allSettled([fetchHeroSections(), fetchCourses(), fetchToppers(), fetchGallery(), fetchFaculties(), fetchTestimonials(), fetchVisionMissions()]).then((results) => {
       if (!active) return;
-      const [coursesResult, toppersResult, galleryResult, facultiesResult, testimonialsResult, visionResult] = results;
+      const [heroResult, coursesResult, toppersResult, galleryResult, facultiesResult, testimonialsResult, visionResult] = results;
       setLiveData({
+        heroSections: heroResult.status === "fulfilled" ? heroResult.value : [],
         courses: coursesResult.status === "fulfilled" ? coursesResult.value : [],
         toppers: toppersResult.status === "fulfilled" ? toppersResult.value : [],
         gallery: galleryResult.status === "fulfilled" ? galleryResult.value : [],
@@ -110,12 +111,15 @@ export default function Home() {
     return () => { active = false; };
   }, []);
 
-  const { courses, toppers, gallery, faculties, testimonials, visionMission } = liveData;
+  const { heroSections, courses, toppers, gallery, faculties, testimonials, visionMission } = liveData;
+  const heroSlides = heroSections
+    .filter((hero) => hero.image && hero.title)
+    .sort((first, second) => first.priority - second.priority);
 
   return (
     <div>
       {/* 1. Image Slider */}
-      <ImageSlider slides={sliderSlides} />
+      <ImageSlider slides={heroSlides.length > 0 ? heroSlides : sliderSlides} />
 
       {/* 2. Principal / Sanchalk / Director Message */}
       <section className="section-pad bg-cream">

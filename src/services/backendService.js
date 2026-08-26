@@ -58,6 +58,7 @@ function normalizeList(payload) {
       "coordinators",
       "students",
       "users",
+      "answerKeys",
     ]) {
       const value = current[key];
       if (Array.isArray(value)) return value;
@@ -211,6 +212,27 @@ export async function fetchCourses() {
   }));
 }
 
+export async function fetchHeroSections() {
+  const response = await api.get("/api2/getAllHeroSections", {
+    params: { url: DYNAMIC_PROFILE_URL },
+  });
+
+  return normalizeList(response.data).map((hero, index) => ({
+    id: hero?.id ?? hero?.heroSectionId ?? index + 1,
+    title: hero?.title ?? hero?.heroTitle ?? "",
+    subtitle: hero?.description ?? hero?.heroDescription ?? hero?.subtitle ?? "",
+    image:
+      hero?.image ??
+      hero?.heroImage ??
+      hero?.heroSectionImage ??
+      hero?.imageUrl ??
+      "",
+    link: hero?.url ?? hero?.link ?? "#",
+    linkLabel: hero?.buttonLabel ?? hero?.linkLabel ?? "Learn More",
+    priority: hero?.priority ?? hero?.displayOrder ?? index,
+  }));
+}
+
 export async function fetchAwards() {
   const response = await api.get("/api2/getAllAwards", {
     params: { url: DYNAMIC_PROFILE_URL },
@@ -348,6 +370,7 @@ export async function fetchDownloads() {
       item?.pdfUrl ??
       item?.url ??
       item?.link ??
+      item?.image ??
       item?.file ??
       "#";
 
@@ -358,9 +381,37 @@ export async function fetchDownloads() {
       fileName: item?.fileName ?? item?.name ?? title,
       description: item?.description ?? "",
       size: item?.size ?? item?.fileSize ?? "",
+      publishedAt: item?.publishedAt ?? item?.publishedDate ?? item?.createdAt ?? "",
       pdf: fileUrl,
     };
   });
+}
+
+export async function fetchAnswerKeys() {
+  const response = await api.get("/api/answerkeys");
+  const answerKeyList = normalizeList(response.data);
+
+  return answerKeyList
+    .filter((item) => item?.active !== false)
+    .map((item, index) => {
+      const fileUrl =
+        item?.pdfUrl ??
+        item?.pdf ??
+        item?.fileUrl ??
+        item?.filePath ??
+        item?.link ??
+        item?.url ??
+        "#";
+
+      return {
+        id: item?.id ?? index + 1,
+        title: item?.title ?? `Answer Key ${index + 1}`,
+        file: fileUrl,
+        link: item?.link ?? "",
+        examId: item?.examId,
+        publishedAt: item?.publishedAt ?? item?.publishedDate ?? item?.createdAt ?? "",
+      };
+    });
 }
 
 export async function fetchStudentById(studentId) {
