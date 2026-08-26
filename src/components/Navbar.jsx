@@ -134,6 +134,7 @@ export default function Navbar() {
           <NavLink to="/home" className={navItemClass}>Home</NavLink>
             <Dropdown label="Sankalp" links={examLinks} />
             <NavLink to="/courses" className={navItemClass}>Courses</NavLink>
+            <NavLink to="/features" className={navItemClass}>Features</NavLink>
             <NavLink to="/awards" className={navItemClass}>Awards</NavLink>
             <NavLink to="/toppers" className={navItemClass}>Toppers</NavLink>
             <NavLink to="/gallery" className={navItemClass}>Gallery</NavLink>
@@ -199,6 +200,7 @@ export default function Navbar() {
                 { to: "/", label: "Home" },
                 ...examLinks.map((l) => ({ ...l, label: `Sankalp: ${l.label}` })),
                 { to: "/courses", label: "Courses" },
+                { to: "/features", label: "Features" },
                 { to: "/awards", label: "Awards" },
                 { to: "/toppers", label: "Toppers" },
                 { to: "/gallery", label: "Gallery" },

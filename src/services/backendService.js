@@ -235,6 +235,20 @@ export async function fetchCourses() {
   }));
 }
 
+export async function fetchFeatures() {
+  const response = await api.get("/api2/getAllFeatures", {
+    params: { url: DYNAMIC_PROFILE_URL },
+  });
+
+  return normalizeList(response.data).map((feature, index) => ({
+    id: feature?.id ?? index + 1,
+    title: feature?.title ?? "Feature",
+    description: feature?.description ?? "",
+    link: feature?.link ?? "",
+    image: feature?.image ?? "",
+  }));
+}
+
 export async function fetchHeroSections() {
   const response = await api.get("/api2/getAllHeroSections", {
     params: { url: DYNAMIC_PROFILE_URL },

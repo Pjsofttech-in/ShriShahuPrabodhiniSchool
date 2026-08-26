@@ -6,6 +6,7 @@ import ProtectedRoute from "./components/ProtectedRoute.jsx";
 
 import Home from "./pages/Home.jsx";
 import Courses from "./pages/Courses.jsx";
+import Features from "./pages/Features.jsx";
 import Awards from "./pages/Awards.jsx";
 import Toppers from "./pages/Toppers.jsx";
 import Gallery from "./pages/Gallery.jsx";
@@ -47,6 +48,7 @@ export default function App() {
             <Route path="/sankalp/results-pdf" element={<ResultsPDF />} />
 
             <Route path="/courses" element={<Courses />} />
+            <Route path="/features" element={<Features />} />
             <Route path="/awards" element={<Awards />} />
             <Route path="/toppers" element={<Toppers />} />
             <Route path="/gallery" element={<Gallery />} />
