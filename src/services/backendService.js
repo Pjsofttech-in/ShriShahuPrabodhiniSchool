@@ -219,17 +219,25 @@ export async function fetchHeroSections() {
 
   return normalizeList(response.data).map((hero, index) => ({
     id: hero?.id ?? hero?.heroSectionId ?? index + 1,
-    title: hero?.title ?? hero?.heroTitle ?? "",
-    subtitle: hero?.description ?? hero?.heroDescription ?? hero?.subtitle ?? "",
+    title: hero?.title ?? hero?.heroTitle ?? hero?.heroSectionTitle ?? "",
+    subtitle:
+      hero?.description ??
+      hero?.heroDescription ??
+      hero?.heroSectionDescription ??
+      hero?.subtitle ??
+      "",
     image:
       hero?.image ??
       hero?.heroImage ??
       hero?.heroSectionImage ??
+      hero?.imageName ??
+      hero?.heroImageName ??
+      hero?.heroSectionImageName ??
       hero?.imageUrl ??
       "",
-    link: hero?.url ?? hero?.link ?? "#",
-    linkLabel: hero?.buttonLabel ?? hero?.linkLabel ?? "Learn More",
-    priority: hero?.priority ?? hero?.displayOrder ?? index,
+    link: hero?.url ?? hero?.link ?? hero?.buttonUrl ?? "#",
+    linkLabel: hero?.buttonLabel ?? hero?.linkLabel ?? hero?.buttonText ?? "Learn More",
+    priority: Number(hero?.priority ?? hero?.displayOrder ?? index),
   }));
 }
 

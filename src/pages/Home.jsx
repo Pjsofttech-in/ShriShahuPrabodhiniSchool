@@ -113,7 +113,6 @@ export default function Home() {
 
   const { heroSections, courses, toppers, gallery, faculties, testimonials, visionMission } = liveData;
   const heroSlides = heroSections
-    .filter((hero) => hero.image && hero.title)
     .sort((first, second) => first.priority - second.priority);
 
   return (
