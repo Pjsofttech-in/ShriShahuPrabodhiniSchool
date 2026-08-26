@@ -58,7 +58,9 @@ function normalizeList(payload) {
       "coordinators",
       "students",
       "users",
+      "syllabus",
       "answerKeys",
+      "answerKey",
       "footers",
     ]) {
       const value = current[key];
@@ -463,6 +465,7 @@ export async function fetchAnswerKeys() {
         item?.pdf ??
         item?.fileUrl ??
         item?.filePath ??
+        item?.file ??
         item?.link ??
         item?.url ??
         "#";
