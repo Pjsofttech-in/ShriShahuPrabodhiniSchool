@@ -1,16 +1,43 @@
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { MapPin, Phone, Mail } from "lucide-react";
 import {
   FaFacebookF,
   FaInstagram,
+  FaTwitter,
   FaYoutube,
+  FaWhatsapp,
 } from "react-icons/fa";
 
-import { schoolInfo } from "../data/siteData";
+import { fetchFooter } from "../services/backendService";
 import pjLogo from "../asset/image.png";
 import Logo from "../asset/logo.png";
 
 export default function Footer() {
+  const [footer, setFooter] = useState(null);
+
+  useEffect(() => {
+    let active = true;
+    fetchFooter()
+      .then((data) => active && data && setFooter(data))
+      .catch((error) => console.warn("Failed to load footer information:", error));
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const footerData = {
+    address: footer?.address ?? "",
+    phone: footer?.phone ?? "",
+    email: footer?.email ?? "",
+    instagram: footer?.instagram ?? "",
+    facebook: footer?.facebook ?? "",
+    twitter: footer?.twitter ?? "",
+    youtube: footer?.youtube ?? "",
+    whatsapp: footer?.whatsapp ?? "",
+  };
+
   return (
   <footer className="bg-navy-dark text-white">
     {/* Top Footer */}
@@ -46,24 +73,38 @@ export default function Footer() {
 
           <div className="flex gap-3 mt-6">
             <a
-              href="#"
+              href={footerData.facebook}
               className="w-10 h-10 rounded-full border border-white/15 bg-white/5 hover:bg-gold hover:text-navy-dark transition-all duration-300 flex items-center justify-center"
             >
               <FaFacebookF />
             </a>
 
             <a
-              href="#"
+              href={footerData.instagram}
               className="w-10 h-10 rounded-full border border-white/15 bg-white/5 hover:bg-gold hover:text-navy-dark transition-all duration-300 flex items-center justify-center"
             >
               <FaInstagram />
             </a>
 
             <a
-              href="#"
+              href={footerData.youtube}
               className="w-10 h-10 rounded-full border border-white/15 bg-white/5 hover:bg-gold hover:text-navy-dark transition-all duration-300 flex items-center justify-center"
             >
               <FaYoutube />
+            </a>
+
+            <a
+              href={footerData.twitter}
+              className="w-10 h-10 rounded-full border border-white/15 bg-white/5 hover:bg-gold hover:text-navy-dark transition-all duration-300 flex items-center justify-center"
+            >
+              <FaTwitter />
+            </a>
+
+            <a
+              href={footerData.whatsapp}
+              className="w-10 h-10 rounded-full border border-white/15 bg-white/5 hover:bg-gold hover:text-navy-dark transition-all duration-300 flex items-center justify-center"
+            >
+              <FaWhatsapp />
             </a>
           </div>
         </div>
@@ -108,17 +149,17 @@ export default function Footer() {
           <div className="space-y-4 text-sm text-white/75">
             <div className="flex gap-3">
               <MapPin size={18} className="text-gold mt-1 shrink-0" />
-              <span>{schoolInfo.address}</span>
+              <span>{footerData.address}</span>
             </div>
 
             <div className="flex gap-3 items-center">
               <Phone size={16} className="text-gold" />
-              <span>{schoolInfo.phone}</span>
+              <a href={`tel:${footerData.phone}`} className="hover:text-gold transition">{footerData.phone}</a>
             </div>
 
             <div className="flex gap-3 items-center">
               <Mail size={16} className="text-gold" />
-              <span>{schoolInfo.email}</span>
+              <a href={`mailto:${footerData.email}`} className="hover:text-gold transition">{footerData.email}</a>
             </div>
           </div>
 

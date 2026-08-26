@@ -371,7 +371,7 @@ export default function StudentRegistration() {
       <div className="container-app max-w-4xl">
         <div className="text-center mb-4">
           <h1 className="font-display font-bold text-navy text-2xl md:text-3xl">Sankalp Scholarship Exam Registration</h1>
-          <p className="text-muted text-sm mt-1">Fill in your details to book your exam center</p>
+         
         </div>
 
         <form onSubmit={handleSubmit} className="card p-4 md:p-6 space-y-3">

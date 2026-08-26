@@ -59,6 +59,7 @@ function normalizeList(payload) {
       "students",
       "users",
       "answerKeys",
+      "footers",
     ]) {
       const value = current[key];
       if (Array.isArray(value)) return value;
@@ -194,6 +195,28 @@ export async function submitContactForm(formData) {
     params: { url: DYNAMIC_PROFILE_URL },
   });
   return response.data;
+}
+
+export async function fetchFooter() {
+  const response = await api.get("/api2/getAllFooters", {
+    params: { url: DYNAMIC_PROFILE_URL },
+  });
+  const footer = normalizeList(response.data)[0];
+
+  if (!footer) return null;
+
+  return {
+    title: footer.title ?? "",
+    footerColor: footer.footerColor ?? footer.color ?? "",
+    address: footer.address ?? "",
+    phone: footer.mobileNumber ?? footer.mobileNo ?? footer.phone ?? footer.contactNo ?? "",
+    email: footer.email ?? "",
+    instagram: footer.instagramLink ?? footer.instagram ?? "",
+    facebook: footer.facebookLink ?? footer.facebook ?? "",
+    twitter: footer.twitterLink ?? footer.twitter ?? "",
+    youtube: footer.youtubeLink ?? footer.youTubeLink ?? footer.youtube ?? "",
+    whatsapp: footer.whatsappLink ?? footer.whatsAppLink ?? footer.whatsapp ?? "",
+  };
 }
 
 export async function fetchCourses() {
