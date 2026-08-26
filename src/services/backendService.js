@@ -291,12 +291,12 @@ export async function fetchFaculties() {
 
   return normalizeList(response.data).map((faculty, index) => ({
     id: faculty?.id ?? index + 1,
-    name: faculty?.facilityName ?? "Faculty",
-    experience: faculty?.experienceInYear ?? "",
-    subject: faculty?.subject ?? "",
-    education: faculty?.facilityEducation ?? "",
+    name: faculty?.facilityName ?? faculty?.facultyName ?? faculty?.name ?? "Faculty",
+    experience: faculty?.experienceInYear ?? faculty?.experience ?? faculty?.experienceInYears ?? "",
+    subject: faculty?.subject ?? faculty?.specialization ?? "",
+    education: faculty?.facilityEducation ?? faculty?.facultyEducation ?? faculty?.education ?? "",
     description: faculty?.description ?? "",
-    image: faculty?.facilityImage ?? "",
+    image: faculty?.facilityImage ?? faculty?.facilityImageName ?? faculty?.facultyImage ?? faculty?.image ?? faculty?.imageUrl ?? "",
   }));
 }
 
