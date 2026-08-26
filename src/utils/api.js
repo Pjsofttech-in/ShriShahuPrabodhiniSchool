@@ -23,6 +23,7 @@ function isPublicRequest(config) {
 
   if (method === "get" && (
     url === "/api/districts" ||
+    url === "/api/getAllSyllabus" ||
     url === "/api/downloads" ||
     url.startsWith("/api/downloads/") ||
     url.startsWith("/api2/") ||

@@ -432,6 +432,25 @@ export async function fetchDownloads() {
   });
 }
 
+export async function fetchSyllabus() {
+  const response = await api.get("/api/getAllSyllabus");
+  return normalizeList(response.data).map((syllabus, index) => ({
+    id: syllabus?.id ?? index + 1,
+    title:
+      syllabus?.title ??
+      syllabus?.syllabusTitle ??
+      syllabus?.name ??
+      `Syllabus ${index + 1}`,
+    link:
+      syllabus?.link ??
+      syllabus?.fileLink ??
+      syllabus?.fileUrl ??
+      syllabus?.url ??
+      syllabus?.pdfUrl ??
+      "",
+  }));
+}
+
 export async function fetchAnswerKeys() {
   const response = await api.get("/api/answerkeys");
   const answerKeyList = normalizeList(response.data);
