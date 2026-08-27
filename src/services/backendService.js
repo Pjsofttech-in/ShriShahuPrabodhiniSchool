@@ -193,9 +193,20 @@ export async function fetchContactInfo() {
 }
 
 export async function submitContactForm(formData) {
-  const response = await api.post("/api2/createContactForm", formData, {
+  const payload = {
+    name: String(formData?.name ?? "").trim(),
+    mobileNo: String(formData?.mobileNo ?? "").trim(),
+    email: String(formData?.email ?? "").trim(),
+    course: String(formData?.course ?? "").trim(),
+    subject: String(formData?.subject ?? "").trim(),
+    academicYear: String(formData?.academicYear ?? "").trim(),
+    description: String(formData?.description ?? "").trim(),
+  };
+
+  const response = await api.post("/api2/createContactForm", payload, {
     params: { url: DYNAMIC_PROFILE_URL },
   });
+
   return response.data;
 }
 
@@ -384,14 +395,20 @@ export async function fetchVisionMissions() {
   const response = await api.get("/api2/getAllVisionMissions", {
     params: { url: DYNAMIC_PROFILE_URL },
   });
-  return normalizeList(response.data).map((visionMission, index) => ({
+  const visionMissions = normalizeList(response.data).map((visionMission, index) => ({
     id: visionMission?.id ?? index + 1,
     vision: visionMission?.vision ?? "",
     mission: visionMission?.mission ?? "",
     directorMessage: visionMission?.directorMessage ?? "",
     directorName: visionMission?.directorName ?? "",
-    directorImage: visionMission?.directorImage ?? "",
+    directorImage: visionMission?.directorImage || visionMission?.directorImageUrl || visionMission?.directorPhoto || "",
     description: visionMission?.description ?? "",
+  }));
+
+  const liveDirectorImage = visionMissions.find((visionMission) => visionMission.directorImage)?.directorImage || "";
+  return visionMissions.map((visionMission) => ({
+    ...visionMission,
+    directorImage: visionMission.directorImage || liveDirectorImage,
   }));
 }
 

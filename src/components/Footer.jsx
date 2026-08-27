@@ -39,178 +39,97 @@ export default function Footer() {
   };
 
   return (
-  <footer className="bg-navy-dark text-white">
-    {/* Top Footer */}
-    <div className="container-app py-12">
+    <footer className="bg-navy-dark text-white">
+      <div className="container-app py-12 md:py-14">
+        <div className="grid gap-10 md:grid-cols-2 lg:grid-cols-4">
+          <div className="lg:col-span-1">
+            <div className="mb-4 flex items-center gap-3">
+              <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-full border-2 border-gold bg-white shadow-md">
+                <img src={Logo} alt="Shri Shahu Prabodhini" className="h-9 w-9 object-contain" />
+              </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-x-8 gap-y-10">
-
-        {/* About */}
-        <div className="col-span-2 lg:col-span-1">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-12 h-12 rounded-full bg-white border-2 border-gold shadow-md flex items-center justify-center overflow-hidden">
-              <img
-                src={Logo}
-                alt="Shri Shahu Prabodhini"
-                className="w-9 h-9 object-contain"
-              />
+              <div>
+                <h3 className="font-display text-lg font-bold leading-tight text-white">Shri Shahu Prabodhini</h3>
+                <p className="text-sm text-gold">SANKALP EXAM</p>
+              </div>
             </div>
 
-            <div>
-              <h3 className="font-display text-lg font-bold text-white leading-tight">
-                Shri Shahu Prabodhini
-              </h3>
-              <p className="text-sm text-gold">
-                SANKALP EXAM
-              </p>
-            </div>
-          </div>
+            <p className="text-sm leading-6 text-white/70">
+              Empowering students through the Sankalp Scholarship Examination and quality academic guidance.
+            </p>
 
-          <p className="text-sm leading-6 text-white/70">
-            Empowering students through the Sankalp Scholarship Examination
-            and quality academic guidance.
-          </p>
-
-          <div className="flex gap-3 mt-6">
-            <a
-              href={footerData.facebook}
-              className="w-10 h-10 rounded-full border border-white/15 bg-white/5 hover:bg-gold hover:text-navy-dark transition-all duration-300 flex items-center justify-center"
-            >
-              <FaFacebookF />
-            </a>
-
-            <a
-              href={footerData.instagram}
-              className="w-10 h-10 rounded-full border border-white/15 bg-white/5 hover:bg-gold hover:text-navy-dark transition-all duration-300 flex items-center justify-center"
-            >
-              <FaInstagram />
-            </a>
-
-            <a
-              href={footerData.youtube}
-              className="w-10 h-10 rounded-full border border-white/15 bg-white/5 hover:bg-gold hover:text-navy-dark transition-all duration-300 flex items-center justify-center"
-            >
-              <FaYoutube />
-            </a>
-
-            <a
-              href={footerData.twitter}
-              className="w-10 h-10 rounded-full border border-white/15 bg-white/5 hover:bg-gold hover:text-navy-dark transition-all duration-300 flex items-center justify-center"
-            >
-              <FaTwitter />
-            </a>
-
-            <a
-              href={footerData.whatsapp}
-              className="w-10 h-10 rounded-full border border-white/15 bg-white/5 hover:bg-gold hover:text-navy-dark transition-all duration-300 flex items-center justify-center"
-            >
-              <FaWhatsapp />
-            </a>
-          </div>
-        </div>
-
-        {/* Quick Links */}
-        <div>
-          <h3 className="font-display text-white font-bold text-lg mb-5">
-            Quick Links
-          </h3>
-
-          <ul className="space-y-3 text-sm">
-            <li><Link to="/courses" className="hover:text-gold transition">Courses</Link></li>
-            <li><Link to="/toppers" className="hover:text-gold transition">Toppers</Link></li>
-            <li><Link to="/gallery" className="hover:text-gold transition">Gallery</Link></li>
-            <li><Link to="/faculties" className="hover:text-gold transition">Faculties</Link></li>
-            <li><Link to="/download" className="hover:text-gold transition">Downloads</Link></li>
-            <li><Link to="/register" className="hover:text-gold transition">Student Registration</Link></li>
-          </ul>
-        </div>
-
-        {/* Sankalp */}
-        <div>
-          <h3 className="font-display text-white font-bold text-lg mb-5">
-            Sankalp Exam
-          </h3>
-
-          <ul className="space-y-3 text-sm">
-            <li><Link to="/sankalp/exam-information" className="hover:text-gold transition">Exam Information</Link></li>
-            <li><Link to="/sankalp/syllabus" className="hover:text-gold transition">Syllabus</Link></li>
-            <li><Link to="/sankalp/answer-key" className="hover:text-gold transition">Answer Key</Link></li>
-            <li><Link to="/sankalp/result-check" className="hover:text-gold transition">Result Check</Link></li>
-            <li><Link to="/sankalp/results-pdf" className="hover:text-gold transition">Results PDF</Link></li>
-          </ul>
-        </div>
-
-        {/* Contact */}
-        <div className="col-span-2 lg:col-span-1">
-          <h3 className="font-display text-white font-bold text-lg mb-5">
-            Contact
-          </h3>
-
-          <div className="space-y-4 text-sm text-white/75">
-            <div className="flex gap-3">
-              <MapPin size={18} className="text-gold mt-1 shrink-0" />
-              <span>{footerData.address}</span>
-            </div>
-
-            <div className="flex gap-3 items-center">
-              <Phone size={16} className="text-gold" />
-              <a href={`tel:${footerData.phone}`} className="hover:text-gold transition">{footerData.phone}</a>
-            </div>
-
-            <div className="flex gap-3 items-center">
-              <Mail size={16} className="text-gold" />
-              <a href={`mailto:${footerData.email}`} className="hover:text-gold transition">{footerData.email}</a>
+            <div className="mt-6 flex gap-3">
+              {[{ href: footerData.facebook, Icon: FaFacebookF }, { href: footerData.instagram, Icon: FaInstagram }, { href: footerData.youtube, Icon: FaYoutube }, { href: footerData.twitter, Icon: FaTwitter }, { href: footerData.whatsapp, Icon: FaWhatsapp }].map(({ href, Icon }) => (
+                <a key={href || "social-link"} href={href || "#"} className="flex h-10 w-10 items-center justify-center rounded-full border border-white/15 bg-white/5 transition-all duration-300 hover:bg-gold hover:text-navy-dark">
+                  <Icon />
+                </a>
+              ))}
             </div>
           </div>
 
-          <div className="flex flex-wrap gap-4 mt-6 text-sm">
-            <Link to="/privacy-policy" className="hover:text-gold transition">
-              Privacy Policy
-            </Link>
+          <div>
+            <h3 className="mb-5 font-display text-lg font-bold text-white">Quick Links</h3>
+            <ul className="space-y-3 text-sm text-white/75">
+              <li><Link to="/courses" className="hover:text-gold transition">Courses</Link></li>
+              <li><Link to="/toppers" className="hover:text-gold transition">Toppers</Link></li>
+              <li><Link to="/gallery" className="hover:text-gold transition">Gallery</Link></li>
+              <li><Link to="/faculties" className="hover:text-gold transition">Faculties</Link></li>
+              <li><Link to="/download" className="hover:text-gold transition">Downloads</Link></li>
+              <li><Link to="/register" className="hover:text-gold transition">Student Registration</Link></li>
+            </ul>
+          </div>
 
-            <Link to="/terms-and-conditions" className="hover:text-gold transition">
-              Terms and Conditions
-            </Link>
+          <div>
+            <h3 className="mb-5 font-display text-lg font-bold text-white">Sankalp Exam</h3>
+            <ul className="space-y-3 text-sm text-white/75">
+              <li><Link to="/sankalp/exam-information" className="hover:text-gold transition">Exam Information</Link></li>
+              <li><Link to="/sankalp/syllabus" className="hover:text-gold transition">Syllabus</Link></li>
+              <li><Link to="/sankalp/answer-key" className="hover:text-gold transition">Answer Key</Link></li>
+              <li><Link to="/sankalp/result-check" className="hover:text-gold transition">Result Check</Link></li>
+              <li><Link to="/sankalp/results-pdf" className="hover:text-gold transition">Results PDF</Link></li>
+            </ul>
+          </div>
 
-            <Link to="/refund-policy" className="hover:text-gold transition">
-              Refund Policy
-            </Link>
+          <div>
+            <h3 className="mb-5 font-display text-lg font-bold text-white">Contact</h3>
+            <div className="space-y-4 text-sm text-white/75">
+              <div className="flex gap-3">
+                <MapPin size={18} className="mt-1 shrink-0 text-gold" />
+                <span>{footerData.address}</span>
+              </div>
 
-            <Link to="/contact-us" className="hover:text-gold transition">
-              Contact Us
-            </Link>
+              <div className="flex items-center gap-3">
+                <Phone size={16} className="text-gold" />
+                <a href={`tel:${footerData.phone}`} className="hover:text-gold transition">{footerData.phone}</a>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <Mail size={16} className="text-gold" />
+                <a href={`mailto:${footerData.email}`} className="hover:text-gold transition">{footerData.email}</a>
+              </div>
+            </div>
+
+            <div className="mt-6 flex flex-wrap gap-4 text-sm text-white/75">
+              <Link to="/privacy-policy" className="hover:text-gold transition">Privacy Policy</Link>
+              <Link to="/terms-and-conditions" className="hover:text-gold transition">Terms and Conditions</Link>
+              <Link to="/refund-policy" className="hover:text-gold transition">Refund Policy</Link>
+              <Link to="/contact-us" className="hover:text-gold transition">Contact Us</Link>
+            </div>
           </div>
         </div>
-
       </div>
-    </div>
 
-    {/* Bottom Footer */}
-    <div className="border-t border-white/10 py-5">
-      <div className="container-app flex flex-col md:flex-row items-center justify-center gap-3 text-sm text-white/60">
-
-        <span>
-          © {new Date().getFullYear()} Shri Shahu Prabodhini. All Rights Reserved.
-        </span>
-
-        <span className="hidden md:block text-white/30">|</span>
-
-        <div className="flex items-center gap-2">
-          <span>Designed By</span>
-
-          <img
-            src={pjLogo}
-            alt="PJSoftTech"
-            className="h-6 w-auto object-contain"
-          />
-
-          <span className="font-semibold text-white">
-            PJSOFTTECH Pvt. Ltd.
-          </span>
+      <div className="border-t border-white/10 py-5">
+        <div className="container-app flex flex-col items-center justify-center gap-3 text-center text-sm text-white/60 md:flex-row">
+          <span>© {new Date().getFullYear()} Shri Shahu Prabodhini. All Rights Reserved.</span>
+          <span className="hidden text-white/30 md:block">|</span>
+          <div className="flex items-center justify-center gap-2">
+            <span>Designed By</span>
+            <img src={pjLogo} alt="PJSoftTech" className="h-6 w-auto object-contain" />
+            <span className="font-semibold text-white">PJSOFTTECH Pvt. Ltd.</span>
+          </div>
         </div>
-
       </div>
-    </div>
-  </footer>
-);
+    </footer>
+  );
 }

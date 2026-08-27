@@ -103,35 +103,21 @@ export default function Navbar() {
         </div>
       </div>
 
-      <nav className="bg-white shadow-[0_8px_24px_rgba(38,50,56,0.12)]">
-      <div className="w-full flex items-center justify-between h-16 xl:h-20 px-3 xl:px-6">
-       <Link
-  to="/"
-  className="flex items-center gap-3 shrink-0 -ml-2 xl:-ml-4"
->
-  {/* Logo */}
-  <div className="w-12 h-12 xl:w-14 xl:h-14 rounded-full bg-white border-2 border-gold shadow-md overflow-hidden flex items-center justify-center">
-    <img
-      src={logo}
-      alt="Shri Shahu Prabodhini Logo"
-      className="w-9 h-9 xl:w-10 xl:h-10 object-contain"
-    />
-  </div>
+      <nav className="bg-white/95 shadow-[0_8px_24px_rgba(38,50,56,0.12)] backdrop-blur-sm">
+        <div className="flex h-16 w-full items-center justify-between px-3 xl:h-20 xl:px-6">
+          <Link to="/" className="flex shrink-0 items-center gap-3 -ml-2 xl:-ml-4">
+            <div className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-full border-2 border-gold bg-white shadow-md xl:h-14 xl:w-14">
+              <img src={logo} alt="Shri Shahu Prabodhini Logo" className="h-8 w-8 object-contain xl:h-10 xl:w-10" />
+            </div>
 
-  {/* School Name */}
-  <div className="flex flex-col leading-tight">
-    <h1 className="text-navy font-bold text-base xl:text-lg font-display whitespace-nowrap">
-      Shri Shahu Prabodhini
-    </h1>
+            <div className="flex flex-col leading-tight">
+              <h1 className="whitespace-nowrap font-display text-base font-bold text-navy xl:text-lg">Shri Shahu Prabodhini</h1>
+              <span className="whitespace-nowrap text-[10px] uppercase tracking-[0.18em] text-gold-dark xl:text-[11px]">Sankalp</span>
+            </div>
+          </Link>
 
-    <span className="text-gold-dark text-[10px] xl:text-[11px] uppercase tracking-[0.18em] whitespace-nowrap">
-      Sankalp 
-    </span>
-  </div>
-</Link>
-          {/* Desktop nav */}
-        <div className="hidden xl:flex items-center gap-1 ml-4 xl:ml-10 flex-1">
-          <NavLink to="/home" className={navItemClass}>Home</NavLink>
+          <div className="hidden flex-1 items-center justify-end gap-1 xl:flex xl:ml-8">
+            <NavLink to="/home" className={navItemClass}>Home</NavLink>
             <Dropdown label="Sankalp" links={examLinks} />
             <NavLink to="/courses" className={navItemClass}>Courses</NavLink>
             <NavLink to="/features" className={navItemClass}>Features</NavLink>
@@ -140,54 +126,30 @@ export default function Navbar() {
             <NavLink to="/gallery" className={navItemClass}>Gallery</NavLink>
             <NavLink to="/faculties" className={navItemClass}>Experties</NavLink>
             <NavLink to="/testimonials" className={navItemClass}>Testimonial</NavLink>
-            <NavLink to="/contact-us" className={navItemClass}>
-  Contact 
-</NavLink>
-            <NavLink to="/about-us" className={navItemClass}>About </NavLink>
+            <NavLink to="/contact-us" className={navItemClass}>Contact</NavLink>
+            <NavLink to="/about-us" className={navItemClass}>About</NavLink>
             <NavLink to="/vision-mission" className={navItemClass}>Vision</NavLink>
-            <Link
-  to="/download"
-  className="flex items-center justify-center w-10 h-10 rounded-full hover:bg-cream transition group"
-  title="Downloads"
->
-  <Download
-    size={20}
-    className="text-navy group-hover:text-gold transition"
-  />
-</Link>
 
-<Link
-  to="/notifications"
-  className="relative flex items-center justify-center w-10 h-10 rounded-full hover:bg-cream transition group"
-  title="Notifications"
->
-  <Bell
-    size={20}
-    className="text-navy group-hover:text-gold transition"
-  />
+            <Link to="/download" className="flex h-10 w-10 items-center justify-center rounded-full transition hover:bg-cream group" title="Downloads">
+              <Download size={20} className="text-navy transition group-hover:text-gold" />
+            </Link>
 
-  <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
-</Link>
-            <button
-              type="button"
-              onClick={() => setDarkMode((value) => !value)}
-              className="flex items-center justify-center w-10 h-10 rounded-full text-navy hover:bg-cream hover:text-gold transition"
-              title={darkMode ? "Switch to light theme" : "Switch to dark theme"}
-              aria-label={darkMode ? "Switch to light theme" : "Switch to dark theme"}
-            >
+            <Link to="/notifications" className="relative flex h-10 w-10 items-center justify-center rounded-full transition hover:bg-cream group" title="Notifications">
+              <Bell size={20} className="text-navy transition group-hover:text-gold" />
+              <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-red-500 animate-pulse" />
+            </Link>
+
+            <button type="button" onClick={() => setDarkMode((value) => !value)} className="flex h-10 w-10 items-center justify-center rounded-full text-navy transition hover:bg-cream hover:text-gold" title={darkMode ? "Switch to light theme" : "Switch to dark theme"} aria-label={darkMode ? "Switch to light theme" : "Switch to dark theme"}>
               {darkMode ? <Sun size={19} /> : <Moon size={19} />}
             </button>
-            <Link
-  to={loginTarget}
-  className="ml-3 flex-shrink-0 flex items-center gap-2 bg-gold hover:bg-gold-dark text-navy-dark font-semibold px-4 py-2 rounded-lg transition-all duration-300"
->
-  <LogIn size={16} />
-  {user ? (user.role === "student" ? "Profile" : "Dashboard") : "Login"}
-</Link>
+
+            <Link to={loginTarget} className="ml-3 flex items-center gap-2 rounded-lg bg-gold px-4 py-2 font-semibold text-navy-dark transition-all duration-300 hover:bg-gold-dark">
+              <LogIn size={16} />
+              {user ? (user.role === "student" ? "Profile" : "Dashboard") : "Login"}
+            </Link>
           </div>
 
-          {/* Mobile toggle */}
-          <button className="xl:hidden text-navy" onClick={() => setMobileOpen((o) => !o)} aria-label="Toggle menu">
+          <button className="text-navy xl:hidden" onClick={() => setMobileOpen((o) => !o)} aria-label="Toggle menu">
             {mobileOpen ? <X size={26} /> : <Menu size={26} />}
           </button>
         </div>

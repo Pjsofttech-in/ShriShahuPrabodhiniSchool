@@ -90,6 +90,23 @@ function MissingImage({ className = "" }) {
   return <div className={`flex h-full min-h-24 flex-col items-center justify-center gap-2 bg-navy-light text-white/70 ${className}`}><ImageOff className="text-gold" size={28} /><span className="text-xs">Image not available</span></div>;
 }
 
+function DirectorImage({ src, alt }) {
+  const [hasError, setHasError] = useState(false);
+
+  if (!src || hasError) {
+    return <MissingImage className="min-h-full rounded-full" />;
+  }
+
+  return (
+    <img
+      src={src}
+      alt={alt}
+      className="h-full w-full object-cover"
+      onError={() => setHasError(true)}
+    />
+  );
+}
+
 export default function Home() {
   const [liveData, setLiveData] = React.useState({ heroSections: [], courses: [], toppers: [], gallery: [], faculties: [], testimonials: [], visionMission: null });
 
@@ -115,6 +132,11 @@ export default function Home() {
   const heroSlides = heroSections
     .sort((first, second) => first.priority - second.priority);
 
+  const directorMessage = (visionMission?.directorMessage || "Every child carries a spark — Sankalp helps it become a flame.").trim();
+  const directorPreview = directorMessage.length > 220
+    ? `${directorMessage.slice(0, 220).trim().replace(/\s+\S*$/, "")}...`
+    : directorMessage;
+
   return (
     <div>
       {/* 1. Image Slider */}
@@ -122,27 +144,35 @@ export default function Home() {
 
       {/* 2. Principal / Sanchalk / Director Message */}
       <section className="section-pad bg-cream">
-        <div className="container-app grid md:grid-cols-[280px_1fr] gap-10 items-center">
-          <div className="relative mx-auto">
-            <div className="w-56 h-56 md:w-64 md:h-64 rounded-full overflow-hidden ring-8 ring-white shadow-xl">
-              {visionMission?.directorImage ? <img src={resolveImageUrl(visionMission.directorImage)} alt={visionMission.directorName || "Director"} className="w-full h-full object-cover" /> : <MissingImage className="min-h-full" />}
+        <div className="container-app grid gap-10 md:grid-cols-[250px_1fr] md:items-center lg:gap-14">
+          <div className="relative mx-auto w-full max-w-[220px] md:max-w-none">
+            <div className="h-56 w-56 overflow-hidden rounded-full ring-8 ring-white shadow-xl md:h-64 md:w-64">
+              {visionMission?.directorImage ? (
+                <DirectorImage src={resolveImageUrl(visionMission.directorImage)} alt={visionMission.directorName || "Director"} />
+              ) : (
+                <MissingImage className="min-h-full rounded-full" />
+              )}
             </div>
-            <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 bg-gold text-navy-dark text-xs font-bold px-4 py-1.5 rounded-full shadow-md whitespace-nowrap">
+            <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-gold px-4 py-1.5 text-[10px] font-bold text-navy-dark shadow-md md:text-xs">
               Director's Message
             </div>
           </div>
           <div>
             <span className="eyebrow">A Word From Our Sanchalak</span>
-            <h2 className="text-2xl md:text-4xl font-bold text-navy mb-4">
-              {visionMission?.directorMessage || "Every child carries a spark — Sankalp helps it become a flame."}
+            <h2 className="mb-3 line-clamp-4 text-[0.72rem] font-bold leading-[1.5] tracking-[-0.02em] text-navy md:text-[0.8rem]">
+              {directorPreview}
             </h2>
-            <p className="text-muted leading-relaxed mb-4">
+
+            <p className="mb-4 hidden text-[0.7rem] leading-relaxed text-muted md:block md:text-xs">
               {visionMission?.description || "Shri Shahu Prabodhini stands beside students across rural and urban Maharashtra, helping every child discover their potential and earn a fair chance to shine."}
             </p>
-            <p className="font-display font-semibold text-navy">— {visionMission?.directorName || "Director"}, Director</p>
-            <Link to="/vision-mission" className="btn-outline mt-6">
-              Read Full Message <ArrowRight size={16} />
-            </Link>
+
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <p className="font-display text-xs font-semibold text-navy md:text-sm">— {visionMission?.directorName || "Director"}, Director</p>
+              <Link to="/vision-mission" className="inline-flex items-center justify-center gap-1 rounded-md bg-gold px-3.5 py-2 text-[11px] font-bold text-navy-dark shadow-sm transition hover:bg-gold-dark hover:text-white">
+                Read More <ArrowRight size={13} />
+              </Link>
+            </div>
           </div>
         </div>
       </section>

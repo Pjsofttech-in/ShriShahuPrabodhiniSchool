@@ -23,7 +23,7 @@ export default function ImageSlider({ slides, interval = 5000 }) {
 
   return (
     <section
-      className="relative w-full h-[62vh] min-h-[360px] max-h-[680px] overflow-hidden"
+      className="relative h-[60vh] min-h-[360px] max-h-[680px] w-full overflow-hidden"
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
     >
@@ -31,86 +31,63 @@ export default function ImageSlider({ slides, interval = 5000 }) {
         <div
           key={slide.id}
           className={`absolute inset-0 transition-opacity duration-700 ${
-            i === index ? "opacity-100 z-10" : "opacity-0 z-0"
+            i === index ? "z-10 opacity-100" : "z-0 opacity-0"
           }`}
         >
-          {/* Background */}
-          <img
-            src={slide.image}
-            alt={slide.title}
-            className="w-full h-full object-cover"
-          />
+          <img src={slide.image} alt={slide.title} className="h-full w-full object-cover" />
+          <div className="absolute inset-0 bg-gradient-to-r from-black/10 via-black/25 to-black/80" />
 
-          {/* Overlay */}
-          <div className="absolute inset-0 bg-gradient-to-r from-black/5 via-black/20 to-black/75" />
+          <div className="absolute inset-0 flex items-center justify-center p-4 sm:p-6 md:justify-end md:p-10 lg:p-14">
+            <div className="w-full max-w-[92vw] rounded-2xl border border-white/10 bg-black/20 p-4 shadow-2xl backdrop-blur-sm md:max-w-[500px] md:p-6 lg:p-7 md:text-right">
+              <span className="mb-3 inline-block rounded-full border border-gold/40 bg-gold/20 px-2.5 py-1 text-[9px] font-semibold uppercase tracking-[0.18em] text-gold sm:text-[10px] md:text-xs">
+                Shri Shahu Prabodhini
+              </span>
 
-          {/* Right Content */}
-          <div className="absolute inset-0 flex items-center justify-end">
-            <div className="w-full flex justify-end pr-4 md:pr-10 lg:pr-16 xl:pr-24">
+              <h2 className="text-[clamp(1.8rem,4vw,4rem)] font-bold leading-[1.05] text-white drop-shadow-lg">
+                {slide.title}
+              </h2>
 
-              <div className="max-w-[500px] text-right bg-black/20 backdrop-blur-md rounded-2xl p-6 lg:p-7 border border-white/10 shadow-2xl">
+              <p className="mt-3 text-sm leading-6 text-white/90 md:text-base md:leading-7">
+                {slide.subtitle}
+              </p>
 
-                {/* Badge */}
-                <span className="inline-block px-3 py-1 rounded-full bg-gold/20 border border-gold/40 text-gold text-[10px] md:text-xs uppercase tracking-[0.18em] font-semibold mb-4">
-                  Shri Shahu Prabodhini
-                </span>
-
-                {/* Heading */}
-                <h2 className="text-2xl md:text-3xl lg:text-4xl xl:text-5xl font-bold text-white leading-tight drop-shadow-lg">
-                  {slide.title}
-                </h2>
-
-                {/* Subtitle */}
-                <p className="mt-4 text-sm md:text-base text-white/90 leading-7">
-                  {slide.subtitle}
-                </p>
-
-                {/* Button */}
-                <div className="mt-6 flex justify-end">
-                  <Link
-                    to={slide.link}
-                    className="inline-flex items-center bg-gold hover:bg-gold-light text-navy-dark font-semibold px-5 py-2.5 rounded-lg shadow-lg transition-all duration-300 hover:scale-105 text-sm"
-                  >
-                    {slide.linkLabel}
-                  </Link>
-                </div>
-
+              <div className="mt-5 flex justify-start md:justify-end">
+                <Link
+                  to={slide.link}
+                  className="inline-flex items-center rounded-lg bg-gold px-4 py-2.5 text-sm font-semibold text-navy-dark shadow-lg transition-all duration-300 hover:scale-[1.02] hover:bg-gold-light"
+                >
+                  {slide.linkLabel}
+                </Link>
               </div>
-
             </div>
           </div>
         </div>
       ))}
 
-      {/* Previous */}
       <button
         onClick={prev}
-        aria-label="Previous"
-        className="absolute left-5 top-1/2 -translate-y-1/2 z-30 w-11 h-11 rounded-full bg-white/15 backdrop-blur-md border border-white/20 hover:bg-gold hover:text-navy-dark transition-all duration-300 flex items-center justify-center"
+        aria-label="Previous slide"
+        className="absolute left-3 top-1/2 z-30 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-white/20 bg-white/10 text-white shadow-lg backdrop-blur-md transition-all duration-300 hover:bg-gold hover:text-navy-dark sm:left-5 sm:h-11 sm:w-11"
       >
-        <ChevronLeft size={22} />
+        <ChevronLeft size={18} className="sm:h-[22px] sm:w-[22px]" />
       </button>
 
-      {/* Next */}
       <button
         onClick={next}
-        aria-label="Next"
-        className="absolute right-5 top-1/2 -translate-y-1/2 z-30 w-11 h-11 rounded-full bg-white/15 backdrop-blur-md border border-white/20 hover:bg-gold hover:text-navy-dark transition-all duration-300 flex items-center justify-center"
+        aria-label="Next slide"
+        className="absolute right-3 top-1/2 z-30 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-white/20 bg-white/10 text-white shadow-lg backdrop-blur-md transition-all duration-300 hover:bg-gold hover:text-navy-dark sm:right-5 sm:h-11 sm:w-11"
       >
-        <ChevronRight size={22} />
+        <ChevronRight size={18} className="sm:h-[22px] sm:w-[22px]" />
       </button>
 
-      {/* Indicators */}
-      <div className="absolute bottom-7 left-1/2 -translate-x-1/2 flex gap-2.5 z-30">
+      <div className="absolute bottom-4 left-1/2 z-30 flex -translate-x-1/2 gap-2.5 sm:bottom-7">
         {slides.map((_, i) => (
           <button
             key={i}
             onClick={() => setIndex(i)}
             aria-label={`Slide ${i + 1}`}
             className={`rounded-full transition-all duration-300 ${
-              i === index
-                ? "w-8 h-2 bg-gold"
-                : "w-2 h-2 bg-white/60 hover:bg-white"
+              i === index ? "h-2.5 w-8 bg-gold" : "h-2.5 w-2.5 bg-white/60 hover:bg-white"
             }`}
           />
         ))}
