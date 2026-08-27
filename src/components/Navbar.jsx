@@ -116,7 +116,7 @@ export default function Navbar() {
             </div>
           </Link>
 
-          <div className="hidden flex-1 items-center justify-end gap-1 xl:flex xl:ml-8">
+          <div className="hidden min-w-0 flex-1 items-center justify-end gap-0 2xl:flex 2xl:ml-6">
             <NavLink to="/home" className={navItemClass}>Home</NavLink>
             <Dropdown label="Sankalp" links={examLinks} />
             <NavLink to="/courses" className={navItemClass}>Courses</NavLink>
@@ -149,14 +149,14 @@ export default function Navbar() {
             </Link>
           </div>
 
-          <button className="text-navy xl:hidden" onClick={() => setMobileOpen((o) => !o)} aria-label="Toggle menu">
+          <button className="text-navy 2xl:hidden" onClick={() => setMobileOpen((o) => !o)} aria-label="Toggle menu">
             {mobileOpen ? <X size={26} /> : <Menu size={26} />}
           </button>
         </div>
 
         {/* Mobile nav */}
         {mobileOpen && (
-          <div className="xl:hidden bg-white border-t border-black/10 max-h-[80vh] overflow-y-auto">
+          <div className="2xl:hidden bg-white border-t border-black/10 max-h-[80vh] overflow-y-auto">
             <div className="flex flex-col py-2">
               {[
                 { to: "/", label: "Home" },

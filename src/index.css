@@ -4,6 +4,12 @@
 @tailwind components;
 @tailwind utilities;
 
+*, *::before, *::after { box-sizing: border-box; }
+
+#root { width: 100%; min-width: 0; overflow-x: hidden; }
+
+main, section, article, form, div { min-width: 0; }
+
 :root {
   --page-max-width: 1280px;
   --section-space: clamp(3rem, 6vw, 6rem);
@@ -18,6 +24,9 @@
 html { scroll-behavior: smooth; overflow-x: hidden; }
 body {
   @apply bg-white text-ink font-body;
+  width: 100%;
+  min-width: 0;
+  overflow-x: hidden;
   font-size: var(--body-md);
   line-height: 1.6;
   transition: background-color 300ms ease, color 300ms ease;
