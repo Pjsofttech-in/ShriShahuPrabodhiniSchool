@@ -62,6 +62,10 @@ function normalizeList(payload) {
       "answerKeys",
       "answerKey",
       "footers",
+      "testSeries",
+      "testSerieses",
+      "exams",
+      "questions",
     ]) {
       const value = current[key];
       if (Array.isArray(value)) return value;
@@ -388,6 +392,63 @@ export async function fetchAboutUs() {
     centers: about?.totalExamCenters ?? "",
     faculties: about?.totalFaculties ?? "",
     students: about?.totalStudents ?? "",
+  }));
+}
+
+export async function fetchTestSeries() {
+  const response = await api.get("/test-series");
+  return normalizeList(response.data).map((series, index) => ({
+    id: series?.id ?? series?.testSeriesId ?? index + 1,
+    title: series?.title ?? series?.name ?? "Test Series",
+    description: series?.description ?? "",
+    image: series?.image ?? series?.imageUrl ?? "",
+    price: series?.price ?? null,
+    sellingPrice: series?.sellingPrice ?? series?.salePrice ?? null,
+    mrp: series?.mrp ?? null,
+    subject: series?.subject ?? "",
+    featureOne: series?.testFeatureOne ?? "",
+    featureTwo: series?.testFeatureTwo ?? "",
+    featureThree: series?.testFeatureThree ?? "",
+    startDate: series?.startDate ?? "",
+    endDate: series?.endDate ?? "",
+    exams: Array.isArray(series?.exams) ? series.exams : [],
+  }));
+}
+
+export async function fetchTestSeriesById(id) {
+  const response = await api.get(`/test-series/${id}`);
+  const series = response.data?.data ?? response.data;
+  return {
+    id: series?.id ?? id,
+    title: series?.title ?? series?.name ?? "Test Series",
+    description: series?.description ?? "",
+    image: series?.image ?? series?.imageUrl ?? "",
+    price: series?.price ?? null,
+    sellingPrice: series?.sellingPrice ?? series?.salePrice ?? null,
+    mrp: series?.mrp ?? null,
+    subject: series?.subject ?? "",
+    featureOne: series?.testFeatureOne ?? "",
+    featureTwo: series?.testFeatureTwo ?? "",
+    featureThree: series?.testFeatureThree ?? "",
+    exams: Array.isArray(series?.exams) ? series.exams : [],
+  };
+}
+
+export async function fetchExams() {
+  const response = await api.get("/exams");
+  return normalizeList(response.data).map((exam, index) => ({
+    id: exam?.id ?? index + 1,
+    name: exam?.examName ?? exam?.name ?? "Exam",
+    image: exam?.image ?? exam?.imageUrl ?? "",
+    totalMarks: exam?.totalMarks ?? "",
+    totalQuestions: exam?.totalQuestions ?? "",
+    duration: exam?.duration ?? "",
+    maxAttempts: exam?.maxAttempts ?? 1,
+    startTime: exam?.startTime ?? "",
+    endTime: exam?.endTime ?? "",
+    testSeriesId: exam?.testSeriesId ?? exam?.testSeries?.id ?? "",
+    active: exam?.active !== false,
+    downloadTestPaper: exam?.downloadTestPaper === true,
   }));
 }
 

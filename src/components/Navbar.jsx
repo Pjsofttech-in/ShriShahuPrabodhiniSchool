@@ -16,6 +16,7 @@ import logo from "../asset/logo.png";
 
 const examLinks = [
   { to: "/sankalp/exam-information", label: "Exam Information" },
+  { to: "/sankalp/test-series", label: "Test Series" },
   { to: "/sankalp/syllabus", label: "Syllabus" },
   { to: "/sankalp/answer-key", label: "Answer Key" },
   { to: "/sankalp/result-check", label: "Result Check" },

@@ -27,6 +27,8 @@ import Syllabus from "./pages/sankalp/Syllabus.jsx";
 import AnswerKey from "./pages/sankalp/AnswerKey.jsx";
 import ResultCheck from "./pages/sankalp/ResultCheck.jsx";
 import ResultsPDF from "./pages/sankalp/ResultsPDF.jsx";
+import TestSeries from "./pages/sankalp/TestSeries.jsx";
+import TestSeriesDetail from "./pages/sankalp/TestSeriesDetail.jsx";
 
 import AdminDashboard from "./pages/dashboards/AdminDashboard.jsx";
 import CoordinatorDashboard from "./pages/dashboards/CoordinatorDashboard.jsx";
@@ -46,6 +48,8 @@ export default function App() {
             <Route path="/sankalp/answer-key" element={<AnswerKey />} />
             <Route path="/sankalp/result-check" element={<ResultCheck />} />
             <Route path="/sankalp/results-pdf" element={<ResultsPDF />} />
+            <Route path="/sankalp/test-series" element={<TestSeries />} />
+            <Route path="/sankalp/test-series/:id" element={<TestSeriesDetail />} />
 
             <Route path="/courses" element={<Courses />} />
             <Route path="/features" element={<Features />} />
