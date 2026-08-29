@@ -58,10 +58,21 @@ export default function Footer() {
               Empowering students through the Sankalp Scholarship Examination and quality academic guidance.
             </p>
 
-            <div className="mt-6 flex gap-3">
-              {[{ href: footerData.facebook, Icon: FaFacebookF }, { href: footerData.instagram, Icon: FaInstagram }, { href: footerData.youtube, Icon: FaYoutube }, { href: footerData.twitter, Icon: FaTwitter }, { href: footerData.whatsapp, Icon: FaWhatsapp }].map(({ href, Icon }) => (
-                <a key={href || "social-link"} href={href || "#"} className="flex h-10 w-10 items-center justify-center rounded-full border border-white/15 bg-white/5 transition-all duration-300 hover:bg-gold hover:text-navy-dark">
-                  <Icon />
+            <div className="mt-6 flex flex-wrap items-center gap-3">
+              {[
+                { href: footerData.facebook, Icon: FaFacebookF, className: "hover:bg-[#1877F2] hover:border-[#1877F2]" },
+                { href: footerData.instagram, Icon: FaInstagram, className: "hover:bg-gradient-to-br hover:from-[#f58529] hover:via-[#dd2a7b] hover:to-[#8134af] hover:border-transparent" },
+                { href: footerData.youtube, Icon: FaYoutube, className: "hover:bg-[#FF0000] hover:border-[#FF0000]" },
+                { href: footerData.twitter, Icon: FaTwitter, className: "hover:bg-[#1DA1F2] hover:border-[#1DA1F2]" },
+                { href: footerData.whatsapp, Icon: FaWhatsapp, className: "hover:bg-[#25D366] hover:border-[#25D366]" },
+              ].map(({ href, Icon, className }, index) => (
+                <a
+                  key={href || `social-link-${index}`}
+                  href={href || "#"}
+                  aria-label="Social media"
+                  className={`group flex h-11 w-11 items-center justify-center rounded-full border border-white/15 bg-white/5 text-white/80 shadow-[0_6px_18px_rgba(255,255,255,0.06)] transition-all duration-300 hover:-translate-y-0.5 hover:text-white ${className}`}
+                >
+                  <Icon className="text-base transition-transform duration-300 group-hover:scale-110" />
                 </a>
               ))}
             </div>
