@@ -49,10 +49,10 @@ export default function Toppers() {
           {!loading && !error && filtered.length > 0 && <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {filtered.map((topper, index) => {
               const image = resolveImageUrl(topper.image);
-              return <article key={topper.id} className="topper-reveal group overflow-hidden bg-white shadow-[0_8px_30px_rgba(11,37,69,0.08)] transition duration-300 hover:-translate-y-1 hover:shadow-xl" style={{ animationDelay: `${index * 80}ms` }}>
-                <div className="relative h-52 overflow-hidden bg-navy-light">
-                  {image ? <img src={image} alt={topper.name} className="h-full w-full object-cover transition duration-500 group-hover:scale-105" /> : <div className="flex h-full items-center justify-center bg-navy"><GraduationCap size={64} className="text-gold" strokeWidth={1.1} /></div>}
-                  <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-navy/95 to-transparent p-4 pt-12"><p className="text-xs font-bold uppercase tracking-[0.18em] text-gold-light">{topper.year || "Sankalp Exam"}</p><h3 className="mt-1 text-xl font-bold text-white">{topper.name}</h3></div>
+              return <article key={topper.id} className="topper-reveal group overflow-hidden rounded-[24px] border border-slate-200/80 bg-white shadow-[0_12px_30px_rgba(11,37,69,0.08)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_18px_38px_rgba(11,37,69,0.12)]" style={{ animationDelay: `${index * 80}ms` }}>
+                <div className="relative h-[18rem] overflow-hidden bg-navy-light sm:h-[20rem]">
+                  {image ? <img src={image} alt={topper.name} className="img-cover transition duration-500 group-hover:scale-105" /> : <div className="flex h-full items-center justify-center bg-navy"><GraduationCap size={64} className="text-gold" strokeWidth={1.1} /></div>}
+                  <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-navy/95 via-navy/45 to-transparent p-4 pt-12"><p className="text-xs font-bold uppercase tracking-[0.18em] text-gold-light">{topper.year || "Sankalp Exam"}</p><h3 className="mt-1 text-xl font-bold text-white">{topper.name}</h3></div>
                   {topper.rank && <span className="absolute right-4 top-4 inline-flex items-center gap-1.5 rounded-full bg-gold px-3 py-1.5 text-xs font-bold text-navy"><Medal size={14} /> Rank {topper.rank}</span>}
                 </div>
                 <div className="p-4">
