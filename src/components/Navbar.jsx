@@ -31,7 +31,9 @@ const moreLinks = [
 ];
 const navItemClass = ({ isActive }) =>
   `px-2 xl:px-3 py-2 text-sm font-semibold transition-colors rounded-md ${
-    isActive ? "text-gold-dark" : "text-navy hover:text-gold"
+    isActive
+      ? "text-gold-dark dark:text-gold-light"
+      : "text-navy hover:text-gold dark:text-slate-200 dark:hover:text-gold"
   }`;
 
 function Dropdown({ label, links }) {
@@ -50,20 +52,20 @@ function Dropdown({ label, links }) {
     <div className="relative" ref={ref}>
       <button
         onClick={() => setOpen((o) => !o)}
-        className="flex items-center gap-1 px-3 py-2 text-sm font-semibold tracking-wide text-navy hover:text-gold rounded-md focus-ring"
+        className="flex items-center gap-1 px-3 py-2 text-sm font-semibold tracking-wide text-navy hover:text-gold rounded-md focus-ring dark:text-slate-200 dark:hover:text-gold"
         aria-expanded={open}
       >
         {label}
         <ChevronDown size={14} className={`transition-transform ${open ? "rotate-180" : ""}`} />
       </button>
       {open && (
-        <div className="absolute left-0 mt-1 w-64 bg-white rounded-lg shadow-xl border border-black/5 py-2 z-50 animate-[fadeIn_.15s_ease]">
+        <div className="absolute left-0 mt-1 w-64 rounded-lg border border-black/5 bg-white py-2 shadow-xl z-50 animate-[fadeIn_.15s_ease] dark:border-white/10 dark:bg-[#1b2a2f]">
           {links.map((l) => (
             <Link
               key={l.to}
               to={l.to}
               onClick={() => setOpen(false)}
-              className="block px-4 py-2.5 text-sm text-ink hover:bg-cream hover:text-navy font-medium"
+              className="block px-4 py-2.5 text-sm font-medium text-ink hover:bg-cream hover:text-navy dark:text-slate-100 dark:hover:bg-[#263238] dark:hover:text-gold"
             >
               {l.label}
             </Link>
@@ -104,15 +106,15 @@ export default function Navbar() {
         </div>
       </div>
 
-      <nav className="bg-white/95 shadow-[0_8px_24px_rgba(38,50,56,0.12)] backdrop-blur-sm">
+      <nav className="bg-white/95 shadow-[0_8px_24px_rgba(38,50,56,0.12)] backdrop-blur-sm dark:border-b dark:border-white/10 dark:bg-[#172126]/95">
         <div className="flex h-16 w-full items-center justify-between px-3 xl:h-20 xl:px-6">
           <Link to="/" className="flex shrink-0 items-center gap-3 -ml-2 xl:-ml-4">
-            <div className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-full border-2 border-gold bg-white shadow-md xl:h-14 xl:w-14">
+            <div className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-full border-2 border-gold bg-white shadow-md xl:h-14 xl:w-14 dark:bg-[#263238]">
               <img src={logo} alt="Shri Shahu Prabodhini Logo" className="h-8 w-8 object-contain xl:h-10 xl:w-10" />
             </div>
 
             <div className="flex flex-col leading-tight">
-              <h1 className="whitespace-nowrap font-display text-base font-bold text-navy xl:text-lg">Shri Shahu Prabodhini</h1>
+              <h1 className="whitespace-nowrap font-display text-base font-bold text-navy xl:text-lg dark:text-white">Shri Shahu Prabodhini</h1>
               <span className="whitespace-nowrap text-[10px] uppercase tracking-[0.18em] text-gold-dark xl:text-[11px]">Sankalp</span>
             </div>
           </Link>
@@ -131,16 +133,16 @@ export default function Navbar() {
             <NavLink to="/about-us" className={navItemClass}>About</NavLink>
             <NavLink to="/vision-mission" className={navItemClass}>Vision</NavLink>
 
-            <Link to="/download" className="flex h-10 w-10 items-center justify-center rounded-full transition hover:bg-cream group" title="Downloads">
-              <Download size={20} className="text-navy transition group-hover:text-gold" />
+            <Link to="/download" className="flex h-10 w-10 items-center justify-center rounded-full transition hover:bg-cream group dark:hover:bg-[#263238]" title="Downloads">
+              <Download size={20} className="text-navy transition group-hover:text-gold dark:text-slate-200 dark:group-hover:text-gold" />
             </Link>
 
-            <Link to="/notifications" className="relative flex h-10 w-10 items-center justify-center rounded-full transition hover:bg-cream group" title="Notifications">
-              <Bell size={20} className="text-navy transition group-hover:text-gold" />
+            <Link to="/notifications" className="relative flex h-10 w-10 items-center justify-center rounded-full transition hover:bg-cream group dark:hover:bg-[#263238]" title="Notifications">
+              <Bell size={20} className="text-navy transition group-hover:text-gold dark:text-slate-200 dark:group-hover:text-gold" />
               <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-red-500 animate-pulse" />
             </Link>
 
-            <button type="button" onClick={() => setDarkMode((value) => !value)} className="flex h-10 w-10 items-center justify-center rounded-full text-navy transition hover:bg-cream hover:text-gold" title={darkMode ? "Switch to light theme" : "Switch to dark theme"} aria-label={darkMode ? "Switch to light theme" : "Switch to dark theme"}>
+            <button type="button" onClick={() => setDarkMode((value) => !value)} className="flex h-10 w-10 items-center justify-center rounded-full text-navy transition hover:bg-cream hover:text-gold dark:text-slate-200 dark:hover:bg-[#263238] dark:hover:text-gold" title={darkMode ? "Switch to light theme" : "Switch to dark theme"} aria-label={darkMode ? "Switch to light theme" : "Switch to dark theme"}>
               {darkMode ? <Sun size={19} /> : <Moon size={19} />}
             </button>
 
@@ -150,14 +152,14 @@ export default function Navbar() {
             </Link>
           </div>
 
-          <button className="text-navy 2xl:hidden" onClick={() => setMobileOpen((o) => !o)} aria-label="Toggle menu">
+          <button className="text-navy 2xl:hidden dark:text-slate-200" onClick={() => setMobileOpen((o) => !o)} aria-label="Toggle menu">
             {mobileOpen ? <X size={26} /> : <Menu size={26} />}
           </button>
         </div>
 
         {/* Mobile nav */}
         {mobileOpen && (
-          <div className="2xl:hidden bg-white border-t border-black/10 max-h-[80vh] overflow-y-auto">
+          <div className="2xl:hidden border-t border-black/10 bg-white max-h-[80vh] overflow-y-auto dark:border-white/10 dark:bg-[#172126]">
             <div className="flex flex-col py-2">
               {[
                 { to: "/", label: "Home" },
@@ -180,7 +182,7 @@ export default function Navbar() {
                   key={l.to + l.label}
                   to={l.to}
                   onClick={() => setMobileOpen(false)}
-                  className="px-5 py-3 text-sm font-semibold text-navy border-b border-black/5 hover:bg-cream"
+                  className="border-b border-black/5 px-5 py-3 text-sm font-semibold text-navy hover:bg-cream dark:border-white/10 dark:text-slate-200 dark:hover:bg-[#263238]"
                 >
                   {l.label}
                 </Link>
@@ -188,7 +190,7 @@ export default function Navbar() {
               <button
                 type="button"
                 onClick={() => setDarkMode((value) => !value)}
-                className="flex items-center gap-3 px-5 py-3 text-sm font-semibold text-navy border-b border-black/5 hover:bg-cream text-left"
+                className="flex items-center gap-3 border-b border-black/5 px-5 py-3 text-left text-sm font-semibold text-navy hover:bg-cream dark:border-white/10 dark:text-slate-200 dark:hover:bg-[#263238]"
               >
                 {darkMode ? <Sun size={17} /> : <Moon size={17} />}
                 {darkMode ? "Light Theme" : "Dark Theme"}
