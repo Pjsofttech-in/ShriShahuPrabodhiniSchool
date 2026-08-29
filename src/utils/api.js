@@ -29,7 +29,11 @@ function isPublicRequest(config) {
     url.startsWith("/api2/") ||
     url.startsWith("/api/talukas") ||
     url.startsWith("/api/centers/taluka/") ||
-    url.startsWith("/api/coordinators/center/")
+    url.startsWith("/api/coordinators/center/") ||
+    url === "/api/test-series" ||
+    url.startsWith("/api/test-series/") ||
+    url === "/api/exams" ||
+    url.startsWith("/api/exams/")
   )) {
     return true;
   }

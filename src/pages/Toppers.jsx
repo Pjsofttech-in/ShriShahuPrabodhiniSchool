@@ -46,19 +46,20 @@ export default function Toppers() {
           {!loading && !error && toppers.length === 0 && <p className="py-16 text-center text-muted">No toppers have been published yet.</p>}
           {!loading && !error && toppers.length > 0 && filtered.length === 0 && <p className="py-16 text-center text-muted">No toppers found for {year}.</p>}
 
-          {!loading && !error && filtered.length > 0 && <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          {!loading && !error && filtered.length > 0 && <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
             {filtered.map((topper, index) => {
               const image = resolveImageUrl(topper.image);
-              return <article key={topper.id} className="topper-reveal group overflow-hidden rounded-[24px] border border-slate-200/80 bg-white shadow-[0_12px_30px_rgba(11,37,69,0.08)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_18px_38px_rgba(11,37,69,0.12)]" style={{ animationDelay: `${index * 80}ms` }}>
+              return <article key={topper.id} className="topper-reveal group overflow-hidden rounded-[26px] border border-slate-200/80 bg-white shadow-[0_12px_30px_rgba(11,37,69,0.08)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_18px_38px_rgba(11,37,69,0.12)]" style={{ animationDelay: `${index * 80}ms` }}>
                 <div className="relative h-[18rem] overflow-hidden bg-navy-light sm:h-[20rem]">
                   {image ? <img src={image} alt={topper.name} className="img-cover transition duration-500 group-hover:scale-105" /> : <div className="flex h-full items-center justify-center bg-navy"><GraduationCap size={64} className="text-gold" strokeWidth={1.1} /></div>}
-                  <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-navy/95 via-navy/45 to-transparent p-4 pt-12"><p className="text-xs font-bold uppercase tracking-[0.18em] text-gold-light">{topper.year || "Sankalp Exam"}</p><h3 className="mt-1 text-xl font-bold text-white">{topper.name}</h3></div>
+                  <div className="absolute inset-0 bg-gradient-to-t from-navy/80 via-navy/25 to-transparent" />
+                  <div className="absolute inset-x-0 bottom-0 p-4 pt-12"><p className="text-xs font-bold uppercase tracking-[0.18em] text-gold-light">{topper.year || "Sankalp Exam"}</p><h3 className="mt-1 text-xl font-bold text-white">{topper.name}</h3></div>
                   {topper.rank && <span className="absolute right-4 top-4 inline-flex items-center gap-1.5 rounded-full bg-gold px-3 py-1.5 text-xs font-bold text-navy"><Medal size={14} /> Rank {topper.rank}</span>}
                 </div>
-                <div className="p-4">
+                <div className="p-5">
                   <div className="mb-4 grid grid-cols-2 gap-3">
-                    <div className="border-l-2 border-gold bg-cream px-3 py-2"><p className="text-xs uppercase tracking-wider text-muted">Total marks</p><p className="mt-1 text-lg font-bold text-navy">{topper.score || "-"}</p></div>
-                    <div className="border-l-2 border-maroon bg-cream px-3 py-2"><p className="text-xs uppercase tracking-wider text-muted">Class</p><p className="mt-1 text-lg font-bold text-navy">{topper.className || topper.post || "-"}</p></div>
+                    <div className="rounded-2xl border-l-4 border-gold bg-cream px-3 py-2"><p className="text-[11px] uppercase tracking-[0.12em] text-muted">Total marks</p><p className="mt-1 text-lg font-bold text-navy">{topper.score || "-"}</p></div>
+                    <div className="rounded-2xl border-l-4 border-maroon bg-cream px-3 py-2"><p className="text-[11px] uppercase tracking-[0.12em] text-muted">Class</p><p className="mt-1 text-lg font-bold text-navy">{topper.className || topper.post || "-"}</p></div>
                   </div>
                   {topper.post && topper.className && <p className="flex items-center gap-2 text-sm text-muted"><Crown size={16} className="text-gold-dark" /> {topper.post}</p>}
                 </div>

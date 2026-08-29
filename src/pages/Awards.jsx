@@ -36,14 +36,22 @@ export default function Awards() {
           {loading && <div className="flex items-center justify-center gap-3 py-20 text-muted"><LoaderCircle className="animate-spin text-gold" size={24} /> Loading recognitions...</div>}
           {!loading && error && <p className="py-16 text-center text-maroon">{error}</p>}
           {!loading && !error && awards.length === 0 && <p className="py-16 text-center text-muted">No recognitions have been published yet.</p>}
-          {!loading && !error && awards.length > 0 && <div className="grid gap-7 md:grid-cols-2">
+          {!loading && !error && awards.length > 0 && <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
             {awards.map((award, index) => {
               const Icon = icons[index % icons.length];
               const image = award.image && (/^(https?:|data:|blob:)/i.test(award.image) ? award.image : `${API_BASE_URL.replace(/\/+$/, "")}/${award.image.replace(/^\/+/, "")}`);
-              return <article key={award.id} className="group overflow-hidden bg-white shadow-[0_8px_30px_rgba(11,37,69,0.08)] transition duration-300 hover:-translate-y-1 hover:shadow-xl">
-                <div className="grid min-h-[250px] sm:grid-cols-[42%_58%]">
-                  <div className="relative min-h-[220px] overflow-hidden bg-navy">{image ? <img src={image} alt={award.title} className="h-full w-full object-cover transition duration-500 group-hover:scale-105" /> : <div className="flex h-full items-center justify-center bg-navy-light"><Icon size={64} className="text-gold" strokeWidth={1.2} /></div>}<span className="absolute left-4 top-4 inline-flex items-center gap-1.5 bg-gold px-3 py-1.5 text-sm font-bold text-navy"><CalendarDays size={15} /> {award.year || "Recognition"}</span></div>
-                  <div className="flex flex-col justify-center p-6 sm:p-7"><div className="mb-4 flex h-10 w-10 items-center justify-center rounded-full bg-gold/15 text-gold-dark"><Icon size={20} /></div><h3 className="text-xl font-bold leading-tight text-navy">{award.title}</h3>{award.description && <p className="mt-3 text-sm leading-6 text-muted">{award.description}</p>}<p className="mt-5 border-t border-slate-100 pt-4 text-sm text-muted">Awarded by <strong className="text-navy">{award.by}</strong></p>{award.awardedTo && <p className="mt-1 text-xs uppercase tracking-wider text-gold-dark">Presented to {award.awardedTo}</p>}</div>
+              return <article key={award.id} className="group overflow-hidden rounded-[26px] border border-slate-200/80 bg-white shadow-[0_12px_30px_rgba(11,37,69,0.08)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_18px_38px_rgba(11,37,69,0.12)]">
+                <div className="relative h-[18rem] overflow-hidden bg-navy">
+                  {image ? <img src={image} alt={award.title} className="h-full w-full object-cover transition duration-500 group-hover:scale-105" /> : <div className="flex h-full items-center justify-center bg-navy-light"><Icon size={64} className="text-gold" strokeWidth={1.2} /></div>}
+                  <div className="absolute inset-0 bg-gradient-to-t from-navy/75 via-transparent to-transparent" />
+                  <span className="absolute left-4 top-4 inline-flex items-center gap-1.5 rounded-full bg-gold px-3 py-1.5 text-xs font-bold text-navy"><CalendarDays size={15} /> {award.year || "Recognition"}</span>
+                </div>
+                <div className="p-5">
+                  <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-full bg-gold/15 text-gold-dark"><Icon size={20} /></div>
+                  <h3 className="text-xl font-bold leading-tight text-navy">{award.title}</h3>
+                  {award.description && <p className="mt-3 text-sm leading-6 text-muted">{award.description}</p>}
+                  <p className="mt-5 border-t border-slate-100 pt-4 text-sm text-muted">Awarded by <strong className="text-navy">{award.by}</strong></p>
+                  {award.awardedTo && <p className="mt-1 text-xs uppercase tracking-wider text-gold-dark">Presented to {award.awardedTo}</p>}
                 </div>
               </article>;
             })}

@@ -396,7 +396,7 @@ export async function fetchAboutUs() {
 }
 
 export async function fetchTestSeries() {
-  const response = await api.get("/test-series");
+  const response = await api.get("/api/test-series");
   return normalizeList(response.data).map((series, index) => ({
     id: series?.id ?? series?.testSeriesId ?? index + 1,
     title: series?.title ?? series?.name ?? "Test Series",
@@ -416,7 +416,7 @@ export async function fetchTestSeries() {
 }
 
 export async function fetchTestSeriesById(id) {
-  const response = await api.get(`/test-series/${id}`);
+  const response = await api.get(`/api/test-series/${id}`);
   const series = response.data?.data ?? response.data;
   return {
     id: series?.id ?? id,
@@ -435,7 +435,7 @@ export async function fetchTestSeriesById(id) {
 }
 
 export async function fetchExams() {
-  const response = await api.get("/exams");
+  const response = await api.get("/api/exams");
   return normalizeList(response.data).map((exam, index) => ({
     id: exam?.id ?? index + 1,
     name: exam?.examName ?? exam?.name ?? "Exam",
