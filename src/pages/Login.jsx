@@ -1,8 +1,9 @@
 import React, { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { ShieldCheck, UserCog, GraduationCap } from "lucide-react";
 import PageHeader from "../components/PageHeader.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
+import { fetchExams } from "../services/backendService.js";
 
 const roles = [
   {
@@ -61,7 +62,28 @@ export default function Login() {
 
     if (res.success) {
       if (role === "student") {
-        navigate("/student/profile");
+        // After successful student login, attempt to fetch available exams and redirect to start exam if possible.
+        try {
+          const exams = await fetchExams();
+          // prefer an active exam; otherwise take first
+          const now = Date.now();
+          let chosen = exams.find((e) => e && e.active) || exams[0];
+
+          // If the user's payment status is not paid, redirect to profile/registration
+          const student = res.user ?? null;
+          const paid = student && (String(student.paymentStatus).toLowerCase() === 'paid' || Number(student.amount || 0) > 0);
+
+          if (chosen && paid) {
+                      navigate(`/exam/${chosen.id}/start`, { state: { exam: chosen } });
+          } else {
+            // Not paid or no exam available — go to profile
+            navigate('/student/profile');
+          }
+        } catch (err) {
+          // fallback navigation
+          console.warn('Failed to fetch exams after login', err);
+          navigate('/student/profile');
+        }
       } else {
         navigate(`/${role}/dashboard`);
       }

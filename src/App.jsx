@@ -29,6 +29,8 @@ import ResultCheck from "./pages/sankalp/ResultCheck.jsx";
 import ResultsPDF from "./pages/sankalp/ResultsPDF.jsx";
 import TestSeries from "./pages/sankalp/TestSeries.jsx";
 import TestSeriesDetail from "./pages/sankalp/TestSeriesDetail.jsx";
+import StartExam from "./pages/sankalp/StartExam.jsx";
+import ExamPlayer from "./pages/sankalp/ExamPlayer.jsx";
 
 import AdminDashboard from "./pages/dashboards/AdminDashboard.jsx";
 import CoordinatorDashboard from "./pages/dashboards/CoordinatorDashboard.jsx";
@@ -50,6 +52,8 @@ export default function App() {
             <Route path="/sankalp/results-pdf" element={<ResultsPDF />} />
             <Route path="/sankalp/test-series" element={<TestSeries />} />
             <Route path="/sankalp/test-series/:id" element={<TestSeriesDetail />} />
+            <Route path="/exam/:id/start" element={<StartExam />} />
+            <Route path="/exam/:id" element={<ExamPlayer />} />
 
             <Route path="/courses" element={<Courses />} />
             <Route path="/features" element={<Features />} />

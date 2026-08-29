@@ -53,18 +53,7 @@ const api = axios.create({
   timeout: 15000,
 });
 
-// If baseURL already ends with '/api' we will strip duplicate '/api' from request paths that also start with '/api'
-const BASE_ENDS_WITH_API = /\/api$/.test(API_BASE_URL);
-
 api.interceptors.request.use((config) => {
-  // Normalize request URL if necessary
-  try {
-    if (BASE_ENDS_WITH_API && typeof config.url === 'string' && config.url.startsWith('/api/')) {
-      config.url = config.url.replace(/^\/api/, '');
-    }
-  } catch (e) {
-    console.warn('api request normalization failed', e);
-  }
   const token = getAuthToken();
   try {
     if (token && !isPublicRequest(config)) {

@@ -15,9 +15,21 @@ function imageUrl(image) {
 
   if (/^(https?:|data:|blob:)/i.test(value)) return value;
   if (value.startsWith("//")) return `https:${value}`;
-  if (value.startsWith("/")) return `${API_BASE_URL.replace(/\/+$/, "")}${value}`;
 
-  return `${API_BASE_URL.replace(/\/+$/, "")}/${value.replace(/^\/+/, "")}`;
+  const base = API_BASE_URL.replace(/\/+$/, "");
+  // Trim any leading slashes from the provided value
+  let path = value.replace(/^\/+/, "");
+
+  // If base ends with '/api' and path also begins with 'api/', remove duplicate 'api' segment
+  if (/\/api$/i.test(base) && /^api\//i.test(path)) {
+    path = path.replace(/^api\//i, "");
+    return `${base}/${path}`;
+  }
+
+  // If the original value started with a slash keep that structure (base + '/...')
+  if (value.startsWith("/")) return `${base}${value}`;
+
+  return `${base}/${path}`;
 }
 
 function stripHtml(value) {

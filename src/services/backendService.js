@@ -447,7 +447,7 @@ function extractLinkedExams(series) {
 }
 
 export async function fetchTestSeries() {
-  const response = await api.get("/api/test-series");
+  const response = await api.get("/api/api/test-series");
   return normalizeList(response.data).map((series, index) => ({
     id: series?.id ?? series?.testSeriesId ?? index + 1,
     title: series?.title ?? series?.name ?? "Test Series",
@@ -467,7 +467,7 @@ export async function fetchTestSeries() {
 }
 
 export async function fetchTestSeriesById(id) {
-  const response = await api.get(`/api/test-series/${id}`);
+  const response = await api.get(`/api/api/test-series/${id}`);
   const series = response.data?.data ?? response.data;
   const linkedExams = extractLinkedExams(series);
 
@@ -512,7 +512,7 @@ export async function fetchTestSeriesById(id) {
 }
 
 export async function fetchExams() {
-  const response = await api.get("/api/exams");
+  const response = await api.get("/api/api/exams");
   return normalizeList(response.data).map((exam, index) => ({
     id: exam?.id ?? index + 1,
     name: exam?.examName ?? exam?.name ?? "Exam",
@@ -527,6 +527,82 @@ export async function fetchExams() {
     active: exam?.active !== false,
     downloadTestPaper: exam?.downloadTestPaper === true,
   }));
+}
+
+// Fetch questions for a specific exam. Try several likely endpoints to handle different backend routes.
+// Common expected endpoints include:
+// - GET /api/exams/{examId}/questions
+// - GET /api/test-series/exam/{examId}/questions
+// - GET /api/testseries/exam/{examId}/questions
+// - GET /api/exam-questions?examId={examId}
+export async function fetchExamQuestions(examId) {
+  if (!examId) return [];
+
+  const encodedId = encodeURIComponent(examId);
+  const endpoints = [
+    `/api/exams/${encodedId}/questions`,
+    `/api/test-series/exam/${encodedId}/questions`,
+    `/api/testseries/exam/${encodedId}/questions`,
+    `/api/test-series/exams/${encodedId}/questions`,
+    `/api/testseries/exams/${encodedId}/questions`,
+    `/api/exam-questions?examId=${encodedId}`,
+    `/api/examquestions?examId=${encodedId}`,
+  ];
+
+  // Try endpoints sequentially so we can log which one returns data (helps debugging mismatched routes)
+  for (const ep of endpoints) {
+    try {
+      const res = await api.get(ep);
+      const list = normalizeList(res.data);
+      if (list && list.length) {
+        console.debug('fetchExamQuestions: using endpoint', ep, 'returned', list.length, 'items');
+        return list;
+      }
+    } catch (err) {
+      // continue trying other endpoints; collect errors in console for debugging
+      console.debug('fetchExamQuestions: endpoint', ep, 'failed with', err?.response?.status || err?.message || err);
+    }
+  }
+
+  console.warn('fetchExamQuestions: no questions found for exam', examId);
+  return []; 
+}
+
+// Submit test/exam result to backend using canonical endpoint.
+// Expected endpoint on server: POST /api/exam-results
+export async function submitExamResult(payload) {
+  const endpoint = "/api/exam-results";
+  const res = await api.post(endpoint, payload);
+  return res.data ?? res;
+}
+
+// Fetch exam results/attempts for a given student. Try several plausible endpoints the backend might expose.
+export async function fetchStudentResults(studentId) {
+  if (!studentId) return [];
+  const id = encodeURIComponent(studentId);
+  const endpoints = [
+    `/api/exam-results?studentId=${id}`,
+    `/api/exam-results/student/${id}`,
+    `/api/students/${id}/exam-results`,
+    `/api/results?studentId=${id}`,
+    `/api/results/student/${id}`,
+  ];
+
+  for (const ep of endpoints) {
+    try {
+      const res = await api.get(ep);
+      const list = normalizeList(res.data);
+      if (list && list.length) {
+        console.debug('fetchStudentResults: using endpoint', ep, 'returned', list.length, 'items');
+        return list;
+      }
+    } catch (err) {
+      console.debug('fetchStudentResults: endpoint', ep, 'failed with', err?.response?.status || err?.message || err);
+    }
+  }
+
+  console.warn('fetchStudentResults: no results found for student', studentId);
+  return [];
 }
 
 export async function fetchVisionMissions() {

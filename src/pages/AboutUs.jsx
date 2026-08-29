@@ -6,7 +6,18 @@ import { fetchAboutUs } from "../services/backendService.js";
 
 function imageUrl(image) {
   if (!image) return "";
-  return /^(https?:|data:|blob:)/i.test(image) ? image : `${API_BASE_URL.replace(/\/+$/, "")}/${String(image).replace(/^\/+/, "")}`;
+  const value = String(image).trim();
+  if (!value) return "";
+  if (/^(https?:|data:|blob:)/i.test(value)) return value;
+  if (value.startsWith("//")) return `https:${value}`;
+  const base = API_BASE_URL.replace(/\/+$/, "");
+  let path = value.replace(/^\/+/, "");
+  if (/\/api$/i.test(base) && /^api\//i.test(path)) {
+    path = path.replace(/^api\//i, "");
+    return `${base}/${path}`;
+  }
+  if (value.startsWith("/")) return `${base}${value}`;
+  return `${base}/${path}`;
 }
 
 export default function AboutUs() {

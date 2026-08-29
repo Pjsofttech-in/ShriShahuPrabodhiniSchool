@@ -6,6 +6,7 @@ import {
   fetchStudentById,
   fetchCoordinators,
   fetchCenters,
+  fetchStudentResults,
 } from "../../services/backendService.js";
 
 const tabs = [
@@ -20,6 +21,10 @@ export default function StudentDashboard({ defaultTab = "profile" }) {
   const [center, setCenter] = useState(null);
   const [coordinator, setCoordinator] = useState(null);
   const { user } = useAuth();
+  const [results, setResults] = useState([]);
+  const [loadingResults, setLoadingResults] = useState(false);
+  const [selectedAttempt, setSelectedAttempt] = useState(null);
+  const [showAttemptModal, setShowAttemptModal] = useState(false);
 
   useEffect(() => {
     setTab(defaultTab);
@@ -68,6 +73,26 @@ export default function StudentDashboard({ defaultTab = "profile" }) {
       loadData();
     }
   }, [user]);
+
+  // Load student results/attempts
+  useEffect(() => {
+    async function loadResults() {
+      if (!student) return;
+      setLoadingResults(true);
+      try {
+        const sid = student.id ?? student.studentId ?? user?.studentId ?? user?.id;
+        const list = await fetchStudentResults(sid);
+        setResults(Array.isArray(list) ? list : []);
+      } catch (err) {
+        console.warn('Could not load student results', err);
+        setResults([]);
+      } finally {
+        setLoadingResults(false);
+      }
+    }
+
+    loadResults();
+  }, [student, user]);
 
   if (!student) return <div className="min-h-[60vh] flex items-center justify-center">Loading profile...</div>;
 
@@ -128,11 +153,117 @@ export default function StudentDashboard({ defaultTab = "profile" }) {
       {tab === "result" && (
         <div className="card p-6 border-l-4 border-gold">
           <h3 className="font-display font-bold text-navy text-lg mb-3">Sankalp Exam Result</h3>
-          <dl className="text-sm space-y-2">
-            <div className="flex justify-between"><dt className="text-muted">Roll No.</dt><dd className="font-mono font-bold">{rollNo}</dd></div>
-            <div className="flex justify-between"><dt className="text-muted">Marks Obtained</dt><dd className="font-bold">{marks}</dd></div>
-            <div className="flex justify-between"><dt className="text-muted">Status</dt><dd className="font-bold text-green-600">{marks >= 40 ? "Pass" : "Fail"}</dd></div>
-          </dl>
+
+          <div className="mb-4">
+            <p className="text-sm text-muted">Below are your past exam attempts. Click "View" to see the solved paper with selected options and per-question details (if available).</p>
+          </div>
+
+          {loadingResults ? (
+            <div>Loading exam attempts...</div>
+          ) : results.length === 0 ? (
+            <div className="text-sm text-muted">No exam attempts found.</div>
+          ) : (
+            <div className="space-y-3">
+              {results.map((r) => {
+                // Try to canonicalize fields from common server shapes
+                const attemptId = r.attemptId ?? r.id ?? r.resultId ?? r.attempt_id ?? r.attemptId;
+                const examName = r.examName ?? r.exam_name ?? r.exam?.name ?? r.examTitle ?? r.title ?? "Exam";
+                const obtained = r.obtainedMarks ?? r.obtained_marks ?? r.marks ?? r.score ?? r.obtained ?? null;
+                const total = r.totalMarks ?? r.total_marks ?? r.total ?? r.maxMarks ?? null;
+                const startedAt = r.startedAt ?? r.started_at ?? r.createdAt ?? r.created_at ?? r.attemptedAt ?? null;
+
+                return (
+                  <div key={String(attemptId || Math.random())} className="p-3 border rounded-md flex items-center justify-between">
+                    <div>
+                      <div className="font-semibold">{examName}</div>
+                      <div className="text-xs text-muted">Attempt: {attemptId ?? "—"} • {startedAt ? new Date(startedAt).toLocaleString() : "—"}</div>
+                    </div>
+                    <div className="text-right">
+                      <div className="font-bold">{obtained ?? "—"}{total ? ` / ${total}` : ""}</div>
+                      <div className="mt-2 flex gap-2 justify-end">
+                        <button className="btn btn-sm" onClick={() => { setSelectedAttempt(r); setShowAttemptModal(true); }}>View</button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Attempt Modal */}
+          {showAttemptModal && selectedAttempt && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+              <div className="bg-white rounded-lg w-[90%] max-w-4xl max-h-[90vh] overflow-auto p-6">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <h4 className="font-bold text-lg">{selectedAttempt.examName ?? selectedAttempt.exam_name ?? selectedAttempt.exam?.name ?? 'Exam Attempt'}</h4>
+                    <p className="text-sm text-muted">Attempt ID: {selectedAttempt.attemptId ?? selectedAttempt.id ?? selectedAttempt.resultId ?? '—'}</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button className="btn" onClick={() => setShowAttemptModal(false)}>Close</button>
+                  </div>
+                </div>
+
+                <div className="mt-4 space-y-4">
+                  {/* Try to find questions/answers in multiple possible keys */}
+                  {(() => {
+                    const qList = selectedAttempt.questions ?? selectedAttempt.questionResponses ?? selectedAttempt.studentAnswers ?? selectedAttempt.answers ?? selectedAttempt.questionList ?? selectedAttempt.questionsList ?? null;
+                    if (!qList || !qList.length) {
+                      return <div className="text-sm text-muted">No per-question details are available for this attempt.</div>;
+                    }
+
+                    return qList.map((q, idx) => {
+                      // Normalize a single question/answer structure
+                      const qId = q.questionId ?? q.id ?? q.question_id ?? q.question?.id ?? q.questionId;
+                      const text = q.question ?? q.questionText ?? q.question_text ?? q.question?.question ?? q.question?.text ?? `Question ${idx + 1}`;
+                      const options = q.options ?? q.optionList ?? (q.question ? [q.question.optionA, q.question.optionB, q.question.optionC, q.question.optionD].filter(Boolean) : null);
+                      const selected = q.selectedAnswer ?? q.selected_answer ?? (typeof q.answerIndex !== 'undefined' && Array.isArray(options) ? options[q.answerIndex] : (q.answer ?? null));
+                      const selectedIndex = (typeof q.answerIndex !== 'undefined') ? q.answerIndex : (q.selectedIndex ?? q.selected_index ?? null);
+                      const correct = q.correctAnswer ?? q.correct_answer ?? q.correct ?? (q.question ? q.question.correctAnswer ?? q.question.correct_answer : null);
+                      const marksObtained = q.marksObtained ?? q.marks_obtained ?? q.marksObt ?? q.marks_obt ?? q.marks ?? null;
+                      const marksTotal = q.marks ?? q.totalMarks ?? q.total_marks ?? null;
+                      const explanation = q.answerExplanation ?? q.answer_explanation ?? q.explanation ?? q.question?.answerExplanation ?? null;
+
+                      return (
+                        <div key={String(qId || idx)} className="p-3 border rounded-md">
+                          <div className="flex justify-between">
+                            <div className="font-semibold">{`Q${idx + 1}. `}{text}</div>
+                            <div className="text-sm text-muted">Marks: {marksObtained ?? '—'}{marksTotal ? ` / ${marksTotal}` : ''}</div>
+                          </div>
+
+                          <div className="mt-2 grid gap-2">
+                            {Array.isArray(options) && options.length > 0 ? options.map((opt, i) => {
+                              const isSelected = (selectedIndex !== null && Number(selectedIndex) === i) || (selected !== null && String(selected) === String(opt));
+                              const isCorrect = correct !== null && String(correct) === String(opt);
+                              return (
+                                <div key={i} className={`p-2 rounded-md border ${isSelected ? 'border-blue-500 bg-blue-50' : 'border-black/5'} ${isCorrect ? 'ring-1 ring-green-200' : ''}`}>
+                                  <div className={`flex items-center justify-between`}> 
+                                    <div className="text-sm">{String.fromCharCode(65 + i)}. {opt}</div>
+                                    <div className="text-xs">
+                                      {isSelected && <span className="px-2 py-1 rounded text-white bg-blue-600">Selected</span>}
+                                      {isCorrect && <span className="px-2 py-1 rounded ml-2 text-white bg-green-600">Correct</span>}
+                                    </div>
+                                  </div>
+                                </div>
+                              );
+                            }) : (
+                              <div className="text-sm text-muted">Options not available.</div>
+                            )}
+                          </div>
+
+                          {explanation && (
+                            <div className="mt-3 text-sm bg-gray-50 p-2 rounded">Explanation: {explanation}</div>
+                          )}
+                        </div>
+                      );
+                    });
+                  })()}
+                </div>
+
+              </div>
+            </div>
+          )}
+
         </div>
       )}
     </DashboardShell>
