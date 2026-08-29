@@ -395,6 +395,57 @@ export async function fetchAboutUs() {
   }));
 }
 
+function normalizeExamEntry(entry, index = 0) {
+  const exam = entry?.exam ?? entry?.testPaper ?? entry?.paper ?? entry?.examDetails ?? entry ?? {};
+
+  const examId = exam?.id ?? exam?.examId ?? entry?.examId ?? entry?.id ?? index + 1;
+  const examName = exam?.examName ?? exam?.name ?? exam?.title ?? entry?.title ?? `Test Paper ${index + 1}`;
+  const examImage = exam?.image ?? exam?.imageUrl ?? exam?.examImage ?? exam?.photo ?? entry?.image ?? entry?.imageUrl ?? "";
+  const examTotalMarks = exam?.totalMarks ?? exam?.marks ?? entry?.totalMarks ?? entry?.marks ?? "";
+  const examTotalQuestions = exam?.totalQuestions ?? exam?.questions ?? entry?.totalQuestions ?? entry?.questions ?? "";
+  const examDuration = exam?.duration ?? exam?.time ?? entry?.duration ?? entry?.time ?? "";
+
+  return {
+    id: examId,
+    name: examName,
+    image: examImage,
+    totalMarks: examTotalMarks,
+    totalQuestions: examTotalQuestions,
+    duration: examDuration,
+    maxAttempts: exam?.maxAttempts ?? entry?.maxAttempts ?? 1,
+    startTime: exam?.startTime ?? entry?.startTime ?? "",
+    endTime: exam?.endTime ?? entry?.endTime ?? "",
+    testSeriesId: exam?.testSeriesId ?? exam?.testSeries?.id ?? entry?.testSeriesId ?? entry?.testSeries?.id ?? "",
+    active: exam?.active !== false && entry?.active !== false,
+    downloadTestPaper: exam?.downloadTestPaper === true || entry?.downloadTestPaper === true,
+    sequence: entry?.sequence ?? exam?.sequence ?? index + 1,
+  };
+}
+
+function extractLinkedExams(series) {
+  const candidates = [
+    series?.exams,
+    series?.testSeriesExams,
+    series?.testSeriesExam,
+    series?.examList,
+    series?.allExams,
+    series?.tests,
+    series?.testPapers,
+    series?.papers,
+  ];
+
+  const flat = [];
+  candidates.forEach((candidate) => {
+    if (Array.isArray(candidate)) flat.push(...candidate);
+  });
+
+  if (!flat.length && series?.exam) flat.push(series.exam);
+
+  return flat
+    .map((entry, index) => normalizeExamEntry(entry, index))
+    .filter((item) => item && (item.name || item.id || item.image));
+}
+
 export async function fetchTestSeries() {
   const response = await api.get("/api/test-series");
   return normalizeList(response.data).map((series, index) => ({
@@ -411,13 +462,39 @@ export async function fetchTestSeries() {
     featureThree: series?.testFeatureThree ?? "",
     startDate: series?.startDate ?? "",
     endDate: series?.endDate ?? "",
-    exams: Array.isArray(series?.exams) ? series.exams : [],
+    exams: extractLinkedExams(series),
   }));
 }
 
 export async function fetchTestSeriesById(id) {
   const response = await api.get(`/api/test-series/${id}`);
   const series = response.data?.data ?? response.data;
+  const linkedExams = extractLinkedExams(series);
+
+  if (linkedExams.length > 0) {
+    return {
+      id: series?.id ?? id,
+      title: series?.title ?? series?.name ?? "Test Series",
+      description: series?.description ?? "",
+      image: series?.image ?? series?.imageUrl ?? "",
+      price: series?.price ?? null,
+      sellingPrice: series?.sellingPrice ?? series?.salePrice ?? null,
+      mrp: series?.mrp ?? null,
+      subject: series?.subject ?? "",
+      featureOne: series?.testFeatureOne ?? "",
+      featureTwo: series?.testFeatureTwo ?? "",
+      featureThree: series?.testFeatureThree ?? "",
+      exams: linkedExams,
+    };
+  }
+
+  const allExams = await fetchExams();
+  const seriesId = series?.id ?? series?.testSeriesId ?? id;
+  const filteredExams = allExams.filter((exam) => {
+    const testSeriesId = exam?.testSeriesId ?? exam?.testSeries?.id ?? "";
+    return !testSeriesId || String(testSeriesId) === String(seriesId);
+  });
+
   return {
     id: series?.id ?? id,
     title: series?.title ?? series?.name ?? "Test Series",
@@ -430,7 +507,7 @@ export async function fetchTestSeriesById(id) {
     featureOne: series?.testFeatureOne ?? "",
     featureTwo: series?.testFeatureTwo ?? "",
     featureThree: series?.testFeatureThree ?? "",
-    exams: Array.isArray(series?.exams) ? series.exams : [],
+    exams: filteredExams,
   };
 }
 

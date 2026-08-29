@@ -16,7 +16,7 @@ import {
 const initialForm = {
   name: "",
   fatherName: "",
-  fatherSurname: "",
+  lastName: "",
   mobile: "",
   email: "",
   password: "",
@@ -148,6 +148,8 @@ export default function StudentRegistration() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [registered, setRegistered] = useState(null);
+  const [paymentCompleted, setPaymentCompleted] = useState(false);
+  const [paymentDetails, setPaymentDetails] = useState(null);
   const [districts, setDistricts] = useState([]);
   const [talukas, setTalukas] = useState([]);
   const [centers, setCenters] = useState([]);
@@ -246,7 +248,7 @@ export default function StudentRegistration() {
     const payload = {
       studentName: form.name,
       fatherName: form.fatherName,
-      fatherSurname: form.fatherSurname,
+      lastName: form.lastName,
       mobile: form.mobile,
       email: form.email.trim() || null,
       password: form.password,
@@ -272,7 +274,18 @@ export default function StudentRegistration() {
   }
 
   async function handleSubmit(e) {
-    e.preventDefault();
+    e?.preventDefault();
+
+    if (paymentCompleted) {
+      await handleRegister(e);
+      return;
+    }
+
+    await handlePayment(e);
+  }
+
+  async function handlePayment(e) {
+    e?.preventDefault();
     setError("");
 
     if (!form.districtId) return setError("Please select a District.");
@@ -289,21 +302,17 @@ export default function StudentRegistration() {
       setStep("paying");
 
       const order = await createRazorpayOrder(250, form.mobile);
-
       if (!order?.id) {
         throw new Error("Unable to create payment order.");
       }
 
       const orderId = order.id;
-
       payWithRazorpay({
         amount: 250,
         name: form.name,
         contact: form.mobile,
         orderId,
         onSuccess: async ({ paymentId, orderId: razorpayOrderId, signature }) => {
-          setStep("saving");
-
           try {
             const verification = await verifyRazorpayPayment({
               orderId: razorpayOrderId || orderId,
@@ -315,20 +324,25 @@ export default function StudentRegistration() {
               throw new Error("Payment verification failed.");
             }
 
-            const saved = await saveToBackend(paymentId);
-            setRegistered(saved);
-            setStep("success");
+            setPaymentCompleted(true);
+            setPaymentDetails({ paymentId, orderId: razorpayOrderId || orderId, signature });
+            setError("Payment successful. Please click Register to complete your enrollment.");
+            setStep("form");
           } catch (error) {
-            console.error("Registration failed:", error);
+            console.error("Payment verification failed:", error);
+            setPaymentCompleted(false);
+            setPaymentDetails(null);
             setError(
               error?.response?.data?.message ||
                 error?.message ||
-                `Payment succeeded but registration failed. Payment ID: ${paymentId}`
+                "Payment verification failed. Please try again."
             );
             setStep("form");
           }
         },
         onFailure: (message) => {
+          setPaymentCompleted(false);
+          setPaymentDetails(null);
           setError(message || "Payment was not completed. Please try again.");
           setStep("form");
         },
@@ -339,6 +353,41 @@ export default function StudentRegistration() {
         error?.response?.data?.message ||
           error?.message ||
           "Unable to create payment order. Please try again."
+      );
+      setStep("form");
+    }
+  }
+
+  async function handleRegister(e) {
+    e?.preventDefault();
+    setError("");
+
+    if (!paymentCompleted || !paymentDetails?.paymentId) {
+      return setError("Please complete the payment first.");
+    }
+
+    if (!form.districtId) return setError("Please select a District.");
+    if (!form.talukaId) return setError("Please select a Taluka.");
+    if (!form.schoolName.trim()) return setError("Please enter your School Name.");
+    if (!form.centerId) return setError("Please select an Exam Center.");
+    if (!form.coordinatorId) return setError("Please select a Co-ordinator assigned to your center.");
+    if (!form.password) return setError("Please enter a password.");
+    if (form.password.length < 6) return setError("Password must be at least 6 characters long.");
+    if (form.password !== form.confirmPassword) return setError("Password and Confirm Password do not match.");
+
+    try {
+      setStep("saving");
+      const saved = await saveToBackend(paymentDetails.paymentId);
+      setRegistered(saved);
+      setStep("success");
+      setPaymentCompleted(false);
+      setPaymentDetails(null);
+    } catch (error) {
+      console.error("Registration failed:", error);
+      setError(
+        error?.response?.data?.message ||
+          error?.message ||
+          `Payment succeeded but registration failed. Payment ID: ${paymentDetails.paymentId}`
       );
       setStep("form");
     }
@@ -386,8 +435,8 @@ export default function StudentRegistration() {
             <Field label="Father Name">
               <input required className="input-field" value={form.fatherName} onChange={(e) => update("fatherName", e.target.value)} />
             </Field>
-            <Field label="Father Surname">
-              <input required className="input-field" value={form.fatherSurname} onChange={(e) => update("fatherSurname", e.target.value)} />
+            <Field label="Last Name">
+              <input required className="input-field" value={form.lastName} onChange={(e) => update("lastName", e.target.value)} />
             </Field>
             <Field label="Mobile">
               <input required pattern="[0-9]{10}" title="10 digit mobile number" className="input-field" value={form.mobile} onChange={(e) => update("mobile", e.target.value)} />
@@ -518,13 +567,25 @@ export default function StudentRegistration() {
                 I agree to the <Link to="/terms-and-conditions" className="text-navy font-semibold hover:text-gold">Terms and Conditions</Link> and understand that the ₹250 registration fee is processed through Razorpay.
               </span>
             </label>
-            <button
-              type="submit"
-              disabled={step === "paying" || step === "saving"}
-              className="btn-primary justify-center disabled:opacity-60 w-full sm:w-72"
-            >
-              {step === "paying" ? "Processing Payment..." : step === "saving" ? "Saving Registration..." : "Pay ₹250 & Register"}
-            </button>
+            <div className="flex w-full flex-col gap-3 sm:w-[26rem] sm:flex-row">
+              <button
+                type="button"
+                onClick={handlePayment}
+                disabled={step === "paying" || paymentCompleted}
+                className="btn-primary justify-center disabled:opacity-60 flex-1"
+              >
+                {step === "paying" ? "Processing Payment..." : paymentCompleted ? "Payment Completed" : "Pay ₹250"}
+              </button>
+
+              <button
+                type="button"
+                onClick={handleRegister}
+                disabled={step === "saving" || !paymentCompleted}
+                className="btn-primary justify-center disabled:opacity-60 flex-1 bg-green-600 hover:bg-green-700"
+              >
+                {step === "saving" ? "Saving Registration..." : "Register"}
+              </button>
+            </div>
           </div>
         </form>
       </div>
