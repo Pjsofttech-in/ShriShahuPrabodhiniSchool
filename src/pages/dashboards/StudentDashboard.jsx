@@ -97,7 +97,7 @@ export default function StudentDashboard({ defaultTab = "profile" }) {
   if (!student) return <div className="min-h-[60vh] flex items-center justify-center">Loading profile...</div>;
 
   const rollNo = student.rollNo || student.roll_number || student.rollNumber || "—";
-  const paymentStatus = student.paymentStatus || student.payment_status || (student.paymentId ? "Success" : "Pending");
+  const paymentStatus = student.paymentStatus || student.payment_status || (student.paymentId ? "Paid" : "Pending");
   const paymentId = student.paymentId || student.payment_id || student.razorpayPaymentId || "—";
   const paymentAmount = student.amount ?? student.registrationFee ?? student.paymentAmount ?? 250;
   const isPaymentSuccessful = ["paid", "success", "successful", "completed", "payment successful"].includes(String(paymentStatus).toLowerCase());

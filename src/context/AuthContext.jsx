@@ -11,9 +11,33 @@ export function AuthProvider({ children }) {
   });
 
   async function persistUser(authResponse) {
+    console.log("=== PERSIST USER ===");
+    console.log("Auth Response:", authResponse);
+    
     const payload = authResponse?.data ?? authResponse;
-    const userData = payload?.user ?? payload?.student ?? authResponse?.user ?? authResponse?.student ?? payload;
-    const token = payload?.token ?? authResponse?.token;
+    console.log("Payload:", payload);
+    
+    const userData = payload?.user ?? payload?.student ?? payload?.data?.user ?? payload?.data?.student ?? authResponse?.user ?? authResponse?.student ?? payload;
+    console.log("Extracted User Data:", userData);
+    
+    // Try multiple token extraction paths
+    let token = payload?.token ?? 
+               authResponse?.token ?? 
+               payload?.accessToken ?? 
+               payload?.access_token ?? 
+               payload?.Authorization ?? 
+               payload?.data?.token ?? 
+               payload?.data?.accessToken ?? 
+               authResponse?.accessToken ?? 
+               authResponse?.access_token;
+
+    // If userData itself contains a token, use it
+    if (!token && userData?.token) {
+      token = userData.token;
+    }
+
+    console.log("Extracted Token:", token ? "✓ Found" : "✗ Not found");
+    console.log("User Data:", userData);
 
     if (token && userData) {
       const rawRole = userData.role || userData.userRole || userData.type || "student";
@@ -27,10 +51,13 @@ export function AuthProvider({ children }) {
       setAuthToken(token);
       setUser(normalizedUser);
       sessionStorage.setItem("ssp_user", JSON.stringify(normalizedUser));
+      console.log("✅ User persisted successfully");
       return { success: true, user: normalizedUser };
     }
 
-    return { success: false, message: authResponse?.message || payload?.message || "Login failed." };
+    const errorMsg = authResponse?.message || payload?.message || authResponse?.error || payload?.error || "Login failed. Token or user data missing.";
+    console.log("❌ Persist failed:", errorMsg);
+    return { success: false, message: errorMsg };
   }
 
   async function loginAdmin(username, password) {
@@ -48,11 +75,20 @@ export function AuthProvider({ children }) {
     const isEmail = loginMethod === "email" || (!loginMethod && value.includes("@"));
 
     try {
+      console.log("=== STUDENT LOGIN ATTEMPT ===");
+      console.log("Identifier:", identifier);
+      console.log("Is Email:", isEmail);
+      console.log("Login Method:", loginMethod);
+      
       const payload = isEmail
         ? { email: value, password }
         : { mobile: value, password };
 
+      console.log("Sending payload:", payload);
+
       const response = await loginUser("student", payload);
+      console.log("Login response received:", response);
+      
       const persisted = await persistUser(response);
       if (persisted.success) {
         const authPayload = response?.data ?? response;
@@ -77,10 +113,17 @@ export function AuthProvider({ children }) {
         message: response?.message || response?.error || "Invalid email, mobile number, or password.",
       };
     } catch (error) {
+      console.error("=== LOGIN ERROR ===");
+      console.error("Error object:", error);
+      console.error("Error response:", error?.response);
+      console.error("Error data:", error?.response?.data);
+      console.error("Error status:", error?.response?.status);
+      
       return {
         success: false,
         message:
           error?.response?.data?.message ||
+          error?.response?.data?.error ||
           error?.message ||
           "Invalid email, mobile number, or password.",
       };

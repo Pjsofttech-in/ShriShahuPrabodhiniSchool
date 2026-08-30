@@ -4,14 +4,28 @@ const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "http://localhost:808
 const STATIC_ADMIN_TOKEN = import.meta.env.VITE_ADMIN_TOKEN || "";
 
 function getAuthToken() {
-  return sessionStorage.getItem("ssp_token") || STATIC_ADMIN_TOKEN;
+  const sessionToken = sessionStorage.getItem("ssp_token");
+  
+  // NEVER use static token - only use session token
+  // Static token is only for environment setup, never for actual requests
+  if (sessionToken) {
+    console.log("Using session token for auth");
+    return sessionToken;
+  }
+  
+  console.log("No session token available");
+  return "";
 }
 
 function isPublicRequest(config) {
   const method = (config.method || "get").toLowerCase();
   const url = config.url || "";
 
-  if (url === "/api/auth/login") return true;
+  // Login endpoints - ALL public, NEVER send auth header
+  if (method === "post" && url.includes("/auth/") && url.includes("/login")) {
+    return true;
+  }
+
   if (method === "post" && [
     "/api/students",
     "/api/payments/create-order",
@@ -53,30 +67,60 @@ const api = axios.create({
   timeout: 15000,
 });
 
-// If baseURL already ends with '/api' we will strip duplicate '/api' from request paths that also start with '/api'
-const BASE_ENDS_WITH_API = /\/api$/.test(API_BASE_URL);
-
 api.interceptors.request.use((config) => {
-  // Normalize request URL if necessary
-  try {
-    if (BASE_ENDS_WITH_API && typeof config.url === 'string' && config.url.startsWith('/api/')) {
-      config.url = config.url.replace(/^\/api/, '');
-    }
-  } catch (e) {
-    console.warn('api request normalization failed', e);
-  }
   const token = getAuthToken();
+  const isPublic = isPublicRequest(config);
+  
+  console.log("🔍 REQUEST INTERCEPTOR", {
+    method: config.method?.toUpperCase(),
+    url: config.url,
+    isPublicRequest: isPublic,
+    tokenExists: !!token,
+    tokenLength: token ? token.length : 0,
+    headersBeforAuth: { ...config.headers },
+  });
+  
   try {
-    if (token && !isPublicRequest(config)) {
-      // Attach Bearer token without template literal to avoid interpolation
+    if (token && !isPublic) {
       config.headers = config.headers || {};
       config.headers.Authorization = 'Bearer ' + token;
+      console.log("✅ Authorization header ADDED for protected endpoint");
+    } else if (isPublic && config.headers?.Authorization) {
+      console.log("⚠️  REMOVING Authorization header from public endpoint");
+      delete config.headers.Authorization;
+    } else if (isPublic) {
+      console.log("✅ Public endpoint - NO Authorization header sent");
     }
   } catch (err) {
-    console.error('Failed to attach auth header', err);
+    console.error('❌ Failed to attach auth header', err);
   }
+  
+  console.log("Final headers:", config.headers);
   return config;
 });
+
+api.interceptors.response.use(
+  (response) => {
+    console.log("📥 RESPONSE RECEIVED", {
+      status: response.status,
+      url: response.config.url,
+      dataKeys: Object.keys(response.data || {}),
+      fullData: response.data,
+    });
+    return response;
+  },
+  (error) => {
+    console.error("❌ RESPONSE ERROR", {
+      status: error?.response?.status,
+      statusText: error?.response?.statusText,
+      url: error?.config?.url,
+      method: error?.config?.method,
+      errorData: error?.response?.data,
+      errorHeaders: error?.response?.headers,
+    });
+    return Promise.reject(error);
+  }
+);
 
 export function setAuthToken(token) {
   if (token) {

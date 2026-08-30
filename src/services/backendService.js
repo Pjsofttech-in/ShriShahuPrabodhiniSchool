@@ -447,7 +447,7 @@ function extractLinkedExams(series) {
 }
 
 export async function fetchTestSeries() {
-  const response = await api.get("/api/api/test-series");
+  const response = await api.get("/api/test-series");
   return normalizeList(response.data).map((series, index) => ({
     id: series?.id ?? series?.testSeriesId ?? index + 1,
     title: series?.title ?? series?.name ?? "Test Series",
@@ -467,7 +467,7 @@ export async function fetchTestSeries() {
 }
 
 export async function fetchTestSeriesById(id) {
-  const response = await api.get(`/api/api/test-series/${id}`);
+  const response = await api.get(`/api/test-series/${id}`);
   const series = response.data?.data ?? response.data;
   const linkedExams = extractLinkedExams(series);
 
@@ -512,7 +512,7 @@ export async function fetchTestSeriesById(id) {
 }
 
 export async function fetchExams() {
-  const response = await api.get("/api/api/exams");
+  const response = await api.get("/api/exams");
   return normalizeList(response.data).map((exam, index) => ({
     id: exam?.id ?? index + 1,
     name: exam?.examName ?? exam?.name ?? "Exam",
@@ -745,8 +745,52 @@ export async function registerStudent(payload) {
 }
 
 export async function loginUser(role, credentials) {
-  const response = await api.post("/api/auth/login", { role, ...credentials });
-  return response.data;
+  const roleEndpoint = `/api/auth/${role}/login`;
+  
+  try {
+    console.log("=== LOGIN ATTEMPT ===");
+    console.log("Endpoint:", roleEndpoint);
+    console.log("Role:", role);
+    console.log("Credentials:", credentials);
+    
+    const response = await api.post(roleEndpoint, credentials);
+    
+    console.log("=== LOGIN SUCCESS ===");
+    console.log("Full Response:", response);
+    console.log("Response Data:", response.data);
+    
+    return response.data;
+  } catch (error) {
+    console.log("=== LOGIN FAILED ===");
+    console.log("Status:", error?.response?.status);
+    console.log("Data:", error?.response?.data);
+    
+    const errorData = error?.response?.data;
+    const errorText = typeof errorData === "string"
+      ? errorData
+      : JSON.stringify(errorData || "");
+    const roleEndpointUnavailable =
+      error?.response?.status === 404 ||
+      error?.response?.status === 401 ||
+      error?.response?.status === 500 && /static resource|not found|no route/i.test(errorText);
+
+    // Some deployments report a missing role route as HTTP 500 instead of 404.
+    if (roleEndpointUnavailable) {
+      try {
+        console.log("Trying generic endpoint: /auth/login");
+        const genericPayload = { role, ...credentials };
+        console.log("Generic payload:", genericPayload);
+        
+        const response = await api.post("/api/auth/login", genericPayload);
+        console.log("Generic endpoint success:", response.data);
+        return response.data;
+      } catch (fallbackError) {
+        console.error("Generic endpoint also failed:", fallbackError?.response?.data);
+        throw fallbackError;
+      }
+    }
+    throw error;
+  }
 }
 
 export async function getMyProfile() {
@@ -781,7 +825,27 @@ export async function verifyRazorpayPayment({ orderId, paymentId, signature }) {
       signature,
     });
 
-    return response.data;
+    console.log("verifyRazorpayPayment - Response received:", {
+      status: response.status,
+      data: response.data,
+      headers: response.headers
+    });
+
+    // Return the full data object (it might be wrapped or have multiple levels)
+    const result = response.data;
+    
+    // If the backend returns a success flag, return a success indicator
+    if (result?.success === true || result?.verified === true) {
+      return result;
+    }
+    
+    // If it's a string response, return as-is
+    if (typeof result === "string") {
+      return result;
+    }
+    
+    // Otherwise return the data object
+    return result;
   } catch (error) {
     console.error(
       "Payment verification failed:",

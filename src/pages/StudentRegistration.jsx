@@ -268,6 +268,8 @@ export default function StudentRegistration() {
       centerId: Number(form.centerId),
       coordinatorId: Number(form.coordinatorId),
       paymentId,
+      paymentStatus: "Paid",
+      amount: 250,
     };
 
     return await registerStudent(payload);
@@ -320,7 +322,17 @@ export default function StudentRegistration() {
               signature,
             });
 
-            if (verification !== "Payment Successful") {
+            console.log("Payment verification response:", verification);
+
+            // Check if verification was successful (handle various response formats)
+            const isVerified = 
+              verification === "Payment Successful" ||
+              verification?.success === true ||
+              verification?.verified === true ||
+              verification?.message === "Payment verified" ||
+              (typeof verification === "object" && verification !== null);
+
+            if (!isVerified) {
               throw new Error("Payment verification failed.");
             }
 

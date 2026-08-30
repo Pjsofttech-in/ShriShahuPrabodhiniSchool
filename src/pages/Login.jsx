@@ -71,12 +71,23 @@ export default function Login() {
 
           // If the user's payment status is not paid, redirect to profile/registration
           const student = res.user ?? null;
-          const paid = student && (String(student.paymentStatus).toLowerCase() === 'paid' || Number(student.amount || 0) > 0);
+          console.log("Login - Student data:", { student, paymentStatus: student?.paymentStatus, amount: student?.amount, paymentId: student?.paymentId });
+          
+          // Check if payment is completed
+          const paymentStatus = String(student?.paymentStatus || "").toLowerCase();
+          const isPaid = paymentStatus === 'paid' || 
+                        paymentStatus === 'success' || 
+                        paymentStatus === 'completed' ||
+                        (Number(student?.amount || 0) > 0 && student?.paymentId);
+          
+          console.log("Login - Payment check:", { paymentStatus, isPaid, amount: student?.amount, paymentId: student?.paymentId });
 
-          if (chosen && paid) {
-                      navigate(`/exam/${chosen.id}/start`, { state: { exam: chosen } });
+          if (chosen && isPaid) {
+            console.log("Login - Redirecting to exam");
+            navigate(`/exam/${chosen.id}/start`, { state: { exam: chosen } });
           } else {
             // Not paid or no exam available — go to profile
+            console.log("Login - Redirecting to profile (payment not completed or no exam)");
             navigate('/student/profile');
           }
         } catch (err) {
