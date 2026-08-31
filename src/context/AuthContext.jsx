@@ -36,6 +36,10 @@ export function AuthProvider({ children }) {
       token = userData.token;
     }
 
+    if (typeof token === "string") {
+      token = token.replace(/^Bearer\s+/i, "").trim();
+    }
+
     console.log("Extracted Token:", token ? "✓ Found" : "✗ Not found");
     console.log("User Data:", userData);
 

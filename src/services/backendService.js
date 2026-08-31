@@ -398,7 +398,7 @@ export async function fetchAboutUs() {
 function normalizeExamEntry(entry, index = 0) {
   const exam = entry?.exam ?? entry?.testPaper ?? entry?.paper ?? entry?.examDetails ?? entry ?? {};
 
-  const examId = exam?.id ?? exam?.examId ?? entry?.examId ?? entry?.id ?? index + 1;
+  const examId = exam?.examId ?? exam?.exam_id ?? entry?.examId ?? entry?.exam_id ?? exam?.id ?? entry?.id ?? index + 1;
   const examName = exam?.examName ?? exam?.name ?? exam?.title ?? entry?.title ?? `Test Paper ${index + 1}`;
   const examImage = exam?.image ?? exam?.imageUrl ?? exam?.examImage ?? exam?.photo ?? entry?.image ?? entry?.imageUrl ?? "";
   const examTotalMarks = exam?.totalMarks ?? exam?.marks ?? entry?.totalMarks ?? entry?.marks ?? "";
@@ -514,7 +514,7 @@ export async function fetchTestSeriesById(id) {
 export async function fetchExams() {
   const response = await api.get("/api/exams");
   return normalizeList(response.data).map((exam, index) => ({
-    id: exam?.id ?? index + 1,
+    id: exam?.examId ?? exam?.exam_id ?? exam?.id ?? index + 1,
     name: exam?.examName ?? exam?.name ?? "Exam",
     image: exam?.image ?? exam?.imageUrl ?? "",
     totalMarks: exam?.totalMarks ?? "",
@@ -529,58 +529,84 @@ export async function fetchExams() {
   }));
 }
 
-// Fetch questions for a specific exam. Try several likely endpoints to handle different backend routes.
-// Common expected endpoints include:
-// - GET /api/exams/{examId}/questions
-// - GET /api/test-series/exam/{examId}/questions
-// - GET /api/testseries/exam/{examId}/questions
-// - GET /api/exam-questions?examId={examId}
-export async function fetchExamQuestions(examId) {
-  if (!examId) return [];
-
-  const encodedId = encodeURIComponent(examId);
-  const endpoints = [
-    `/api/exams/${encodedId}/questions`,
-    `/api/test-series/exam/${encodedId}/questions`,
-    `/api/testseries/exam/${encodedId}/questions`,
-    `/api/test-series/exams/${encodedId}/questions`,
-    `/api/testseries/exams/${encodedId}/questions`,
-    `/api/exam-questions?examId=${encodedId}`,
-    `/api/examquestions?examId=${encodedId}`,
-  ];
-
-  // Try endpoints sequentially so we can log which one returns data (helps debugging mismatched routes)
-  for (const ep of endpoints) {
-    try {
-      const res = await api.get(ep);
-      const list = normalizeList(res.data);
-      if (list && list.length) {
-        console.debug('fetchExamQuestions: using endpoint', ep, 'returned', list.length, 'items');
-        return list;
-      }
-    } catch (err) {
-      // continue trying other endpoints; collect errors in console for debugging
-      console.debug('fetchExamQuestions: endpoint', ep, 'failed with', err?.response?.status || err?.message || err);
-    }
-  }
-
-  console.warn('fetchExamQuestions: no questions found for exam', examId);
-  return []; 
+function unwrapResponse(data) {
+  return data?.data ?? data?.result ?? data;
 }
 
-// Submit test/exam result to backend using canonical endpoint.
-// Expected endpoint on server: POST /api/exam-results
-export async function submitExamResult(payload) {
-  const endpoint = "/api/exam-results";
-  const res = await api.post(endpoint, payload);
-  return res.data ?? res;
+function getAttemptId(attempt) {
+  const value = unwrapResponse(attempt);
+  return value?.attemptId ?? value?.id ?? value?.attempt_id ?? null;
+}
+
+export async function startExamAttempt(examId, testSeriesId) {
+  const params = { examId };
+  if (testSeriesId) params.testSeriesId = testSeriesId;
+  const response = await api.post("/api/exam-attempts/start", null, { params });
+  const attempt = unwrapResponse(response.data);
+  const attemptId = getAttemptId(attempt);
+  if (!attemptId) throw new Error("The backend did not return an exam attempt ID.");
+  return { ...attempt, attemptId };
+}
+
+export async function fetchAttemptQuestions(attemptId) {
+  const response = await api.get(`/api/exam-attempts/${encodeURIComponent(attemptId)}/questions`);
+  return normalizeList(response.data);
+}
+
+export async function saveAttemptAnswer(attemptId, answer) {
+  const response = await api.post(
+    `/api/exam-attempts/${encodeURIComponent(attemptId)}/answers`,
+    answer
+  );
+  return response.data;
+}
+
+export async function submitExamAttempt(attemptId) {
+  const response = await api.post(`/api/exam-attempts/${encodeURIComponent(attemptId)}/submit`);
+  return unwrapResponse(response.data);
+}
+
+export async function fetchExamAttemptResult(attemptId) {
+  const response = await api.get(`/api/exam-attempts/${encodeURIComponent(attemptId)}/result`);
+  return unwrapResponse(response.data);
+}
+
+export function rememberExamAttempt(attemptId) {
+  if (!attemptId) return;
+  const saved = JSON.parse(sessionStorage.getItem("ssp_attempt_ids") || "[]");
+  const ids = [String(attemptId), ...saved.filter((id) => String(id) !== String(attemptId))].slice(0, 20);
+  sessionStorage.setItem("ssp_attempt_ids", JSON.stringify(ids));
 }
 
 // Fetch exam results/attempts for a given student. Try several plausible endpoints the backend might expose.
-export async function fetchStudentResults(studentId) {
+export async function fetchStudentResults(studentId, profile = null) {
   if (!studentId) return [];
   const id = encodeURIComponent(studentId);
+  const profileAttempts = [
+    profile?.attempts,
+    profile?.examAttempts,
+    profile?.exam_attempts,
+    profile?.results,
+  ].find(Array.isArray) || [];
+
+  if (profileAttempts.length) {
+    const profileResults = [];
+    for (const attempt of profileAttempts) {
+      const attemptId = getAttemptId(attempt);
+      if (!attemptId) continue;
+      try {
+        const result = await fetchExamAttemptResult(attemptId);
+        profileResults.push({ ...attempt, ...result, attemptId });
+      } catch (err) {
+        profileResults.push({ ...attempt, attemptId });
+      }
+    }
+    if (profileResults.length) return profileResults;
+  }
+
   const endpoints = [
+    `/api/exam-attempts/student/${id}`,
+    `/api/exam-attempts?studentId=${id}`,
     `/api/exam-results?studentId=${id}`,
     `/api/exam-results/student/${id}`,
     `/api/students/${id}/exam-results`,
@@ -600,6 +626,18 @@ export async function fetchStudentResults(studentId) {
       console.debug('fetchStudentResults: endpoint', ep, 'failed with', err?.response?.status || err?.message || err);
     }
   }
+
+  const savedAttemptIds = JSON.parse(sessionStorage.getItem("ssp_attempt_ids") || "[]");
+  const savedResults = [];
+  for (const attemptId of savedAttemptIds) {
+    try {
+      const result = await fetchExamAttemptResult(attemptId);
+      if (result) savedResults.push({ ...result, attemptId });
+    } catch (err) {
+      console.debug('fetchStudentResults: saved attempt failed', attemptId, err?.response?.status || err?.message || err);
+    }
+  }
+  if (savedResults.length) return savedResults;
 
   console.warn('fetchStudentResults: no results found for student', studentId);
   return [];
@@ -739,6 +777,17 @@ export async function fetchStudentByMobile(mobile) {
   return student || null;
 }
 
+export async function fetchStudentByEmail(email) {
+  if (!email) return null;
+  const response = await api.get("/api/students", { params: { email } });
+  const payload = response.data;
+  const students = Array.isArray(payload)
+    ? payload
+    : payload?.data || payload?.content || payload?.items || payload?.students || [];
+  const student = Array.isArray(students) ? students[0] : students;
+  return student || null;
+}
+
 export async function registerStudent(payload) {
   const response = await api.post("/api/students", payload);
   return response.data;
@@ -795,7 +844,8 @@ export async function loginUser(role, credentials) {
 
 export async function getMyProfile() {
   const response = await api.get("/api/auth/me");
-  return response.data;
+  const payload = response.data;
+  return payload?.data ?? payload?.student ?? payload?.user ?? payload;
 }
 
 export async function createRazorpayOrder(amount, mobileNo) {

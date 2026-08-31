@@ -3,10 +3,14 @@ import { CheckCircle2, IndianRupee, LayoutDashboard, User, FileText } from "luci
 import DashboardShell from "../../components/DashboardShell.jsx";
 import { useAuth } from "../../context/AuthContext.jsx";
 import {
+  getMyProfile,
   fetchStudentById,
+  fetchStudentByEmail,
+  fetchStudentByMobile,
   fetchCoordinators,
   fetchCenters,
   fetchStudentResults,
+  fetchExamAttemptResult,
 } from "../../services/backendService.js";
 
 const tabs = [
@@ -32,11 +36,19 @@ export default function StudentDashboard({ defaultTab = "profile" }) {
 
   useEffect(() => {
     async function loadData() {
-      try {
-        let studentData = null;
+      let studentData = user;
 
+      try {
+        const profile = await getMyProfile();
+        if (profile && typeof profile === "object") studentData = { ...user, ...profile };
+      } catch (err) {
+        console.warn("Could not load the authenticated student profile.", err);
+      }
+
+      try {
         const lookupIds = [user?.studentId, user?.student?.id, user?.id, user?.userId].filter(Boolean);
         for (const id of lookupIds) {
+          if (studentData !== user && (studentData.id || studentData.studentId)) break;
           try {
             const found = await fetchStudentById(id);
             if (found) {
@@ -48,25 +60,34 @@ export default function StudentDashboard({ defaultTab = "profile" }) {
           }
         }
 
-        if (!studentData && user) {
-          studentData = user;
+        if (studentData === user && user?.email) {
+          const found = await fetchStudentByEmail(user.email);
+          if (found) studentData = found;
         }
 
-        const [centers, coordinators] = await Promise.all([
-          fetchCenters(),
-          fetchCoordinators(),
-        ]);
-
-        setStudent(studentData);
-
-        const centerId = studentData?.examCenterId ?? studentData?.centerId ?? studentData?.center?.id ?? studentData?.center_id;
-        const coordinatorId = studentData?.coordinatorId ?? studentData?.coordinator?.id ?? studentData?.coordinator_id;
-
-        setCenter(centers.find((c) => String(c.id) === String(centerId) || String(c.centerId) === String(centerId) || String(c.center_id) === String(centerId)) || null);
-        setCoordinator(coordinators.find((c) => String(c.id) === String(coordinatorId) || String(c.coordinatorId) === String(coordinatorId) || String(c.coordinator_id) === String(coordinatorId)) || null);
+        if (studentData === user && user?.mobile) {
+          const found = await fetchStudentByMobile(user.mobile);
+          if (found) studentData = found;
+        }
       } catch (err) {
-        console.error("Could not load student dashboard data", err);
+        console.warn("Could not enrich the student profile from the students API.", err);
       }
+
+      if (!studentData) return;
+      setStudent(studentData);
+
+      const [centersResult, coordinatorsResult] = await Promise.allSettled([
+        fetchCenters(),
+        fetchCoordinators(),
+      ]);
+      const centers = centersResult.status === "fulfilled" ? centersResult.value : [];
+      const coordinators = coordinatorsResult.status === "fulfilled" ? coordinatorsResult.value : [];
+
+      const centerId = studentData?.examCenterId ?? studentData?.centerId ?? studentData?.center?.id ?? studentData?.center_id;
+      const coordinatorId = studentData?.coordinatorId ?? studentData?.coordinator?.id ?? studentData?.coordinator_id;
+
+      setCenter(centers.find((c) => String(c.id) === String(centerId) || String(c.centerId) === String(centerId) || String(c.center_id) === String(centerId)) || null);
+      setCoordinator(coordinators.find((c) => String(c.id) === String(coordinatorId) || String(c.coordinatorId) === String(coordinatorId) || String(c.coordinator_id) === String(coordinatorId)) || null);
     }
 
     if (user) {
@@ -81,7 +102,7 @@ export default function StudentDashboard({ defaultTab = "profile" }) {
       setLoadingResults(true);
       try {
         const sid = student.id ?? student.studentId ?? user?.studentId ?? user?.id;
-        const list = await fetchStudentResults(sid);
+        const list = await fetchStudentResults(sid, student);
         setResults(Array.isArray(list) ? list : []);
       } catch (err) {
         console.warn('Could not load student results', err);
@@ -97,11 +118,36 @@ export default function StudentDashboard({ defaultTab = "profile" }) {
   if (!student) return <div className="min-h-[60vh] flex items-center justify-center">Loading profile...</div>;
 
   const rollNo = student.rollNo || student.roll_number || student.rollNumber || "—";
-  const paymentStatus = student.paymentStatus || student.payment_status || (student.paymentId ? "Paid" : "Pending");
+  const paymentStatusFromApi =
+    student.paymentStatus ||
+    student.payment_status ||
+    student.payment?.status ||
+    student.payment?.paymentStatus ||
+    (student.paymentId || student.payment_id || student.razorpayPaymentId ? "Paid" : "Pending");
   const paymentId = student.paymentId || student.payment_id || student.razorpayPaymentId || "—";
   const paymentAmount = student.amount ?? student.registrationFee ?? student.paymentAmount ?? 250;
-  const isPaymentSuccessful = ["paid", "success", "successful", "completed", "payment successful"].includes(String(paymentStatus).toLowerCase());
+  const hasPaymentId = paymentId !== "—";
+  const isPaymentSuccessful = hasPaymentId || ["paid", "success", "successful", "completed", "payment successful"].includes(String(paymentStatusFromApi).toLowerCase());
+  const paymentStatus = isPaymentSuccessful ? "PAID" : paymentStatusFromApi;
   const marks = 70 + (String(rollNo).charCodeAt(String(rollNo).length - 1 || 0) % 30);
+
+  async function viewAttempt(attempt) {
+    const attemptId = attempt.attemptId ?? attempt.id ?? attempt.resultId ?? attempt.attempt_id;
+    if (!attemptId) {
+      setSelectedAttempt(attempt);
+      setShowAttemptModal(true);
+      return;
+    }
+
+    try {
+      const details = await fetchExamAttemptResult(attemptId);
+      setSelectedAttempt({ ...attempt, ...details, attemptId });
+    } catch (error) {
+      console.warn("Could not load exam attempt result.", error);
+      setSelectedAttempt({ ...attempt, attemptId });
+    }
+    setShowAttemptModal(true);
+  }
 
   return (
     <DashboardShell title="Student" roleLabel="Student" tabs={tabs} activeTab={tab} onTabChange={setTab}>
@@ -109,7 +155,7 @@ export default function StudentDashboard({ defaultTab = "profile" }) {
         <div className="grid sm:grid-cols-3 gap-5">
           <div className="card p-6 text-center"><p className="font-mono font-bold text-navy text-lg">{rollNo}</p><p className="text-xs text-muted mt-1">Roll Number</p></div>
           <div className="card p-6 text-center"><p className="font-display font-bold text-navy text-lg">{student.class || student.studentClass || "—"}</p><p className="text-xs text-muted mt-1">Class</p></div>
-          <div className="card p-6 text-center"><p className="font-display font-bold text-navy text-lg">{student.paymentStatus || "Paid"}</p><p className="text-xs text-muted mt-1">Payment Status</p></div>
+          <div className="card p-6 text-center"><p className="font-display font-bold text-navy text-lg">{paymentStatus}</p><p className="text-xs text-muted mt-1">Payment Status</p></div>
         </div>
       )}
       {tab === "profile" && (
@@ -181,7 +227,7 @@ export default function StudentDashboard({ defaultTab = "profile" }) {
                     <div className="text-right">
                       <div className="font-bold">{obtained ?? "—"}{total ? ` / ${total}` : ""}</div>
                       <div className="mt-2 flex gap-2 justify-end">
-                        <button className="btn btn-sm" onClick={() => { setSelectedAttempt(r); setShowAttemptModal(true); }}>View</button>
+                        <button className="btn btn-sm" onClick={() => viewAttempt(r)}>View</button>
                       </div>
                     </div>
                   </div>
@@ -205,9 +251,31 @@ export default function StudentDashboard({ defaultTab = "profile" }) {
                 </div>
 
                 <div className="mt-4 space-y-4">
+                  {(() => {
+                    const result = selectedAttempt.result ?? selectedAttempt;
+                    const score = result.obtainedMarks ?? result.obtained_marks ?? result.score ?? result.marks ?? result.totalMarksObtained;
+                    const totalMarks = result.maxScore ?? result.totalMarks ?? result.total_marks ?? result.maxMarks ?? result.total;
+                    const percentage = result.percentage ?? result.percent ?? (score != null && totalMarks ? ((Number(score) / Number(totalMarks)) * 100).toFixed(2) : null);
+                    const status = result.status ?? result.resultStatus ?? result.result ?? null;
+                    const submittedAt = result.submittedAt ?? result.submitted_at ?? null;
+                    const startedAt = result.startedAt ?? result.started_at ?? null;
+
+                    return (
+                      <dl className="grid gap-3 rounded-md border bg-slate-50 p-4 text-sm sm:grid-cols-2">
+                        <Row label="Status" value={status || "Submitted"} />
+                        <Row label="Score" value={`${score ?? "—"}${totalMarks != null ? ` / ${totalMarks}` : ""}`} />
+                        <Row label="Percentage" value={percentage != null ? `${percentage}%` : "—"} />
+                        <Row label="Started" value={startedAt ? new Date(startedAt).toLocaleString() : "—"} />
+                        <Row label="Submitted" value={submittedAt ? new Date(submittedAt).toLocaleString() : "—"} />
+                        <Row label="Total Questions" value={result.totalQuestions ?? result.total ?? "—"} />
+                      </dl>
+                    );
+                  })()}
+
                   {/* Try to find questions/answers in multiple possible keys */}
                   {(() => {
-                    const qList = selectedAttempt.questions ?? selectedAttempt.questionResponses ?? selectedAttempt.studentAnswers ?? selectedAttempt.answers ?? selectedAttempt.questionList ?? selectedAttempt.questionsList ?? null;
+                    const result = selectedAttempt.result ?? selectedAttempt;
+                    const qList = result.questions ?? result.questionResponses ?? result.studentAnswers ?? result.answers ?? result.answerDetails ?? result.details ?? result.questionList ?? result.questionsList ?? null;
                     if (!qList || !qList.length) {
                       return <div className="text-sm text-muted">No per-question details are available for this attempt.</div>;
                     }
@@ -215,11 +283,12 @@ export default function StudentDashboard({ defaultTab = "profile" }) {
                     return qList.map((q, idx) => {
                       // Normalize a single question/answer structure
                       const qId = q.questionId ?? q.id ?? q.question_id ?? q.question?.id ?? q.questionId;
-                      const text = q.question ?? q.questionText ?? q.question_text ?? q.question?.question ?? q.question?.text ?? `Question ${idx + 1}`;
-                      const options = q.options ?? q.optionList ?? (q.question ? [q.question.optionA, q.question.optionB, q.question.optionC, q.question.optionD].filter(Boolean) : null);
-                      const selected = q.selectedAnswer ?? q.selected_answer ?? (typeof q.answerIndex !== 'undefined' && Array.isArray(options) ? options[q.answerIndex] : (q.answer ?? null));
-                      const selectedIndex = (typeof q.answerIndex !== 'undefined') ? q.answerIndex : (q.selectedIndex ?? q.selected_index ?? null);
-                      const correct = q.correctAnswer ?? q.correct_answer ?? q.correct ?? (q.question ? q.question.correctAnswer ?? q.question.correct_answer : null);
+                      const questionData = q.question && typeof q.question === "object" ? q.question : null;
+                      const text = q.questionText ?? q.question_text ?? q.text ?? (typeof q.question === "string" ? q.question : null) ?? questionData?.questionText ?? questionData?.text ?? questionData?.question ?? `Question ${idx + 1}`;
+                      const options = q.options ?? q.optionList ?? questionData?.options ?? (questionData ? [questionData.optionA, questionData.optionB, questionData.optionC, questionData.optionD].filter(Boolean) : null);
+                      const selected = q.selectedAnswer ?? q.selected_answer ?? q.answerText ?? (typeof q.answerIndex !== 'undefined' && Array.isArray(options) ? options[q.answerIndex] : (q.answer ?? null));
+                      const selectedIndex = (typeof q.answerIndex !== 'undefined') ? q.answerIndex : (q.selectedIndex ?? q.selected_index ?? q.selectedOption ?? null);
+                      const correct = q.correctAnswer ?? q.correct_answer ?? q.correctOption ?? q.correct ?? questionData?.correctAnswer ?? questionData?.correct_answer ?? null;
                       const marksObtained = q.marksObtained ?? q.marks_obtained ?? q.marksObt ?? q.marks_obt ?? q.marks ?? null;
                       const marksTotal = q.marks ?? q.totalMarks ?? q.total_marks ?? null;
                       const explanation = q.answerExplanation ?? q.answer_explanation ?? q.explanation ?? q.question?.answerExplanation ?? null;

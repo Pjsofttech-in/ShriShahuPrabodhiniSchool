@@ -1,7 +1,14 @@
 import React, { useEffect, useMemo, useState, useRef } from "react";
 import { useLocation, useParams, useNavigate } from "react-router-dom";
 import PageHeader from "../../components/PageHeader.jsx";
-import { fetchExams, fetchExamQuestions, submitExamResult } from "../../services/backendService.js";
+import {
+  fetchExams,
+  startExamAttempt,
+  fetchAttemptQuestions,
+  saveAttemptAnswer,
+  submitExamAttempt,
+  rememberExamAttempt,
+} from "../../services/backendService.js";
 import { useAuth } from "../../context/AuthContext.jsx";
 
 // Simple responsive professional UI for taking an exam with timer, answers, submit and result.
@@ -14,6 +21,9 @@ export default function ExamPlayer() {
   const [exam, setExam] = useState(passedExam);
   const [loading, setLoading] = useState(!passedExam);
   const [questions, setQuestions] = useState([]);
+  const [attemptId, setAttemptId] = useState(null);
+  const [loadError, setLoadError] = useState("");
+  const [submitError, setSubmitError] = useState("");
   const [answers, setAnswers] = useState({});
   const [timeLeft, setTimeLeft] = useState(0); // seconds
   const timerRef = useRef(null);
@@ -28,6 +38,32 @@ export default function ExamPlayer() {
 
   const initialDurationRef = useRef(0);
 
+  function normalizeQuestion(item, index) {
+    const question = item?.question && typeof item.question === "object" ? item.question : item;
+    const questionId = question?.questionId ?? question?.id ?? item?.questionId ?? `${id}-q-${index + 1}`;
+    const text = question?.questionText ?? question?.text ?? question?.question ?? item?.questionText ?? `Question ${index + 1}`;
+    let options = question?.options ?? question?.choices ?? question?.optionList ?? item?.options;
+
+    if (!options) {
+      options = [question?.optionA, question?.optionB, question?.optionC, question?.optionD].filter((option) => option != null && option !== "");
+    }
+    if (!options && question?.optionsJson) options = question.optionsJson;
+    if (typeof options === "string") {
+      try { options = JSON.parse(options); } catch (error) { options = options.split("|").map((option) => option.trim()).filter(Boolean); }
+    }
+    if (!Array.isArray(options) || options.length === 0) {
+      throw new Error(`Question ${index + 1} has no options in the database.`);
+    }
+
+    return {
+      id: questionId,
+      text,
+      options,
+      marks: Number(item?.marks ?? question?.marks ?? question?.weight ?? 1) || 1,
+      correctIndex: question?.correctIndex ?? question?.answerIndex ?? null,
+    };
+  }
+
   useEffect(() => {
     async function load() {
       try {
@@ -35,52 +71,12 @@ export default function ExamPlayer() {
         const found = all.find((e) => String(e.id) === String(id));
         if (found) setExam(found);
 
-        // First attempt to fetch questions from backend
-        const backendQs = await fetchExamQuestions(id);
-        let normalized = [];
-        if (backendQs && backendQs.length) {
-          // Normalize different possible response shapes
-          normalized = backendQs.map((it, idx) => {
-            // If API returns examQuestion wrapper with 'question'
-            const rawQ = it.question ?? it;
-            const qId = rawQ?.id ?? rawQ?.questionId ?? `${id}-q-${idx + 1}`;
-            const text = rawQ?.text ?? rawQ?.questionText ?? rawQ?.name ?? rawQ?.title ?? `Question ${idx + 1}`;
-            let options = rawQ?.options ?? rawQ?.choices ?? rawQ?.optionList;
-            if (!options && rawQ?.optionsJson) {
-              try { options = JSON.parse(rawQ.optionsJson); } catch(e){ options = null; }
-            }
-            if (!Array.isArray(options) || options.length === 0) {
-              // fallback to placeholder options
-              options = ["Option A","Option B","Option C","Option D"];
-            }
-            const marks = Number(it.marks ?? rawQ?.marks ?? rawQ?.weight ?? 1) || 1;
-            return {
-              id: qId,
-              text,
-              options,
-              marks,
-              // don't rely on correctIndex from server — server should score — include if present
-              correctIndex: rawQ?.correctIndex ?? rawQ?.answerIndex ?? null,
-            };
-          });
-        }
+        const attempt = await startExamAttempt(id, passedExam?.testSeriesId ?? found?.testSeriesId);
+        setAttemptId(attempt.attemptId);
+        const backendQs = await fetchAttemptQuestions(attempt.attemptId);
+        const normalized = backendQs.map(normalizeQuestion);
 
-        if (!normalized.length) {
-          // Mock: create sample MCQ questions if backend didn't return any
-          const sampleCount = Number(found?.totalQuestions) || 10;
-          normalized = Array.from({ length: sampleCount }).map((_, idx) => ({
-            id: `${id}-q-${idx + 1}`,
-            text: `Q${idx + 1}. Example question for ${found?.name ?? 'the exam'} — choose the correct option.`,
-            options: [
-              `Option A for question ${idx + 1}`,
-              `Option B for question ${idx + 1}`,
-              `Option C for question ${idx + 1}`,
-              `Option D for question ${idx + 1}`,
-            ],
-            correctIndex: 0,
-            marks: 1,
-          }));
-        }
+        if (!normalized.length) throw new Error("This exam has no questions in the database.");
 
         setQuestions(normalized);
 
@@ -89,17 +85,11 @@ export default function ExamPlayer() {
         initialDurationRef.current = sec;
         setTimeLeft(sec);
       } catch (err) {
-        // fallback mock
-        const mockQs = Array.from({ length: 10 }).map((_, idx) => ({
-          id: `${id}-q-${idx + 1}`,
-          text: `Q${idx + 1}. Example question — choose the correct option.`,
-          options: ["Option A","Option B","Option C","Option D"],
-          correctIndex: 0,
-          marks: 1,
-        }));
-        setQuestions(mockQs);
-        initialDurationRef.current = 10 * 60;
-        setTimeLeft(10 * 60);
+        console.error("Failed to load exam questions:", err);
+        const backendMessage = typeof err?.response?.data === "string"
+          ? err.response.data
+          : err?.response?.data?.message || err?.response?.data?.error;
+        setLoadError(backendMessage || (err?.response?.status ? `Exam API failed (${err.response.status}).` : err?.message) || "Unable to load questions for this exam.");
       } finally {
         setLoading(false);
       }
@@ -136,6 +126,16 @@ export default function ExamPlayer() {
 
   function selectAnswer(qid, optionIndex) {
     setAnswers((a) => ({ ...a, [qid]: optionIndex }));
+    const question = questions.find((item) => String(item.id) === String(qid));
+    if (attemptId && question) {
+      saveAttemptAnswer(attemptId, {
+        questionId: qid,
+        selectedAnswer: question.options[optionIndex],
+      }).catch((error) => {
+        console.warn("Failed to save answer:", error);
+        setSubmitError("An answer could not be saved. Please try again.");
+      });
+    }
   }
 
   function computeResult() {
@@ -154,87 +154,32 @@ export default function ExamPlayer() {
   const { user, refreshProfile } = useAuth();
 
   async function handleSubmit() {
-    const localRes = computeResult();
+    if (!attemptId) {
+      setSubmitError("Exam attempt was not created. Please restart the exam.");
+      return;
+    }
     setSubmitted(true);
     clearInterval(timerRef.current);
 
-    const timeTaken = (initialDurationRef.current || 0) - (timeLeft || 0);
-    const payload = {
-      examId: id,
-      studentId: user?.studentId ?? user?.id ?? null,
-      answers: Object.entries(answers).map(([qid, opt]) => ({ questionId: qid, answerIndex: opt, selectedAnswer: (questions.find(q => String(q.id) === String(qid))?.options?.[opt] ?? null) })),
-      timeTaken,
-      submittedAt: new Date().toISOString(),
-      meta: { localScore: localRes.score, localMaxScore: localRes.maxScore },
-    };
-
     try {
-      const serverRes = await submitExamResult(payload);
-      // If server returns structured result use it, otherwise fall back to local
-      if (serverRes && (serverRes.score !== undefined || serverRes.data)) {
-        // normalize different shapes
-        const data = serverRes.data ?? serverRes;
-        const normalized = {
-          score: data.score ?? data.correctMarks ?? data.totalMarks ?? localRes.score,
-          maxScore: data.maxScore ?? data.totalMarks ?? localRes.maxScore,
-          total: data.total ?? localRes.total,
-        };
-        // attach per-question details if server provided them
-        if (data.details || data.perQuestion || data.questionResults) {
-          normalized.details = data.details ?? data.perQuestion ?? data.questionResults;
-        }
-        setResult(normalized);
-        // refresh user profile to include exam result in student profile
-        try { await refreshProfile(); } catch (e) { /* ignore */ }
-      } else {
-        setResult(localRes);
-      }
+      setResult(await submitExamAttempt(attemptId));
+      rememberExamAttempt(attemptId);
+      try { await refreshProfile(); } catch (e) { /* ignore */ }
     } catch (err) {
-      // submission failed — keep local result and allow retry later
       console.warn('Result submission failed:', err);
-      setResult(localRes);
+      setSubmitError(err?.response?.data?.message || err?.message || "Unable to submit this exam.");
+      setSubmitted(false);
     }
   }
 
   async function handleAutoSubmit() {
     if (submitted) return;
-    setSubmitted(true);
-    const localRes = computeResult();
-
-    const timeTaken = (initialDurationRef.current || 0) - (timeLeft || 0);
-    const payload = {
-      examId: id,
-      studentId: user?.studentId ?? user?.id ?? null,
-      answers: Object.entries(answers).map(([qid, opt]) => ({ questionId: qid, answerIndex: opt, selectedAnswer: (questions.find(q => String(q.id) === String(qid))?.options?.[opt] ?? null) })),
-      timeTaken,
-      submittedAt: new Date().toISOString(),
-      meta: { localScore: localRes.score, localMaxScore: localRes.maxScore },
-    };
-
-    try {
-      const serverRes = await submitExamResult(payload);
-      if (serverRes && (serverRes.score !== undefined || serverRes.data)) {
-        const data = serverRes.data ?? serverRes;
-        const normalized = {
-          score: data.score ?? data.correctMarks ?? data.totalMarks ?? localRes.score,
-          maxScore: data.maxScore ?? data.totalMarks ?? localRes.maxScore,
-          total: data.total ?? localRes.total,
-        };
-        if (data.details || data.perQuestion || data.questionResults) {
-          normalized.details = data.details ?? data.perQuestion ?? data.questionResults;
-        }
-        setResult(normalized);
-        try { await refreshProfile(); } catch(e) { }
-      } else {
-        setResult(localRes);
-      }
-    } catch (err) {
-      console.warn('Auto-submit failed:', err);
-      setResult(localRes);
-    }
+    await handleSubmit();
   }
 
   if (loading) return <div className="min-h-screen"><PageHeader title="Exam" /><div className="container-app py-20 text-center text-muted">Preparing exam...</div></div>;
+
+  if (loadError) return <div className="min-h-screen"><PageHeader title={exam?.name ?? 'Exam'} /><div className="container-app py-20 text-center text-red-600">{loadError}</div></div>;
 
   if (!questions || questions.length === 0) return <div className="min-h-screen"><PageHeader title={exam?.name ?? 'Exam'} /><div className="container-app py-20 text-center text-muted">No questions available.</div></div>;
 
@@ -268,6 +213,12 @@ export default function ExamPlayer() {
 
           {/* Main question area */}
           <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+            {submitError && (
+              <div className="mb-4 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+                {submitError}
+              </div>
+            )}
+
             {!submitted && (
               <div className="mb-4 flex items-center justify-between">
                 <div className="text-sm text-slate-600">Time Left: <span className="font-mono font-semibold text-lg">{formatTime(timeLeft)}</span></div>

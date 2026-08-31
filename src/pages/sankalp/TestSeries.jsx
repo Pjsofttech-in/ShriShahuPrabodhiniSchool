@@ -90,7 +90,11 @@ export default function TestSeries() {
   useEffect(() => {
     fetchTestSeries()
       .then((items) => setSeries(items))
-      .catch(() => setError("Test series are temporarily unavailable."))
+      .catch((requestError) => {
+        const status = requestError?.response?.status;
+        const message = requestError?.response?.data?.message || requestError?.response?.data?.error;
+        setError(message || (status ? `Test series API failed (${status}).` : "Test series are temporarily unavailable."));
+      })
       .finally(() => setLoading(false));
   }, []);
 

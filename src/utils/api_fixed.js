@@ -1,52 +1,23 @@
 ﻿import axios from "axios";
 
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "http://localhost:8080").replace(/\/+$/g, "");
+const API_REQUEST_BASE_URL = `${API_BASE_URL.replace(/(?:\/api)+$/i, "")}/api`;
 const STATIC_ADMIN_TOKEN = import.meta.env.VITE_ADMIN_TOKEN || "";
 
 function getAuthToken() {
-  return sessionStorage.getItem("ssp_token") || STATIC_ADMIN_TOKEN;
+  const token = sessionStorage.getItem("ssp_token") || STATIC_ADMIN_TOKEN;
+  return token ? token.replace(/^Bearer\s+/i, "").trim() : "";
 }
 
 function isPublicRequest(config) {
   const method = (config.method || "get").toLowerCase();
   const url = config.url || "";
 
-  if (url === "/api/auth/login") return true;
-  if (method === "post" && [
-    "/api/students",
-    "/api/payments/create-order",
-    "/api/payments/verify",
-    "/api2/createContactForm",
-  ].includes(url)) {
-    return true;
-  }
-
-  if (method === "get" && (
-    url === "/api/districts" ||
-    url === "/api/getAllSyllabus" ||
-    url === "/api/downloads" ||
-    url.startsWith("/api/downloads/") ||
-    url.startsWith("/api2/") ||
-    url.startsWith("/api/talukas") ||
-    url.startsWith("/api/centers/taluka/") ||
-    url.startsWith("/api/coordinators/center/") ||
-    url === "/api/test-series" ||
-    url.startsWith("/api/test-series/") ||
-    url === "/api/exams" ||
-    url.startsWith("/api/exams/")
-  )) {
-    return true;
-  }
-
-  if (method === "get" && url === "/api/students") {
-    return Boolean(config.params?.mobile || config.params?.rollNo);
-  }
-
-  return false;
+  return method === "post" && url.includes("/auth/") && url.includes("/login");
 }
 
 const api = axios.create({
-  baseURL: API_BASE_URL,
+  baseURL: API_REQUEST_BASE_URL,
   headers: {
     "Content-Type": "application/json",
   },
@@ -54,6 +25,10 @@ const api = axios.create({
 });
 
 api.interceptors.request.use((config) => {
+  if (typeof config.url === "string") {
+    config.url = config.url.replace(/^\/api\/api(?=\/|$)/i, "/api");
+  }
+
   const token = getAuthToken();
   try {
     if (token && !isPublicRequest(config)) {
@@ -69,7 +44,7 @@ api.interceptors.request.use((config) => {
 
 export function setAuthToken(token) {
   if (token) {
-    sessionStorage.setItem("ssp_token", token);
+    sessionStorage.setItem("ssp_token", String(token).replace(/^Bearer\s+/i, "").trim());
   } else {
     sessionStorage.removeItem("ssp_token");
   }

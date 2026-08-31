@@ -20,7 +20,7 @@ function ExamImage({ src, alt }) {
 function paperFrom(value, index) {
   const exam = value?.exam || value;
   return {
-    id: exam?.id ?? exam?.examId ?? index + 1,
+    id: exam?.examId ?? exam?.exam_id ?? exam?.id ?? index + 1,
     name: exam?.examName ?? exam?.name ?? `Test Paper ${index + 1}`,
     image: exam?.image ?? exam?.imageUrl ?? "",
     totalMarks: exam?.totalMarks ?? "-",
