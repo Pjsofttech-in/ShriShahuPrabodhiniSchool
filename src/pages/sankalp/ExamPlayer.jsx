@@ -162,7 +162,15 @@ export default function ExamPlayer() {
     clearInterval(timerRef.current);
 
     try {
-      setResult(await submitExamAttempt(attemptId));
+      const submittedResult = await submitExamAttempt(attemptId);
+      const resultWithExam = {
+        ...submittedResult,
+        attemptId,
+        examId: id,
+        examName: exam?.name,
+        submittedAt: submittedResult?.submittedAt ?? new Date().toISOString(),
+      };
+      setResult(resultWithExam);
       rememberExamAttempt(attemptId);
       try { await refreshProfile(); } catch (e) { /* ignore */ }
     } catch (err) {
@@ -322,6 +330,12 @@ export default function ExamPlayer() {
 
                 <div className="mt-4 flex gap-2">
                   <button onClick={() => navigate('/sankalp/test-series')} className="rounded-md border px-3 py-2">Back to Series</button>
+                  <button
+                    onClick={() => navigate('/student/profile', { state: { tab: 'result', submittedAttempt: result } })}
+                    className="rounded-md bg-blue-600 px-3 py-2 text-white"
+                  >
+                    View in My Result
+                  </button>
                 </div>
               </div>
             )}

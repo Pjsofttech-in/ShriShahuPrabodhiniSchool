@@ -511,6 +511,21 @@ export async function fetchTestSeriesById(id) {
   };
 }
 
+export async function fetchEbookMaterials() {
+  const response = await api.get("/api/vmMaterial/AllVMMaterials");
+  return normalizeList(response.data);
+}
+
+export async function fetchEbookCategories() {
+  const response = await api.get("/api/vmCategory/AllVMCategories");
+  return normalizeList(response.data);
+}
+
+export async function fetchEbookSubcategories() {
+  const response = await api.get("/api/vmSubCategory/AllVMSubCategories");
+  return normalizeList(response.data);
+}
+
 export async function fetchExams() {
   const response = await api.get("/api/exams");
   return normalizeList(response.data).map((exam, index) => ({

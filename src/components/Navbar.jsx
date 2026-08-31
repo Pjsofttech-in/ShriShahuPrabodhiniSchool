@@ -17,6 +17,7 @@ import logo from "../asset/logo.png";
 const examLinks = [
   { to: "/sankalp/exam-information", label: "Exam Information" },
   { to: "/sankalp/test-series", label: "Test Series" },
+  { to: "/sankalp/ebook", label: "Ebook" },
   { to: "/sankalp/syllabus", label: "Syllabus" },
   { to: "/sankalp/answer-key", label: "Answer Key" },
   { to: "/sankalp/result-check", label: "Result Check" },
@@ -152,14 +153,14 @@ export default function Navbar() {
             </Link>
           </div>
 
-          <button className="text-navy 2xl:hidden dark:text-slate-200" onClick={() => setMobileOpen((o) => !o)} aria-label="Toggle menu">
+          <button type="button" className="flex h-11 w-11 items-center justify-center rounded-md text-navy hover:bg-cream 2xl:hidden dark:text-slate-200 dark:hover:bg-[#263238]" onClick={() => setMobileOpen((o) => !o)} aria-label="Toggle menu" aria-expanded={mobileOpen}>
             {mobileOpen ? <X size={26} /> : <Menu size={26} />}
           </button>
         </div>
 
         {/* Mobile nav */}
         {mobileOpen && (
-          <div className="2xl:hidden border-t border-black/10 bg-white max-h-[80vh] overflow-y-auto dark:border-white/10 dark:bg-[#172126]">
+          <div className="2xl:hidden max-h-[80vh] overflow-y-auto border-t border-black/10 bg-white dark:border-white/10 dark:bg-[#172126]">
             <div className="flex flex-col py-2">
               {[
                 { to: "/", label: "Home" },

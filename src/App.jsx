@@ -28,6 +28,7 @@ import AnswerKey from "./pages/sankalp/AnswerKey.jsx";
 import ResultCheck from "./pages/sankalp/ResultCheck.jsx";
 import ResultsPDF from "./pages/sankalp/ResultsPDF.jsx";
 import TestSeries from "./pages/sankalp/TestSeries.jsx";
+import Ebook from "./pages/sankalp/ebook/Ebook.jsx";
 import TestSeriesDetail from "./pages/sankalp/TestSeriesDetail.jsx";
 import StartExam from "./pages/sankalp/StartExam.jsx";
 import ExamPlayer from "./pages/sankalp/ExamPlayer.jsx";
@@ -51,6 +52,7 @@ export default function App() {
             <Route path="/sankalp/result-check" element={<ResultCheck />} />
             <Route path="/sankalp/results-pdf" element={<ResultsPDF />} />
             <Route path="/sankalp/test-series" element={<TestSeries />} />
+            <Route path="/sankalp/ebook" element={<Ebook />} />
             <Route path="/sankalp/test-series/:id" element={<TestSeriesDetail />} />
             <Route path="/exam/:id/start" element={<StartExam />} />
             <Route path="/exam/:id" element={<ExamPlayer />} />

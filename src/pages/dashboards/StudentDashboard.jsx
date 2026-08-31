@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { useLocation } from "react-router-dom";
 import { CheckCircle2, IndianRupee, LayoutDashboard, User, FileText } from "lucide-react";
 import DashboardShell from "../../components/DashboardShell.jsx";
 import { useAuth } from "../../context/AuthContext.jsx";
@@ -20,6 +21,8 @@ const tabs = [
 ];
 
 export default function StudentDashboard({ defaultTab = "profile" }) {
+  const location = useLocation();
+  const submittedAttempt = location.state?.submittedAttempt ?? null;
   const [tab, setTab] = useState(defaultTab);
   const [student, setStudent] = useState(null);
   const [center, setCenter] = useState(null);
@@ -31,8 +34,8 @@ export default function StudentDashboard({ defaultTab = "profile" }) {
   const [showAttemptModal, setShowAttemptModal] = useState(false);
 
   useEffect(() => {
-    setTab(defaultTab);
-  }, [defaultTab]);
+    setTab(location.state?.tab ?? defaultTab);
+  }, [defaultTab, location.state]);
 
   useEffect(() => {
     async function loadData() {
@@ -103,7 +106,12 @@ export default function StudentDashboard({ defaultTab = "profile" }) {
       try {
         const sid = student.id ?? student.studentId ?? user?.studentId ?? user?.id;
         const list = await fetchStudentResults(sid, student);
-        setResults(Array.isArray(list) ? list : []);
+        const loadedResults = Array.isArray(list) ? list : [];
+        if (submittedAttempt?.attemptId && !loadedResults.some((item) => String(item.attemptId ?? item.id) === String(submittedAttempt.attemptId))) {
+          setResults([submittedAttempt, ...loadedResults]);
+        } else {
+          setResults(loadedResults);
+        }
       } catch (err) {
         console.warn('Could not load student results', err);
         setResults([]);
@@ -113,7 +121,7 @@ export default function StudentDashboard({ defaultTab = "profile" }) {
     }
 
     loadResults();
-  }, [student, user]);
+  }, [student, user, submittedAttempt]);
 
   if (!student) return <div className="min-h-[60vh] flex items-center justify-center">Loading profile...</div>;
 
