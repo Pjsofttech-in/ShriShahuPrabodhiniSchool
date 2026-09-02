@@ -137,7 +137,14 @@ export default function Footer() {
           <div className="flex items-center justify-center gap-2">
             <span>Designed By</span>
             <img src={pjLogo} alt="PJSoftTech" className="h-6 w-auto object-contain" />
-            <span className="font-semibold text-white">PJSOFTTECH Pvt. Ltd.</span>
+            <a
+              href="https://pjsofttech.com/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-semibold text-white transition hover:text-gold"
+            >
+              PJSOFTTECH Pvt. Ltd.
+            </a>
           </div>
         </div>
       </div>

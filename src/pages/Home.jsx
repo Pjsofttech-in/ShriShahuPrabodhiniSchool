@@ -50,6 +50,19 @@ function Counter({ value, suffix }) {
   );
 }
 
+function ColoredTitle({ text, className = "" }) {
+  const words = text.split(" ");
+  return (
+    <h2 className={`text-2xl md:text-4xl font-bold ${className}`}>
+      {words.map((word, idx) => (
+        <span key={idx} className={idx % 2 === 0 ? "text-gold" : "text-navy"}>
+          {word}{idx < words.length - 1 ? " " : ""}
+        </span>
+      ))}
+    </h2>
+  );
+}
+
 function SectionHeading({
   eyebrow,
   title,
@@ -65,11 +78,7 @@ function SectionHeading({
         {eyebrow}
       </span>
 
-      <h2
-        className={`text-2xl md:text-4xl font-bold text-navy ${titleClassName}`}
-      >
-        {title}
-      </h2>
+      <ColoredTitle text={title} className={titleClassName} />
 
       {desc && (
         <p className={`text-muted mt-3 ${descClassName}`}>
@@ -392,7 +401,7 @@ export default function Home() {
     {/* Center Heading */}
     <SectionHeading
       eyebrow="Moments"
-      title="Gallery"
+      title="Our Gallery"
       center
     />
 
@@ -443,7 +452,7 @@ export default function Home() {
     {/* Center Heading */}
     <SectionHeading
       eyebrow="Our Mentors"
-      title="Experties"
+      title="Our Experties"
       center
     />
 
@@ -497,12 +506,12 @@ export default function Home() {
       {/* 9. Student Testimonials */}
       <section className="section-pad bg-navy">
         <div className="container-app ">
-        <SectionHeading
-  eyebrow="Voices"
-  title="What Our Students Say"
-  center
-  titleClassName="text-white"
-/>
+        <div className="mb-10 text-center max-w-2xl mx-auto">
+          <span className="eyebrow">Voices</span>
+          <h2 className="text-2xl md:text-4xl font-bold">
+            <span className="text-gold">What</span> <span className="text-white">Our</span> <span className="text-gold">Students</span> <span className="text-white">Say</span>
+          </h2>
+        </div>
           <div className="grid md:grid-cols-3 gap-6">
             {testimonials.slice(0, 3).map((t) => (
               <div key={t.id} className="bg-white/5 border border-white/10 rounded-xl p-6 relative">
