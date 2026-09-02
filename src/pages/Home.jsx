@@ -347,39 +347,47 @@ export default function Home() {
     />
 
     {/* Toppers Grid */}
-    <div className="grid sm:grid-cols-2 md:grid-cols-4 gap-6 mt-10">
-      {toppers.slice(0, 4).map((t) => (
+    <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+      {toppers.slice(0, 4).map((t, index) => (
         <div
           key={t.id}
+          style={{ animationDelay: `${index * 90}ms` }}
           className="
-            card
+            topper-reveal
+            mx-auto
+            flex
+            h-full
+            flex-col
+            w-full
+            max-w-none
             overflow-hidden
+            rounded-[1.25rem]
+            border
+            border-gold/20
+            bg-white
             text-center
-            relative
-            group
+            shadow-[0_8px_24px_rgba(11,37,69,0.08)]
             transition-all
             duration-500
-            hover:-translate-y-2
-            hover:shadow-2xl
+            hover:-translate-y-1
+            hover:border-gold/70
             hover:ring-2
-            hover:ring-gold/40
+            hover:ring-gold/20
+            hover:shadow-[0_18px_40px_rgba(11,37,69,0.12)]
           "
         >
-          {/* Score Badge */}
-          <div className="absolute top-3 right-3 bg-ribbon text-white text-[11px] font-bold px-2.5 py-1 rounded-full shadow transition-transform duration-300 group-hover:scale-110">
-            {t.score}
+          {/* Student Image */}
+          <div className="relative aspect-[1.08/1] w-full overflow-hidden bg-[#e9e9e9] ring-1 ring-inset ring-white/80">
+            {t.image ? <img src={resolveImageUrl(t.image)} alt={t.name} className="h-full w-full object-cover object-top transition-transform duration-700 group-hover:scale-[1.03]" /> : <MissingImage className="h-full w-full" />}
           </div>
 
-          {/* Student Image */}
-          {t.image ? <img src={resolveImageUrl(t.image)} alt={t.name} className="w-full h-48 object-cover transition-transform duration-500 group-hover:scale-105" /> : <MissingImage className="h-48" />}
-
           {/* Content */}
-          <div className="p-4">
-            <h3 className="font-bold text-navy transition-colors duration-300 group-hover:text-gold">
+          <div className="px-4 pb-4 pt-4">
+            <h3 className="text-[1.05rem] font-bold leading-tight text-navy">
               {t.name}
             </h3>
 
-            <p className="text-xs text-muted">
+            <p className="mt-1 text-sm text-slate-500">
               Class {t.className || t.post || "-"} · {t.year || "Sankalp Exam"}
             </p>
           </div>
