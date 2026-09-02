@@ -148,7 +148,7 @@ export default function Navbar() {
               {darkMode ? <Sun size={19} /> : <Moon size={19} />}
             </button>
 
-            <Link to={loginTarget} className="ml-3 flex items-center gap-2 rounded-lg bg-gold px-4 py-2 font-semibold text-navy-dark transition-all duration-300 hover:bg-gold-dark">
+            <Link to={loginTarget} className="ml-3 flex items-center gap-2 rounded-lg bg-gold px-4 py-2 font-semibold text-white transition-all duration-300 hover:bg-gold-dark">
               <LogIn size={16} />
               {user ? (user.role === "student" ? "Profile" : "Dashboard") : "Login"}
             </Link>
