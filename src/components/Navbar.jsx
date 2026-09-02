@@ -80,6 +80,7 @@ function Dropdown({ label, links }) {
 export default function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [darkMode, setDarkMode] = useState(() => localStorage.getItem("theme") === "dark");
+  const [mobileDropdownOpen, setMobileDropdownOpen] = useState(false);
   const { user } = useAuth();
 
   useEffect(() => {
@@ -162,9 +163,42 @@ export default function Navbar() {
         {mobileOpen && (
           <div className="2xl:hidden max-h-[80vh] overflow-y-auto border-t border-black/10 bg-white dark:border-white/10 dark:bg-[#172126]">
             <div className="flex flex-col py-2">
+              <Link
+                to="/"
+                onClick={() => setMobileOpen(false)}
+                className="border-b border-black/5 px-5 py-3 text-sm font-semibold text-navy hover:bg-cream dark:border-white/10 dark:text-slate-200 dark:hover:bg-[#263238]"
+              >
+                Home
+              </Link>
+
+              {/* Sankalp Dropdown */}
+              <button
+                type="button"
+                onClick={() => setMobileDropdownOpen(!mobileDropdownOpen)}
+                className="flex items-center justify-between border-b border-black/5 px-5 py-3 text-sm font-semibold text-navy hover:bg-cream dark:border-white/10 dark:text-slate-200 dark:hover:bg-[#263238]"
+              >
+                <span>Sankalp</span>
+                <ChevronDown size={16} className={`transition-transform ${mobileDropdownOpen ? "rotate-180" : ""}`} />
+              </button>
+              {mobileDropdownOpen && (
+                <div className="bg-slate-50 dark:bg-[#1b2a2f]">
+                  {examLinks.map((link) => (
+                    <Link
+                      key={link.to}
+                      to={link.to}
+                      onClick={() => {
+                        setMobileOpen(false);
+                        setMobileDropdownOpen(false);
+                      }}
+                      className="block border-b border-black/5 px-8 py-3 text-sm font-medium text-navy hover:bg-white dark:border-white/10 dark:text-slate-200 dark:hover:bg-[#263238]"
+                    >
+                      {link.label}
+                    </Link>
+                  ))}
+                </div>
+              )}
+
               {[
-                { to: "/", label: "Home" },
-                ...examLinks,
                 { to: "/courses", label: "Courses" },
                 { to: "/features", label: "Features" },
                 { to: "/awards", label: "Awards" },
@@ -176,7 +210,7 @@ export default function Navbar() {
                 { to: "/about-us", label: "About Us" },
                 { to: "/vision-mission", label: "Vision & Mission" },
                 { to: "/download", label: "Downloads" },
-{ to: "/notifications", label: "Notifications" },
+                { to: "/notifications", label: "Notifications" },
                 { to: loginTarget, label: user ? (user.role === "student" ? "Profile" : "Dashboard") : "Login" },
               ].map((l) => (
                 <Link
