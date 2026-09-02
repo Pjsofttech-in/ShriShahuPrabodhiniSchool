@@ -4,20 +4,88 @@ const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "http://localhost:808
 const API_REQUEST_BASE_URL = `${API_BASE_URL.replace(/(?:\/api)+$/i, "")}/api`;
 const STATIC_ADMIN_TOKEN = import.meta.env.VITE_ADMIN_TOKEN || "";
 
-function getAuthToken() {
-  const sessionToken = sessionStorage.getItem("ssp_token");
-  return sessionToken ? sessionToken.replace(/^Bearer\s+/i, "").trim() : "";
+// Admin credentials for fetching live token
+const ADMIN_CREDENTIALS = {
+  email: "admin@gmail.com",
+  password: "Admin@123"
+};
+
+// Token caching
+let cachedAdminToken = "";
+let adminTokenExpiresAt = 0;
+let tokenFetchPromise = null;
+
+// Extract expiration from JWT token
+function getTokenExpiration(token) {
+  try {
+    const parts = token.split('.');
+    if (parts.length !== 3) return 0;
+    const payload = JSON.parse(atob(parts[1]));
+    return (payload.exp || 0) * 1000; // Convert to milliseconds
+  } catch (e) {
+    return 0;
+  }
 }
 
-function isPublicRequest(config) {
-  const method = (config.method || "get").toLowerCase();
-  const url = config.url || "";
+// Check if cached token is still valid (with 60s buffer)
+function isTokenValid(token, expiresAt) {
+  return token && Date.now() < (expiresAt - 60000);
+}
 
-  // Login must remain unauthenticated. Other requests use the live session token when available.
-  if (method === "post" && url.includes("/auth/") && url.includes("/login")) {
-    return true;
+// Fetch fresh admin token from live backend
+async function fetchFreshAdminToken() {
+  // Prevent multiple simultaneous requests
+  if (tokenFetchPromise) {
+    return tokenFetchPromise;
   }
-  return false;
+
+  tokenFetchPromise = (async () => {
+    try {
+      console.log("🔄 Fetching fresh admin token from backend...");
+      const response = await axios.post(`${API_REQUEST_BASE_URL}/auth/admin/login`, ADMIN_CREDENTIALS, {
+        timeout: 10000
+      });
+      
+      const token = response?.data?.token || response?.data?.accessToken || response?.data?.data?.token;
+      
+      if (token) {
+        cachedAdminToken = String(token).replace(/^Bearer\s+/i, "").trim();
+        adminTokenExpiresAt = getTokenExpiration(cachedAdminToken);
+        console.log("✅ Fresh admin token fetched from backend", {
+          expiresAt: new Date(adminTokenExpiresAt).toISOString()
+        });
+        return cachedAdminToken;
+      } else {
+        throw new Error("No token in backend response");
+      }
+    } catch (error) {
+      console.error("❌ Failed to fetch admin token:", {
+        status: error?.response?.status,
+        message: error?.message
+      });
+      
+      // Fallback to static token if available
+      if (STATIC_ADMIN_TOKEN) {
+        cachedAdminToken = STATIC_ADMIN_TOKEN;
+        adminTokenExpiresAt = getTokenExpiration(STATIC_ADMIN_TOKEN);
+        console.log("⚠️ Using fallback static token from .env");
+        return cachedAdminToken;
+      }
+      throw error;
+    } finally {
+      tokenFetchPromise = null;
+    }
+  })();
+
+  return tokenFetchPromise;
+}
+
+// Get admin token - returns cached if valid, otherwise fetches fresh
+async function getAdminToken() {
+  if (isTokenValid(cachedAdminToken, adminTokenExpiresAt)) {
+    return cachedAdminToken;
+  }
+  return fetchFreshAdminToken();
 }
 
 const api = axios.create({
@@ -28,36 +96,58 @@ const api = axios.create({
   timeout: 15000,
 });
 
-api.interceptors.request.use((config) => {
+function getAuthToken() {
+  const sessionToken = sessionStorage.getItem("ssp_token");
+  return sessionToken ? sessionToken.replace(/^Bearer\s+/i, "").trim() : "";
+}
+
+function isPublicRequest(config) {
+  const method = (config.method || "get").toLowerCase();
+  const url = config.url || "";
+
+  // Login must remain unauthenticated
+  if (method === "post" && url.includes("/auth/") && url.includes("/login")) {
+    return true;
+  }
+  
+  return false;
+}
+
+api.interceptors.request.use(async (config) => {
   if (typeof config.url === "string") {
     config.url = config.url.replace(/^\/api\/api(?=\/|$)/i, "/api");
   }
 
   const token = getAuthToken();
   const isPublic = isPublicRequest(config);
+  const isEbookEndpoint = config.url?.includes("/vmMaterial") || config.url?.includes("/vmCategory") || config.url?.includes("/vmSubCategory");
   
-  console.log("🔍 REQUEST INTERCEPTOR", {
-    method: config.method?.toUpperCase(),
-    url: config.url,
-    isPublicRequest: isPublic,
-    tokenExists: !!token,
-    tokenLength: token ? token.length : 0,
-    headersBeforAuth: { ...config.headers },
-  });
+  let tokenToUse = token;
+  
+  // For ebook endpoints: fetch fresh token from live backend if user not logged in
+  if (isEbookEndpoint && !token) {
+    try {
+      tokenToUse = await getAdminToken();
+      console.log("✅ Using fresh admin token from live backend for ebook request");
+    } catch (error) {
+      console.error("❌ Could not fetch admin token:", error.message);
+    }
+  }
   
   try {
-    if (token && !isPublic) {
+    if (tokenToUse && !isPublic) {
       config.headers = config.headers || {};
-      config.headers.Authorization = `Bearer ${token}`;
-      console.log("✅ Authorization header ADDED for protected endpoint");
-    } else if (isPublic) {
-      console.log("✅ Public endpoint - NO Authorization header sent");
+      config.headers.Authorization = `Bearer ${tokenToUse}`;
+      console.log("✅ Token ADDED", {
+        type: isEbookEndpoint ? "ebook" : "protected",
+        source: token ? "user-token" : "admin-token",
+        url: config.url
+      });
     }
   } catch (err) {
     console.error('❌ Failed to attach auth header', err);
   }
   
-  console.log("Final headers:", config.headers);
   return config;
 });
 

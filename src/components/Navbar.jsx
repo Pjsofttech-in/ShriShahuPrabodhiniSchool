@@ -164,7 +164,7 @@ export default function Navbar() {
             <div className="flex flex-col py-2">
               {[
                 { to: "/", label: "Home" },
-                ...examLinks.map((l) => ({ ...l, label: `Sankalp: ${l.label}` })),
+                ...examLinks,
                 { to: "/courses", label: "Courses" },
                 { to: "/features", label: "Features" },
                 { to: "/awards", label: "Awards" },
