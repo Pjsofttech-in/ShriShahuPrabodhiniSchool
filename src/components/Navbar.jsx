@@ -154,8 +154,8 @@ export default function Navbar() {
             </Link>
           </div>
 
-          <button type="button" className="flex h-11 w-11 items-center justify-center rounded-md text-navy hover:bg-cream lg:hidden dark:text-slate-200 dark:hover:bg-[#263238]" onClick={() => setMobileOpen((o) => !o)} aria-label="Toggle menu" aria-expanded={mobileOpen}>
-            {mobileOpen ? <X size={26} /> : <Menu size={26} />}
+          <button type="button" className="flex h-11 w-11 items-center justify-center rounded-md border-2 border-slate-300 text-navy bg-white hover:bg-slate-50 hover:border-slate-400 lg:hidden dark:text-slate-200 dark:bg-[#263238] dark:border-slate-600 dark:hover:bg-[#2f3d45] dark:hover:border-slate-500 transition-all duration-300" onClick={() => setMobileOpen((o) => !o)} aria-label="Toggle menu" aria-expanded={mobileOpen}>
+            {mobileOpen ? <X size={24} strokeWidth={2} /> : <Menu size={24} strokeWidth={2} />}
           </button>
         </div>
 
