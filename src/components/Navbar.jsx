@@ -121,7 +121,7 @@ export default function Navbar() {
             </div>
           </Link>
 
-          <div className="hidden min-w-0 flex-1 items-center justify-end gap-0 2xl:flex 2xl:ml-6">
+          <div className="hidden min-w-0 flex-1 items-center justify-end gap-0 lg:flex lg:ml-6">
             <NavLink to="/home" className={navItemClass}>Home</NavLink>
             <Dropdown label="Sankalp" links={examLinks} />
             <NavLink to="/courses" className={navItemClass}>Courses</NavLink>
@@ -154,14 +154,14 @@ export default function Navbar() {
             </Link>
           </div>
 
-          <button type="button" className="flex h-11 w-11 items-center justify-center rounded-md text-navy hover:bg-cream 2xl:hidden dark:text-slate-200 dark:hover:bg-[#263238]" onClick={() => setMobileOpen((o) => !o)} aria-label="Toggle menu" aria-expanded={mobileOpen}>
+          <button type="button" className="flex h-11 w-11 items-center justify-center rounded-md text-navy hover:bg-cream lg:hidden dark:text-slate-200 dark:hover:bg-[#263238]" onClick={() => setMobileOpen((o) => !o)} aria-label="Toggle menu" aria-expanded={mobileOpen}>
             {mobileOpen ? <X size={26} /> : <Menu size={26} />}
           </button>
         </div>
 
         {/* Mobile nav */}
         {mobileOpen && (
-          <div className="2xl:hidden max-h-[80vh] overflow-y-auto border-t border-black/10 bg-white dark:border-white/10 dark:bg-[#172126]">
+          <div className="lg:hidden max-h-[80vh] overflow-y-auto border-t border-black/10 bg-white dark:border-white/10 dark:bg-[#172126]">
             <div className="flex flex-col py-2">
               <Link
                 to="/"

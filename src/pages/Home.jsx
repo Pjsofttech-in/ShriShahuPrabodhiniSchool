@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   GraduationCap, Target, MapPin, FileCheck2, ArrowRight, CalendarDays,
-  Quote, MapPinned, ImageOff,
+  Quote, MapPinned, ImageOff, BookOpen, Zap, Globe, CheckCircle,
 } from "lucide-react";
 import ImageSlider from "../components/ImageSlider.jsx";
 import {
@@ -14,7 +14,7 @@ import {
 } from "../services/backendService.js";
 import { API_BASE_URL } from "../utils/api.js";
 
-const icons = { GraduationCap, Target, MapPin, FileCheck2 };
+const icons = { GraduationCap, Target, MapPin, FileCheck2, BookOpen, Zap, Globe, CheckCircle };
 
 function Counter({ value, suffix }) {
   const [count, setCount] = useState(0);
@@ -213,32 +213,40 @@ export default function Home() {
       </section>
 
       {/* 4. School Features & Counts */}
-      <section className="section-pad">
+      <section className="section-pad bg-gradient-to-b from-slate-50 to-white">
         <div className="container-app">
           <SectionHeading
-  eyebrow="Features"
-  title="Built For Better Outcomes"
-  center
-/>
-          <div className="grid sm:grid-cols-2 md:grid-cols-4 gap-6 mb-16">
-            {schoolFeatures.map((f) => {
+            eyebrow="FEATURES"
+            title="Built For Better Outcomes"
+            center
+          />
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-5 mb-16 max-w-sm sm:max-w-none lg:max-w-6xl mx-auto">
+            {schoolFeatures.map((f, idx) => {
               const Icon = icons[f.icon];
+              const gradients = [
+                "from-blue-500 via-blue-400 to-cyan-300",
+                "from-purple-500 via-purple-400 to-pink-300",
+                "from-emerald-500 via-emerald-400 to-teal-300",
+                "from-orange-500 via-orange-400 to-rose-300",
+              ];
+              const gradient = gradients[idx % gradients.length];
               return (
-                <div key={f.title} className="card p-6 text-center hover:-translate-y-1 transition-transform">
-                  <div className="w-14 h-14 rounded-xl bg-navy/5 text-navy flex items-center justify-center mx-auto mb-4">
-                    <Icon size={26} />
+                <div key={f.title} className={`group overflow-hidden rounded-2xl bg-gradient-to-br ${gradient} p-4 sm:p-5 lg:p-6 shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:scale-105 border border-white/20 backdrop-blur-sm flex flex-col items-center text-center space-y-3`}>
+                  <div className="w-12 h-12 sm:w-14 sm:h-14 lg:w-16 lg:h-16 rounded-xl bg-white/20 text-white flex items-center justify-center group-hover:scale-110 transition-transform duration-300 backdrop-blur-sm">
+                    <Icon size={24} strokeWidth={2.5} className="sm:block hidden" />
+                    <Icon size={20} strokeWidth={2.5} className="sm:hidden block" />
                   </div>
-                  <h3 className="font-bold text-navy mb-1.5">{f.title}</h3>
-                  <p className="text-sm text-muted">{f.desc}</p>
+                  <h3 className="font-bold text-white text-sm sm:text-base lg:text-lg leading-tight">{f.title}</h3>
+                  <p className="text-white/85 text-xs sm:text-sm lg:text-base leading-snug">{f.desc}</p>
                 </div>
               );
             })}
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 bg-cream rounded-2xl p-8">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 bg-cream rounded-3xl p-8 md:p-12">
             {featureCounts.map((c) => (
               <div key={c.label} className="text-center">
                 <Counter value={c.value} suffix={c.suffix} />
-                <p className="text-sm text-muted font-medium mt-1">{c.label}</p>
+                <p className="text-sm text-muted font-medium mt-2">{c.label}</p>
               </div>
             ))}
           </div>
