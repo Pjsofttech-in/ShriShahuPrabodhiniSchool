@@ -265,7 +265,7 @@ export default function Home() {
     />
 
     {/* Courses Grid */}
-    <div className="grid md:grid-cols-3 gap-6 mt-10">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mt-10">
       {courses.slice(0, 3).map((c) => (
         <div
           key={c.id}
@@ -279,31 +279,32 @@ export default function Home() {
             hover:shadow-2xl
             hover:ring-2
             hover:ring-gold/40
+            rounded-2xl
           "
         >
-          <div className="h-44 overflow-hidden">
+          <div className="h-40 overflow-hidden bg-slate-100">
             {c.image ? <img src={resolveImageUrl(c.image)} alt={c.name} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" /> : <MissingImage />}
           </div>
 
           <div className="p-5">
-            <h3 className="font-bold text-navy mb-1.5 transition-colors duration-300 group-hover:text-gold">
+            <h3 className="font-bold text-navy text-base mb-2 transition-colors duration-300 group-hover:text-gold line-clamp-2">
               {c.name}
             </h3>
 
-            <p className="text-sm text-muted mb-3">
+            <p className="text-xs text-muted mb-3 line-clamp-2">
               {c.desc}
             </p>
 
             <div className="flex justify-between items-center text-xs text-muted mb-4">
-              <span>{c.duration}</span>
-              <span className="font-bold text-navy">
+              <span className="bg-slate-100 px-2 py-1 rounded-md text-[10px]">{c.duration}</span>
+              <span className="font-bold text-gold text-xs">
                 {c.fee}
               </span>
             </div>
 
             <Link
               to="/register"
-              className="btn-primary w-full justify-center transition-transform duration-300 group-hover:scale-[1.02]"
+              className="btn-primary w-full justify-center transition-transform duration-300 group-hover:scale-[1.02] text-xs"
             >
               Enroll Now
             </Link>
