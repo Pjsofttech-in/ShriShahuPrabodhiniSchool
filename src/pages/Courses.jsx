@@ -34,22 +34,22 @@ export default function Courses() {
   return (
     <div>
       <PageHeader title="Our Courses" />
-      <section className="section-pad">
-        <div className="container-app grid md:grid-cols-3 gap-6">
+      <section className="section-pad bg-[#f7f9fc]">
+        <div className="container-app grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
           {courses.map((c) => (
-            <div key={c.id} className="card overflow-hidden group">
-              <div className="h-48 overflow-hidden">
+            <div key={c.id} className="group flex h-full flex-col overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-[0_12px_32px_rgba(11,37,69,0.08)] transition-all duration-300 hover:-translate-y-2 hover:shadow-[0_20px_42px_rgba(11,37,69,0.14)]">
+              <div className="aspect-[4/3] overflow-hidden bg-slate-100">
                 <img
                   src={resolveImageUrl(c.image)}
                   alt={c.name}
                   onError={(event) => { event.currentTarget.src = fallbackCourseImage; }}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                  className="h-full w-full object-cover object-center transition-transform duration-500 group-hover:scale-105"
                 />
               </div>
-              <div className="p-5">
-                <h3 className="font-bold text-navy mb-1.5">{c.name}</h3>
-                <p className="text-sm text-muted mb-3">{c.desc}</p>
-                <div className="flex justify-between items-center text-xs text-muted mb-4">
+              <div className="flex flex-1 flex-col p-5">
+                <h3 className="mb-2 text-base font-bold text-navy">{c.name}</h3>
+                <p className="mb-4 text-xs leading-5 text-muted line-clamp-3">{c.desc}</p>
+                <div className="mb-4 flex items-center justify-between text-xs text-muted">
                   <span>{c.duration}</span>
                   <span className="font-bold text-navy">{c.fee}</span>
                 </div>

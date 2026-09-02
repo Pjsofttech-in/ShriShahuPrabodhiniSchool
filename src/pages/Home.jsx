@@ -274,12 +274,15 @@ export default function Home() {
     />
 
     {/* Courses Grid */}
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mt-10">
-      {courses.slice(0, 3).map((c) => (
+    <div className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+      {courses.slice(0, 4).map((c) => (
         <div
           key={c.id}
           className="
             card
+            flex
+            h-full
+            flex-col
             overflow-hidden
             group
             transition-all
@@ -291,29 +294,29 @@ export default function Home() {
             rounded-2xl
           "
         >
-          <div className="h-40 overflow-hidden bg-slate-100">
-            {c.image ? <img src={resolveImageUrl(c.image)} alt={c.name} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" /> : <MissingImage />}
+          <div className="aspect-[4/5] w-full overflow-hidden bg-slate-100">
+            {c.image ? <img src={resolveImageUrl(c.image)} alt={c.name} className="w-full h-full object-cover object-center transition-transform duration-500 group-hover:scale-110" /> : <MissingImage />}
           </div>
 
-          <div className="p-5">
-            <h3 className="font-bold text-navy text-base mb-2 transition-colors duration-300 group-hover:text-gold line-clamp-2">
+          <div className="flex flex-1 flex-col p-5">
+            <h3 className="mb-2 text-base font-bold text-navy transition-colors duration-300 group-hover:text-gold line-clamp-2">
               {c.name}
             </h3>
 
-            <p className="text-xs text-muted mb-3 line-clamp-2">
+            <p className="mb-4 text-xs leading-5 text-muted line-clamp-3">
               {c.desc}
             </p>
 
-            <div className="flex justify-between items-center text-xs text-muted mb-4">
-              <span className="bg-slate-100 px-2 py-1 rounded-md text-[10px]">{c.duration}</span>
-              <span className="font-bold text-gold text-xs">
+            <div className="mb-4 flex items-center justify-between text-xs text-muted">
+              <span className="rounded-md bg-slate-100 px-2 py-1 text-[10px]">{c.duration}</span>
+              <span className="text-xs font-bold text-gold">
                 {c.fee}
               </span>
             </div>
 
             <Link
               to="/register"
-              className="btn-primary w-full justify-center transition-transform duration-300 group-hover:scale-[1.02] text-xs"
+              className="btn-primary w-full justify-center px-4 py-2.5 text-xs transition-transform duration-300 group-hover:scale-[1.02]"
             >
               Enroll Now
             </Link>
