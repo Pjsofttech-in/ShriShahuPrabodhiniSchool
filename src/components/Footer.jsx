@@ -41,8 +41,8 @@ export default function Footer() {
   return (
     <footer className="bg-navy-dark text-white">
       <div className="container-app py-12 md:py-14">
-        <div className="grid gap-10 md:grid-cols-2 lg:grid-cols-4">
-          <div className="lg:col-span-1">
+        <div className="grid grid-cols-2 gap-6 sm:gap-8 md:grid-cols-2 lg:grid-cols-4">
+          <div className="col-span-2 md:col-span-2 lg:col-span-1">
             <div className="mb-4 flex items-center gap-3">
               <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-full border-2 border-gold bg-white shadow-md">
                 <img src={Logo} alt="Shri Shahu Prabodhini" className="h-9 w-9 object-contain" />
