@@ -106,17 +106,15 @@ export default function Login() {
   return (
     <div>
 
-      <section className="pb-12 pt-0 md:pb-16 md:pt-0">
+      <section className="flex min-h-[calc(100vh-7rem)] items-start overflow-hidden bg-[#fffaf5] pb-6 pt-4 md:pb-8 md:pt-6">
         <div className="container-app flex justify-center">
 
           <form
             onSubmit={handleSubmit}
-            className="w-full max-w-[470px] bg-white rounded-[28px] shadow-xl border border-gray-100 p-6 md:p-7"
+            className="w-full max-w-[400px] rounded-[24px] border border-gray-100 bg-white p-5 shadow-xl md:p-6"
           >
 
-            {/* Heading */}
-
-            <div className="text-center mb-5">
+            <div className="mb-4 text-center">
 
               <div className="flex items-center justify-center gap-3 mb-2">
 
@@ -129,12 +127,6 @@ export default function Login() {
                 <div className="w-8 h-[2px] bg-[#F07A24]"></div>
 
               </div>
-
-              <h2 className="text-[24px] md:text-[26px] leading-snug font-bold text-navy">
-                Welcome back to
-                <br />
-                Shri Shahu Prabodhini School
-              </h2>
 
             </div>
 

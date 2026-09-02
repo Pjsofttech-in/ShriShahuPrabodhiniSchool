@@ -42,7 +42,7 @@ export default function Layout() {
       <main key={location.pathname} className="flex-1 page-transition">
         <Outlet />
       </main>
-      <Footer />
+      {location.pathname !== "/login" && <Footer />}
     </div>
   );
 }

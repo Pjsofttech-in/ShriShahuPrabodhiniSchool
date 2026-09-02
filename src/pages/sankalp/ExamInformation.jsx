@@ -22,19 +22,27 @@ const quickLinks = [
   { label: "Result PDF", to: "/sankalp/results-pdf", icon: ScrollText },
 ];
 
+const registrationSteps = [
+  { number: "01", title: "Start Registration", description: "Click Register Now to begin." },
+  { number: "02", title: "Verify & Fill Details", description: "Complete your details and select an exam slot." },
+  { number: "03", title: "Pay Fees", description: "Pay the exam fees securely online." },
+  { number: "04", title: "Attempt Your Test", description: "Take your test in the selected slot." },
+];
+
 export default function ExamInformation() {
   return (
     <div>
-      <PageHeader title="Sankalp Exam Information" crumb="Exam Information" />
+      <PageHeader title="Sankalp Exam Information" crumb="Exam Information" compact />
 
-      <section className="section-pad !pt-0 bg-cream/70">
+      <section className="relative overflow-hidden bg-cream/70 pb-10 pt-0 md:pb-16">
+        <div className="pointer-events-none absolute -right-24 top-24 h-64 w-64 rounded-full bg-gold/10 blur-3xl" />
         <div className="container-app">
-          <div className="mb-8 flex flex-wrap gap-3">
+          <div className="relative mb-5 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
             {quickLinks.map(({ label, to, icon: Icon }) => (
               <Link
                 key={label}
                 to={to}
-                className={`inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold transition-all duration-300 ${
+                className={`inline-flex items-center justify-center gap-1.5 rounded-full border px-2.5 py-2 text-xs font-semibold transition-all duration-300 sm:gap-2 sm:px-4 sm:text-sm ${
                   to === "/sankalp/exam-information"
                     ? "border-gold bg-gold text-white shadow-[0_10px_20px_rgba(255,109,0,0.16)]"
                     : "border-slate-200 bg-white text-navy hover:border-gold hover:text-gold-dark hover:shadow-sm"
@@ -46,13 +54,33 @@ export default function ExamInformation() {
             ))}
           </div>
 
-          <div className="rounded-[28px] border border-black/5 bg-white p-5 shadow-[0_14px_40px_rgba(11,37,69,0.08)] md:p-8">
-            <div className="mb-6 flex items-center justify-between gap-4 border-b border-slate-200 pb-5">
+          <div className="relative mb-6 rounded-[26px] border border-[#ffe0c2] bg-[#fffaf5] px-4 py-5 shadow-[0_12px_30px_rgba(124,45,18,0.06)] md:px-8 md:py-7">
+            <div className="mb-6 text-center">
+              <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-[#ed6a00]">Simple registration journey</p>
+              <h2 className="mt-2 text-xl font-black text-navy sm:text-2xl md:text-3xl">Four steps to your <span className="text-[#ed6a00]">Sankalp</span> exam</h2>
+            </div>
+
+            <div className="relative grid gap-5 md:grid-cols-4 md:gap-4">
+              <div className="absolute left-[12%] right-[12%] top-6 hidden h-1 rounded-full bg-[#ffd2a8] md:block" />
+              {registrationSteps.map((step) => (
+                <div key={step.number} className="relative text-center">
+                  <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full border-4 border-white bg-navy text-sm font-black text-white shadow-[0_0_0_3px_#ffb36b]">
+                    {step.number}
+                  </div>
+                  <h3 className="text-sm font-bold text-navy">{step.title}</h3>
+                  <p className="mx-auto mt-1 max-w-[12rem] text-[11px] leading-5 text-slate-500 sm:text-xs">{step.description}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="relative rounded-[28px] border border-black/5 bg-white p-4 shadow-[0_14px_40px_rgba(11,37,69,0.08)] sm:p-5 md:p-8">
+            <div className="mb-5 flex items-center justify-between gap-3 border-b border-slate-200 pb-4 md:mb-6 md:gap-4 md:pb-5">
               <div>
                 <p className="mb-2 text-xs font-bold uppercase tracking-[0.2em] text-gold-dark">
                   Shri Shahu Prabodhini
                 </p>
-                <h2 className="text-2xl font-black text-navy md:text-4xl">
+                <h2 className="text-xl font-black leading-tight text-navy sm:text-2xl md:text-4xl">
                   {examInfo.name}
                 </h2>
               </div>
@@ -65,7 +93,7 @@ export default function ExamInformation() {
 
             <div className="grid gap-8 lg:grid-cols-[1.4fr_0.8fr] lg:items-start">
               <div>
-                <p className="mb-6 text-base leading-7 text-slate-600">
+                <p className="mb-5 text-sm leading-6 text-slate-600 md:mb-6 md:text-base md:leading-7">
                   The Sankalp Scholarship Exam is conducted every academic year to identify and reward talented students across Maharashtra. The exam evaluates conceptual clarity in Mathematics, Science, Language and General Knowledge appropriate to each class level, and top scorers are awarded scholarships, certificates and felicitation at the annual ceremony.
                 </p>
 

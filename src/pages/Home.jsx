@@ -10,7 +10,7 @@ import {
 } from "../data/siteData.js";
 import {
   fetchCourses, fetchFaculties, fetchGallery, fetchTestimonials,
-  fetchToppers, fetchVisionMissions, fetchHeroSections,
+  fetchToppers, fetchHeroSections,
 } from "../services/backendService.js";
 import { API_BASE_URL } from "../utils/api.js";
 
@@ -99,31 +99,14 @@ function MissingImage({ className = "" }) {
   return <div className={`flex h-full min-h-24 flex-col items-center justify-center gap-2 bg-navy-light text-white/70 ${className}`}><ImageOff className="text-gold" size={28} /><span className="text-xs">Image not available</span></div>;
 }
 
-function DirectorImage({ src, alt }) {
-  const [hasError, setHasError] = useState(false);
-
-  if (!src || hasError) {
-    return <MissingImage className="min-h-full rounded-full" />;
-  }
-
-  return (
-    <img
-      src={src}
-      alt={alt}
-      className="h-full w-full object-cover"
-      onError={() => setHasError(true)}
-    />
-  );
-}
-
 export default function Home() {
-  const [liveData, setLiveData] = React.useState({ heroSections: [], courses: [], toppers: [], gallery: [], faculties: [], testimonials: [], visionMission: null });
+  const [liveData, setLiveData] = React.useState({ heroSections: [], courses: [], toppers: [], gallery: [], faculties: [], testimonials: [] });
 
   React.useEffect(() => {
     let active = true;
-    Promise.allSettled([fetchHeroSections(), fetchCourses(), fetchToppers(), fetchGallery(), fetchFaculties(), fetchTestimonials(), fetchVisionMissions()]).then((results) => {
+    Promise.allSettled([fetchHeroSections(), fetchCourses(), fetchToppers(), fetchGallery(), fetchFaculties(), fetchTestimonials()]).then((results) => {
       if (!active) return;
-      const [heroResult, coursesResult, toppersResult, galleryResult, facultiesResult, testimonialsResult, visionResult] = results;
+      const [heroResult, coursesResult, toppersResult, galleryResult, facultiesResult, testimonialsResult] = results;
       setLiveData({
         heroSections: heroResult.status === "fulfilled" ? heroResult.value : [],
         courses: coursesResult.status === "fulfilled" ? coursesResult.value : [],
@@ -131,62 +114,21 @@ export default function Home() {
         gallery: galleryResult.status === "fulfilled" ? galleryResult.value : [],
         faculties: facultiesResult.status === "fulfilled" ? facultiesResult.value : [],
         testimonials: testimonialsResult.status === "fulfilled" ? testimonialsResult.value : [],
-        visionMission: visionResult.status === "fulfilled" ? visionResult.value[0] || null : null,
       });
     });
     return () => { active = false; };
   }, []);
 
-  const { heroSections, courses, toppers, gallery, faculties, testimonials, visionMission } = liveData;
+  const { heroSections, courses, toppers, gallery, faculties, testimonials } = liveData;
   const heroSlides = heroSections
     .sort((first, second) => first.priority - second.priority);
-
-  const directorMessage = (visionMission?.directorMessage || "Every child carries a spark — Sankalp helps it become a flame.").trim();
-  const directorPreview = directorMessage.length > 220
-    ? `${directorMessage.slice(0, 220).trim().replace(/\s+\S*$/, "")}...`
-    : directorMessage;
 
   return (
     <div>
       {/* 1. Image Slider */}
       <ImageSlider slides={heroSlides.length > 0 ? heroSlides : sliderSlides} />
 
-      {/* 2. Principal / Sanchalk / Director Message */}
-      <section className="section-pad bg-cream">
-        <div className="container-app grid gap-10 md:grid-cols-[250px_1fr] md:items-center lg:gap-14">
-          <div className="relative mx-auto w-full max-w-[220px] md:max-w-none">
-            <div className="h-56 w-56 overflow-hidden rounded-full ring-8 ring-white shadow-xl md:h-64 md:w-64">
-              {visionMission?.directorImage ? (
-                <DirectorImage src={resolveImageUrl(visionMission.directorImage)} alt={visionMission.directorName || "Director"} />
-              ) : (
-                <MissingImage className="min-h-full rounded-full" />
-              )}
-            </div>
-            <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-gold px-4 py-1.5 text-[10px] font-bold text-navy-dark shadow-md md:text-xs">
-              Director's Message
-            </div>
-          </div>
-          <div>
-            <span className="eyebrow">A Word From Our Sanchalak</span>
-            <h2 className="mb-3 line-clamp-4 text-[0.72rem] font-bold leading-[1.5] tracking-[-0.02em] text-navy md:text-[0.8rem]">
-              {directorPreview}
-            </h2>
-
-            <p className="mb-4 hidden text-[0.7rem] leading-relaxed text-muted md:block md:text-xs">
-              {visionMission?.description || "Shri Shahu Prabodhini stands beside students across rural and urban Maharashtra, helping every child discover their potential and earn a fair chance to shine."}
-            </p>
-
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <p className="font-display text-xs font-semibold text-navy md:text-sm">— {visionMission?.directorName || "Director"}, Director</p>
-              <Link to="/vision-mission" className="inline-flex items-center justify-center gap-1 rounded-md bg-gold px-3.5 py-2 text-[11px] font-bold text-navy-dark shadow-sm transition hover:bg-gold-dark hover:text-white">
-                Read More <ArrowRight size={13} />
-              </Link>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* 3. Sankalp Exam Info with Registration button */}
+      {/* 2. Sankalp Exam Info with Registration button */}
       <section className="section-pad bg-navy relative overflow-hidden">
         <div className="absolute -right-24 -top-24 w-72 h-72 bg-gold/10 rounded-full" />
         <div className="absolute -left-16 -bottom-16 w-56 h-56 bg-gold/10 rounded-full" />

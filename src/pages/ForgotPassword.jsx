@@ -109,7 +109,7 @@ export default function ForgotPassword() {
   return (
     <div>
       <PageHeader title="Forgot Password" compact accentTitle />
-      <section className="min-h-[calc(100vh-190px)] bg-[#fffaf5] px-4 py-8 md:py-12">
+      <section className="min-h-[calc(100vh-190px)] bg-[#fffaf5] px-4 pb-8 pt-0 md:pb-12 md:pt-0">
         <div className="mx-auto w-full max-w-[500px]">
           <div className="overflow-hidden rounded-[28px] border border-[#ffe0c2] bg-white shadow-[0_18px_45px_rgba(124,45,18,0.1)]">
             <div className="bg-[linear-gradient(135deg,#fff7ed_0%,#ffffff_58%,#fffaf5_100%)] px-6 pb-6 pt-7 text-center md:px-9">
