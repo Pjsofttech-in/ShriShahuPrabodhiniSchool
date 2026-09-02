@@ -857,6 +857,30 @@ export async function loginUser(role, credentials) {
   }
 }
 
+export async function requestPasswordOtp(identifier, method = "mobile") {
+  const response = await api.post("/api/auth/student/forgot-password", {
+    [method === "email" ? "email" : "mobile"]: String(identifier).trim(),
+  });
+  return response.data;
+}
+
+export async function verifyPasswordOtp(identifier, otp, method = "mobile") {
+  const response = await api.post("/api/auth/student/verify-otp", {
+    [method === "email" ? "email" : "mobile"]: String(identifier).trim(),
+    otp: String(otp).trim(),
+  });
+  return response.data;
+}
+
+export async function resetStudentPassword(identifier, otp, newPassword, method = "mobile") {
+  const response = await api.post("/api/auth/student/reset-password", {
+    [method === "email" ? "email" : "mobile"]: String(identifier).trim(),
+    otp: String(otp).trim(),
+    newPassword,
+  });
+  return response.data;
+}
+
 export async function getMyProfile() {
   const response = await api.get("/api/auth/me");
   const payload = response.data;

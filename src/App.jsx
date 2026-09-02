@@ -21,6 +21,7 @@ import RefundPolicy from "./pages/RefundPolicy.jsx";
 import TermsAndConditions from "./pages/TermsAndConditions.jsx";
 import StudentRegistration from "./pages/StudentRegistration.jsx";
 import Login from "./pages/Login.jsx";
+import ForgotPassword from "./pages/ForgotPassword.jsx";
 
 import ExamInformation from "./pages/sankalp/ExamInformation.jsx";
 import Syllabus from "./pages/sankalp/Syllabus.jsx";
@@ -76,6 +77,7 @@ export default function App() {
 
             <Route path="/register" element={<StudentRegistration />} />
             <Route path="/login" element={<Login />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
 
             <Route
               path="/admin/dashboard"

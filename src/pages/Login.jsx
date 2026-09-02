@@ -106,7 +106,7 @@ export default function Login() {
   return (
     <div>
 
-      <section className="py-12 md:py-16">
+      <section className="pb-12 pt-0 md:pb-16 md:pt-0">
         <div className="container-app flex justify-center">
 
           <form
@@ -279,6 +279,14 @@ export default function Login() {
                   className="font-semibold text-[#8B1E3F] hover:text-[#F07A24] transition-colors duration-300"
                 >
                   Register here
+                </Link>
+              </p>
+            )}
+
+            {role === "student" && (
+              <p className="mt-3 text-center text-[13px]">
+                <Link to="/forgot-password" className="font-semibold text-[#e85d04] hover:text-[#8B1E3F] transition-colors duration-300">
+                  Forgot password?
                 </Link>
               </p>
             )}

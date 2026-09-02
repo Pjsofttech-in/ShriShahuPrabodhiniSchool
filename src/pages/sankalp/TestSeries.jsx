@@ -41,7 +41,7 @@ function SeriesImage({ src, alt, className = "" }) {
 
   if (!src || failed) {
     return (
-      <div className="flex h-full w-full items-center justify-center bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.12),_transparent_38%),linear-gradient(135deg,#0d1f3d_0%,#112d59_45%,#0a1634_100%)] text-white">
+      <div className="flex h-full w-full items-center justify-center bg-[radial-gradient(circle_at_top,_rgba(255,237,213,0.24),_transparent_38%),linear-gradient(135deg,#c2410c_0%,#ea580c_45%,#9a3412_100%)] text-white">
         <div className="flex flex-col items-center gap-2 text-center">
           <ImageOff size={28} className="text-white/75" />
           <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/70">Image unavailable</span>
@@ -112,10 +112,10 @@ export default function TestSeries() {
   }, [series, activeFilter]);
 
   return (
-    <div className="min-h-screen bg-[#f4f7fb]">
-      <PageHeader title="Sankalp Test Series" crumb="Test Series" />
+    <div className="min-h-screen bg-white">
+      <PageHeader title="Sankalp Test Series" crumb="Test Series" compact />
 
-      <div className="border-b border-[#e3edf8] bg-white py-3 shadow-sm">
+      <div className="border-b border-[#fed7aa] bg-white py-3 shadow-sm">
         <div className="container-app flex flex-wrap items-center justify-center gap-2">
           {FILTERS.map((filter) => {
             const isActive = activeFilter === filter;
@@ -126,8 +126,8 @@ export default function TestSeries() {
                 onClick={() => setActiveFilter(filter)}
                 className={`rounded-full px-3.5 py-2 text-xs font-semibold transition-all duration-200 ${
                   isActive
-                    ? "bg-[#edf4ff] text-[#123d7d] ring-1 ring-[#cfe2ff] shadow-sm"
-                    : "text-slate-600 hover:bg-[#edf4ff] hover:text-[#123d7d]"
+                    ? "bg-[#ff6d00] text-white ring-1 ring-[#ff6d00] shadow-[0_6px_14px_rgba(255,109,0,0.25)]"
+                    : "text-slate-600 hover:bg-[#fff0e3] hover:text-[#e85d00]"
                 }`}
               >
                 {filter}
@@ -137,11 +137,11 @@ export default function TestSeries() {
         </div>
       </div>
 
-      <section className="pb-10 pt-4 md:pb-12 md:pt-5">
+      <section className="bg-white pb-10 pt-4 md:pb-12 md:pt-5">
         <div className="container-app">
           {loading && (
             <div className="flex justify-center gap-2 py-20 text-slate-600">
-              <LoaderCircle className="animate-spin text-[#0b3c8b]" />
+              <LoaderCircle className="animate-spin text-[#ff6d00]" />
               Loading test series...
             </div>
           )}
@@ -163,15 +163,15 @@ export default function TestSeries() {
                 return (
                   <article
                     key={item.id}
-                    className="group flex h-full flex-col overflow-hidden rounded-[26px] border border-[#dfeaf8] bg-white shadow-[0_14px_32px_rgba(15,35,82,0.08)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_18px_40px_rgba(15,35,82,0.12)]"
+                    className="group flex h-full flex-col overflow-hidden rounded-[26px] border border-[#ffd8b5] bg-white shadow-[0_14px_32px_rgba(15,35,82,0.08)] transition duration-300 hover:-translate-y-1 hover:border-[#ff9a4d] hover:shadow-[0_18px_40px_rgba(255,109,0,0.16)]"
                   >
-                    <div className="relative overflow-hidden bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.10),_transparent_30%),linear-gradient(135deg,#091d3d_0%,#0f2f62_38%,#0b244c_100%)] p-4">
+                    <div className="relative overflow-hidden border-b border-[#ffead8] bg-[radial-gradient(circle_at_top,_rgba(255,237,213,0.9),_transparent_34%),linear-gradient(135deg,#fff7ed_0%,#ffffff_58%,#fffaf5_100%)] p-4">
                       <div className="mb-3 flex items-center justify-between">
-                        <span className="inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-white/10 px-2.5 py-1 text-[9px] font-bold uppercase tracking-[0.18em] text-white/90 backdrop-blur-sm">
-                          <Sparkles size={10} className="text-[#ffb266]" />
+                        <span className="inline-flex items-center gap-1.5 rounded-full border border-[#ffb36b] bg-[#fff0e3] px-2.5 py-1 text-[9px] font-bold uppercase tracking-[0.18em] text-[#9a3412]">
+                          <Sparkles size={10} className="text-[#ed6a00]" />
                           LIVE
                         </span>
-                        <button type="button" className="rounded-full bg-white/10 p-1.5 text-white/80 transition hover:bg-white/20" aria-label={`Share ${safeTitle}`}>
+                        <button type="button" className="rounded-full bg-[#fff0e3] p-1.5 text-[#c2410c] transition hover:bg-[#ffdfc2]" aria-label={`Share ${safeTitle}`}>
                           <Share2 size={14} />
                         </button>
                       </div>
@@ -182,24 +182,24 @@ export default function TestSeries() {
                         </div>
 
                         <div className="min-w-0 flex-1 text-white">
-                          <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[#bfe0ff]">{badge}</p>
-                          <h2 className="mt-2 line-clamp-3 text-[1.08rem] font-black leading-[1.25] text-white">{safeTitle}</h2>
+                          <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[#c2410c]">{badge}</p>
+                          <h2 className="mt-2 line-clamp-3 text-[1.08rem] font-black leading-[1.25] text-[#4a2416]">{safeTitle}</h2>
                         </div>
                       </div>
 
-                      <div className="mt-4 space-y-2 text-[11px] text-white/90">
+                      <div className="mt-4 space-y-2 text-[11px] text-[#70402b]">
                         {features.map((feature) => (
                           <div key={feature} className="flex items-center gap-2">
-                            <span className="h-1.5 w-1.5 rounded-full bg-[#ff9f43]" />
+                            <span className="h-1.5 w-1.5 rounded-full bg-[#ff8a1f]" />
                             <span className="truncate">{feature}</span>
                           </div>
                         ))}
                       </div>
                     </div>
 
-                    <div className="mt-auto border-t border-[#edf3fb] bg-white px-4 py-3">
+                    <div className="mt-auto border-t border-[#fed7aa] bg-white px-4 py-3">
                       <div className="flex items-center justify-between gap-3">
-                        <div className="flex items-center gap-2 text-sm font-semibold text-[#0d2340]">
+                        <div className="flex items-center gap-2 text-sm font-semibold text-[#7c2d12]">
                           <span>Features</span>
                           <ChevronDown size={15} className="text-slate-500" />
                         </div>
@@ -210,7 +210,7 @@ export default function TestSeries() {
 
                       <Link
                         to={`/sankalp/test-series/${item.id}`}
-                        className="mt-4 flex w-full items-center justify-center rounded-xl bg-gradient-to-r from-[#1d5dc8] to-[#0d47b1] px-3 py-3 text-xs font-bold uppercase tracking-[0.05em] text-white shadow-[0_10px_18px_rgba(13,71,177,0.25)] transition hover:brightness-110"
+                          className="mt-4 flex w-full items-center justify-center rounded-xl bg-gradient-to-r from-[#ff8c1a] to-[#ed4b00] px-3 py-3 text-xs font-bold uppercase tracking-[0.05em] text-white shadow-[0_10px_18px_rgba(255,109,0,0.25)] transition hover:brightness-110"
                       >
                         View Test Papers
                       </Link>
