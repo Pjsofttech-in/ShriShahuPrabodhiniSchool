@@ -289,8 +289,8 @@ export async function fetchHeroSections() {
       hero?.heroSectionImageName ??
       hero?.imageUrl ??
       "",
-    link: hero?.url ?? hero?.link ?? hero?.buttonUrl ?? "#",
-    linkLabel: hero?.buttonLabel ?? hero?.linkLabel ?? hero?.buttonText ?? "Learn More",
+    link: hero?.url ?? hero?.link ?? hero?.buttonUrl ?? "/register",
+    linkLabel: hero?.buttonLabel ?? hero?.linkLabel ?? hero?.buttonText ?? "Register Now",
     priority: Number(hero?.priority ?? hero?.displayOrder ?? index),
   }));
 }

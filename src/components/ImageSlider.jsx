@@ -54,9 +54,9 @@ export default function ImageSlider({ slides, interval = 5000 }) {
               <div className="mt-5 flex justify-start md:justify-end">
                 <Link
                   to={slide.link}
-                  className="inline-flex items-center rounded-lg bg-gold px-4 py-2.5 text-sm font-semibold text-navy-dark shadow-lg transition-all duration-300 hover:scale-[1.02] hover:bg-gold-light"
+                  className="inline-flex items-center rounded-lg bg-gold px-4 py-2.5 text-sm font-semibold text-white shadow-lg transition-all duration-300 hover:scale-[1.02] hover:bg-gold-light"
                 >
-                  {slide.linkLabel}
+                  {slide.linkLabel || "Register Now"}
                 </Link>
               </div>
             </div>

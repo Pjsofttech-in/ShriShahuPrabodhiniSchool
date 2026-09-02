@@ -457,12 +457,15 @@ export default function Home() {
     />
 
     {/* Faculties Grid */}
-    <div className="grid sm:grid-cols-2 md:grid-cols-4 gap-6 mt-10">
+    <div className="mt-10 grid items-stretch gap-6 sm:grid-cols-2 md:grid-cols-4">
             {faculties.slice(0, 4).map((f) => (
         <div
           key={f.id}
           className="
             card
+            flex
+            h-full
+            flex-col
             overflow-hidden
             text-center
             group
@@ -476,21 +479,21 @@ export default function Home() {
         >
           <div className="px-3 pt-3">
             {f.image ? (
-              <div className="overflow-hidden rounded-xl bg-slate-100">
+              <div className="aspect-[3/4] overflow-hidden rounded-xl bg-slate-100">
                 <img
                   src={resolveImageUrl(f.image)}
                   alt={f.name}
-                  className="h-60 w-full object-cover object-top transition-transform duration-500 group-hover:scale-105"
+                  className="h-full w-full object-cover object-top transition-transform duration-500 group-hover:scale-105"
                 />
               </div>
             ) : (
-              <div className="overflow-hidden rounded-xl bg-slate-100">
-                <MissingImage className="h-56 w-full" />
+              <div className="aspect-[3/4] overflow-hidden rounded-xl bg-slate-100">
+                <MissingImage className="h-full w-full" />
               </div>
             )}
           </div>
 
-          <div className="p-4">
+          <div className="flex flex-1 flex-col justify-center p-4">
             <h3 className="font-bold text-navy transition-colors duration-300 group-hover:text-gold">
               {f.name}
             </h3>
@@ -499,7 +502,7 @@ export default function Home() {
               {f.subject}
             </p>
 
-            <p className="text-xs text-muted mt-1">
+            <p className="mt-1 text-xs text-muted">
               {f.experience ? `${f.experience} years experience` : "Experience not available"}
             </p>
           </div>
