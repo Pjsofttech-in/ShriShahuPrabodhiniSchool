@@ -117,7 +117,7 @@ export default function Navbar() {
 
             <div className="flex flex-col leading-tight">
               <h1 className="whitespace-nowrap font-display text-base font-bold text-navy xl:text-lg dark:text-white">Shri Shahu Prabodhini</h1>
-              <span className="whitespace-nowrap text-[10px] uppercase tracking-[0.18em] text-gold-dark xl:text-[11px]">Sankalp</span>
+              <span className="whitespace-nowrap text-[10px] uppercase tracking-[0.18em] text-gold-dark xl:text-[11px]">Sankalp Foundation</span>
             </div>
           </Link>
 
