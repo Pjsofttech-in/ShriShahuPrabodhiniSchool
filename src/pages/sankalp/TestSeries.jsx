@@ -115,7 +115,7 @@ export default function TestSeries() {
     <div className="min-h-screen bg-[#f4f7fb]">
       <PageHeader title="Sankalp Test Series" crumb="Test Series" />
 
-      <div className="border-b border-[#e3edf8] bg-white py-4 shadow-sm">
+      <div className="border-b border-[#e3edf8] bg-white py-3 shadow-sm">
         <div className="container-app flex flex-wrap items-center justify-center gap-2">
           {FILTERS.map((filter) => {
             const isActive = activeFilter === filter;
@@ -124,7 +124,7 @@ export default function TestSeries() {
                 key={filter}
                 type="button"
                 onClick={() => setActiveFilter(filter)}
-                className={`rounded-md px-4 py-2 text-xs font-semibold transition-all duration-200 ${
+                className={`rounded-full px-3.5 py-2 text-xs font-semibold transition-all duration-200 ${
                   isActive
                     ? "bg-[#edf4ff] text-[#123d7d] ring-1 ring-[#cfe2ff] shadow-sm"
                     : "text-slate-600 hover:bg-[#edf4ff] hover:text-[#123d7d]"
@@ -137,7 +137,7 @@ export default function TestSeries() {
         </div>
       </div>
 
-      <section className="py-8 md:py-10">
+      <section className="pb-10 pt-4 md:pb-12 md:pt-5">
         <div className="container-app">
           {loading && (
             <div className="flex justify-center gap-2 py-20 text-slate-600">
