@@ -474,7 +474,21 @@ export default function Home() {
             hover:ring-gold/40
           "
         >
-          {f.image ? <img src={resolveImageUrl(f.image)} alt={f.name} className="w-full h-48 object-cover transition-transform duration-500 group-hover:scale-105" /> : <MissingImage className="h-48" />}
+          <div className="px-3 pt-3">
+            {f.image ? (
+              <div className="overflow-hidden rounded-xl bg-slate-100">
+                <img
+                  src={resolveImageUrl(f.image)}
+                  alt={f.name}
+                  className="h-60 w-full object-cover object-top transition-transform duration-500 group-hover:scale-105"
+                />
+              </div>
+            ) : (
+              <div className="overflow-hidden rounded-xl bg-slate-100">
+                <MissingImage className="h-56 w-full" />
+              </div>
+            )}
+          </div>
 
           <div className="p-4">
             <h3 className="font-bold text-navy transition-colors duration-300 group-hover:text-gold">
