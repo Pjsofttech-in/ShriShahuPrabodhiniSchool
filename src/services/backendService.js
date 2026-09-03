@@ -65,6 +65,11 @@ function normalizeList(payload) {
       "testSeries",
       "testSerieses",
       "exams",
+      "attempts",
+      "examAttempts",
+      "exam_attempts",
+      "results",
+      "examResults",
       "questions",
     ]) {
       const value = current[key];
@@ -446,6 +451,27 @@ function extractLinkedExams(series) {
     .filter((item) => item && (item.name || item.id || item.image));
 }
 
+function normalizeTestFeatures(series) {
+  const source = Array.isArray(series?.features)
+    ? series.features
+    : [
+        series?.testFeatureOne ?? series?.featureOne,
+        series?.testFeatureTwo ?? series?.featureTwo,
+        series?.testFeatureThree ?? series?.featureThree,
+      ];
+
+  return source
+    .map((feature) => {
+      if (typeof feature === "object") {
+        return feature?.name ?? feature?.title ?? feature?.label ?? feature?.description ?? "";
+      }
+      return feature;
+    })
+    .map((feature) => String(feature ?? "").replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim())
+    .filter(Boolean)
+    .slice(0, 3);
+}
+
 export async function fetchTestSeries() {
   const response = await api.get("/api/test-series");
   return normalizeList(response.data).map((series, index) => ({
@@ -457,9 +483,10 @@ export async function fetchTestSeries() {
     sellingPrice: series?.sellingPrice ?? series?.salePrice ?? null,
     mrp: series?.mrp ?? null,
     subject: series?.subject ?? "",
-    featureOne: series?.testFeatureOne ?? "",
-    featureTwo: series?.testFeatureTwo ?? "",
-    featureThree: series?.testFeatureThree ?? "",
+    featureOne: series?.testFeatureOne ?? series?.featureOne ?? "",
+    featureTwo: series?.testFeatureTwo ?? series?.featureTwo ?? "",
+    featureThree: series?.testFeatureThree ?? series?.featureThree ?? "",
+    features: normalizeTestFeatures(series),
     startDate: series?.startDate ?? "",
     endDate: series?.endDate ?? "",
     exams: extractLinkedExams(series),
@@ -481,9 +508,10 @@ export async function fetchTestSeriesById(id) {
       sellingPrice: series?.sellingPrice ?? series?.salePrice ?? null,
       mrp: series?.mrp ?? null,
       subject: series?.subject ?? "",
-      featureOne: series?.testFeatureOne ?? "",
-      featureTwo: series?.testFeatureTwo ?? "",
-      featureThree: series?.testFeatureThree ?? "",
+      featureOne: series?.testFeatureOne ?? series?.featureOne ?? "",
+      featureTwo: series?.testFeatureTwo ?? series?.featureTwo ?? "",
+      featureThree: series?.testFeatureThree ?? series?.featureThree ?? "",
+      features: normalizeTestFeatures(series),
       exams: linkedExams,
     };
   }
@@ -504,9 +532,10 @@ export async function fetchTestSeriesById(id) {
     sellingPrice: series?.sellingPrice ?? series?.salePrice ?? null,
     mrp: series?.mrp ?? null,
     subject: series?.subject ?? "",
-    featureOne: series?.testFeatureOne ?? "",
-    featureTwo: series?.testFeatureTwo ?? "",
-    featureThree: series?.testFeatureThree ?? "",
+    featureOne: series?.testFeatureOne ?? series?.featureOne ?? "",
+    featureTwo: series?.testFeatureTwo ?? series?.featureTwo ?? "",
+    featureThree: series?.testFeatureThree ?? series?.featureThree ?? "",
+    features: normalizeTestFeatures(series),
     exams: filteredExams,
   };
 }
@@ -593,6 +622,14 @@ export function rememberExamAttempt(attemptId) {
   sessionStorage.setItem("ssp_attempt_ids", JSON.stringify(ids));
 }
 
+export function rememberExamResult(result) {
+  if (!result?.attemptId) return;
+  const saved = JSON.parse(sessionStorage.getItem("ssp_attempt_results") || "[]");
+  const attemptId = String(result.attemptId);
+  const results = [result, ...saved.filter((item) => String(item?.attemptId) !== attemptId)].slice(0, 50);
+  sessionStorage.setItem("ssp_attempt_results", JSON.stringify(results));
+}
+
 // Fetch exam results/attempts for a given student. Try several plausible endpoints the backend might expose.
 export async function fetchStudentResults(studentId, profile = null) {
   if (!studentId) return [];
@@ -620,6 +657,10 @@ export async function fetchStudentResults(studentId, profile = null) {
   }
 
   const endpoints = [
+    "/api/exam-attempts/my",
+    "/api/exam-attempts/me",
+    "/api/exam-results/my",
+    "/api/results/my",
     `/api/exam-attempts/student/${id}`,
     `/api/exam-attempts?studentId=${id}`,
     `/api/exam-results?studentId=${id}`,
@@ -629,13 +670,14 @@ export async function fetchStudentResults(studentId, profile = null) {
     `/api/results/student/${id}`,
   ];
 
+  const endpointResults = [];
   for (const ep of endpoints) {
     try {
       const res = await api.get(ep);
       const list = normalizeList(res.data);
       if (list && list.length) {
         console.debug('fetchStudentResults: using endpoint', ep, 'returned', list.length, 'items');
-        return list;
+        endpointResults.push(...list);
       }
     } catch (err) {
       console.debug('fetchStudentResults: endpoint', ep, 'failed with', err?.response?.status || err?.message || err);
@@ -643,7 +685,8 @@ export async function fetchStudentResults(studentId, profile = null) {
   }
 
   const savedAttemptIds = JSON.parse(sessionStorage.getItem("ssp_attempt_ids") || "[]");
-  const savedResults = [];
+  const rememberedResults = JSON.parse(sessionStorage.getItem("ssp_attempt_results") || "[]");
+  const savedResults = [...endpointResults];
   for (const attemptId of savedAttemptIds) {
     try {
       const result = await fetchExamAttemptResult(attemptId);
@@ -652,7 +695,15 @@ export async function fetchStudentResults(studentId, profile = null) {
       console.debug('fetchStudentResults: saved attempt failed', attemptId, err?.response?.status || err?.message || err);
     }
   }
-  if (savedResults.length) return savedResults;
+  rememberedResults.forEach((result) => {
+    if (!savedResults.some((item) => String(item.attemptId) === String(result.attemptId))) savedResults.push(result);
+  });
+  const uniqueResults = savedResults.filter((item, index, list) => {
+    const itemId = item.attemptId ?? item.id ?? item.resultId ?? item.attempt_id;
+    if (!itemId) return true;
+    return list.findIndex((candidate) => String(candidate.attemptId ?? candidate.id ?? candidate.resultId ?? candidate.attempt_id) === String(itemId)) === index;
+  });
+  if (uniqueResults.length) return uniqueResults;
 
   console.warn('fetchStudentResults: no results found for student', studentId);
   return [];

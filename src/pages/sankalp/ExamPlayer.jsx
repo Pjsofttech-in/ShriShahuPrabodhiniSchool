@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState, useRef } from "react";
 import { useLocation, useParams, useNavigate } from "react-router-dom";
-import PageHeader from "../../components/PageHeader.jsx";
+import { ArrowRight, BarChart3, Check, CircleHelp, CircleMinus, Clock3, Flag, ListChecks, Send, Timer, Trophy, X } from "lucide-react";
 import {
   fetchExams,
   startExamAttempt,
@@ -8,6 +8,7 @@ import {
   saveAttemptAnswer,
   submitExamAttempt,
   rememberExamAttempt,
+  rememberExamResult,
 } from "../../services/backendService.js";
 import { useAuth } from "../../context/AuthContext.jsx";
 
@@ -35,6 +36,7 @@ export default function ExamPlayer() {
   const [marked, setMarked] = useState({});
   const [detailedResults, setDetailedResults] = useState(null);
   const [submitConfirmOpen, setSubmitConfirmOpen] = useState(false);
+  const [resultTab, setResultTab] = useState("summary");
 
   const initialDurationRef = useRef(0);
 
@@ -55,12 +57,21 @@ export default function ExamPlayer() {
       throw new Error(`Question ${index + 1} has no options in the database.`);
     }
 
+    const rawCorrectAnswer = question?.correctAnswer ?? question?.correct_answer ?? question?.correctOption ?? question?.answer ?? item?.correctAnswer ?? item?.correct_answer ?? null;
+    const rawCorrectIndex = question?.correctIndex ?? question?.answerIndex ?? question?.correctAnswerIndex ?? item?.correctIndex ?? item?.answerIndex ?? null;
+    const resolvedCorrectIndex = rawCorrectIndex !== null && rawCorrectIndex !== undefined
+      ? Number(rawCorrectIndex)
+      : (rawCorrectAnswer !== null && rawCorrectAnswer !== undefined
+        ? options.findIndex((option) => String(option).trim() === String(rawCorrectAnswer).trim())
+        : null);
+
     return {
       id: questionId,
       text,
       options,
       marks: Number(item?.marks ?? question?.marks ?? question?.weight ?? 1) || 1,
-      correctIndex: question?.correctIndex ?? question?.answerIndex ?? null,
+      correctIndex: resolvedCorrectIndex >= 0 ? resolvedCorrectIndex : null,
+      correctAnswer: rawCorrectAnswer,
     };
   }
 
@@ -153,6 +164,31 @@ export default function ExamPlayer() {
 
   const { user, refreshProfile } = useAuth();
 
+  const resultItems = useMemo(() => {
+    if (!result) return [];
+    const source = result.details ?? result.questions ?? result.questionResponses ?? result.answers ?? [];
+    return questions.map((question, index) => {
+      const detail = source.find((item) => String(item.questionId ?? item.question_id ?? item.id) === String(question.id)) ?? source[index] ?? {};
+      const selectedIndex = detail.selectedIndex ?? detail.selected_index ?? detail.answerIndex ?? detail.answer_index ?? answers[question.id] ?? null;
+      const selectedAnswer = detail.selectedAnswer ?? detail.selected_answer ?? (selectedIndex !== null ? question.options[selectedIndex] : null);
+      const rawCorrectAnswer = detail.correctAnswer ?? detail.correct_answer ?? detail.correctOption ?? detail.correct_option ?? detail.answer ?? question.correctAnswer ?? null;
+      const rawCorrectIndex = detail.correctIndex ?? detail.correct_index ?? detail.correctAnswerIndex ?? detail.correct_answer_index ?? question.correctIndex ?? null;
+      const correctIndex = rawCorrectIndex !== null && rawCorrectIndex !== undefined
+        ? Number(rawCorrectIndex)
+        : (rawCorrectAnswer !== null && rawCorrectAnswer !== undefined ? question.options.findIndex((option) => String(option).trim() === String(rawCorrectAnswer).trim()) : null);
+      const correctAnswer = correctIndex !== null && correctIndex >= 0 ? question.options[correctIndex] : rawCorrectAnswer;
+      const isCorrect = detail.correct === true || (correctIndex !== null && correctIndex >= 0 && selectedIndex !== null && Number(correctIndex) === Number(selectedIndex));
+      const status = selectedAnswer === null || selectedAnswer === undefined ? "UNANSWERED" : isCorrect ? "CORRECT" : "INCORRECT";
+      return { ...question, detail, selectedIndex, selectedAnswer, correctIndex, correctAnswer, status, markedForReview: Boolean(detail.markedForReview ?? detail.marked_for_review) };
+    });
+  }, [result, questions, answers]);
+
+  const resultCounts = useMemo(() => ({
+    correct: resultItems.filter((item) => item.status === "CORRECT").length,
+    incorrect: resultItems.filter((item) => item.status === "INCORRECT").length,
+    unanswered: resultItems.filter((item) => item.status === "UNANSWERED").length,
+  }), [resultItems]);
+
   async function handleSubmit() {
     if (!attemptId) {
       setSubmitError("Exam attempt was not created. Please restart the exam.");
@@ -163,15 +199,47 @@ export default function ExamPlayer() {
 
     try {
       const submittedResult = await submitExamAttempt(attemptId);
+      const localSummary = computeResult();
+      const backendScore = submittedResult?.score ?? submittedResult?.obtainedMarks ?? submittedResult?.obtained_marks ?? submittedResult?.marks ?? submittedResult?.totalMarksObtained;
+      const backendMaxScore = submittedResult?.maxScore ?? submittedResult?.max_score ?? submittedResult?.totalMarks ?? submittedResult?.total_marks ?? submittedResult?.maxMarks;
+      const backendTotal = submittedResult?.totalQuestions ?? submittedResult?.total_questions ?? submittedResult?.total;
+      const attemptedCount = questions.filter((question) => answers[question.id] !== undefined && answers[question.id] !== null).length;
+      const reviewedCount = questions.filter((question) => marked[question.id]).length;
+      const questionDetails = questions.map((question, index) => ({
+        questionId: question.id,
+        questionText: question.text,
+        options: question.options,
+        selectedAnswer: answers[question.id] !== undefined ? question.options[answers[question.id]] : null,
+        selectedIndex: answers[question.id] ?? null,
+        correctIndex: question.correctIndex,
+        marks: question.marks,
+        status: answers[question.id] !== undefined ? "ATTEMPTED" : "UNATTEMPTED",
+        markedForReview: Boolean(marked[question.id]),
+        sequence: index + 1,
+      }));
+      const serverDetails = Array.isArray(submittedResult?.details) ? submittedResult.details : [];
+      const mergedDetails = questionDetails.map((localDetail, index) => {
+        const serverDetail = serverDetails.find((detail) => String(detail.questionId ?? detail.question_id ?? detail.id) === String(localDetail.questionId)) ?? serverDetails[index];
+        return serverDetail ? { ...localDetail, ...serverDetail, status: localDetail.status, markedForReview: localDetail.markedForReview } : localDetail;
+      });
       const resultWithExam = {
         ...submittedResult,
         attemptId,
         examId: id,
         examName: exam?.name,
         submittedAt: submittedResult?.submittedAt ?? new Date().toISOString(),
+        score: backendScore ?? localSummary.score,
+        maxScore: backendMaxScore ?? localSummary.maxScore,
+        total: backendTotal ?? localSummary.total,
+        totalQuestions: questions.length,
+        attemptedCount,
+        unattemptedCount: questions.length - attemptedCount,
+        reviewedCount,
+        details: mergedDetails,
       };
       setResult(resultWithExam);
       rememberExamAttempt(attemptId);
+      rememberExamResult(resultWithExam);
       try { await refreshProfile(); } catch (e) { /* ignore */ }
     } catch (err) {
       console.warn('Result submission failed:', err);
@@ -185,11 +253,11 @@ export default function ExamPlayer() {
     await handleSubmit();
   }
 
-  if (loading) return <div className="min-h-screen"><PageHeader title="Exam" /><div className="container-app py-20 text-center text-muted">Preparing exam...</div></div>;
+  if (loading) return <div className="min-h-screen bg-[#f7f9fc]"><div className="bg-navy-dark py-4 text-center text-sm font-semibold text-white">Preparing your test...</div><div className="container-app py-20 text-center text-muted">Loading questions...</div></div>;
 
-  if (loadError) return <div className="min-h-screen"><PageHeader title={exam?.name ?? 'Exam'} /><div className="container-app py-20 text-center text-red-600">{loadError}</div></div>;
+  if (loadError) return <div className="min-h-screen bg-[#f7f9fc]"><div className="bg-navy-dark py-4 text-center text-sm font-semibold text-white">{exam?.name ?? "Exam"}</div><div className="container-app py-20 text-center text-red-600">{loadError}</div></div>;
 
-  if (!questions || questions.length === 0) return <div className="min-h-screen"><PageHeader title={exam?.name ?? 'Exam'} /><div className="container-app py-20 text-center text-muted">No questions available.</div></div>;
+  if (!questions || questions.length === 0) return <div className="min-h-screen bg-[#f7f9fc]"><div className="bg-navy-dark py-4 text-center text-sm font-semibold text-white">{exam?.name ?? "Exam"}</div><div className="container-app py-20 text-center text-muted">No questions available.</div></div>;
 
 
   function gotoQuestion(i) {
@@ -214,13 +282,18 @@ export default function ExamPlayer() {
   }
 
   return (
-    <div className="min-h-screen bg-white">
-      <PageHeader title={exam?.name ?? 'Exam'} crumb="Exam" />
-      <div className="container-app py-6">
-        <div className="grid gap-6 md:grid-cols-[1fr_320px]">
+    <div className="min-h-screen bg-[#f7f9fc]">
+      <div className="sticky top-0 z-40 bg-navy-dark text-white shadow-lg">
+        <div className="container-app flex min-h-14 items-center justify-between gap-3 py-2">
+          <div className="min-w-0"><p className="truncate text-sm font-semibold">{exam?.name ?? 'Exam'}</p><p className="text-[10px] text-white/60">Duration: {exam?.duration || "-"} minutes</p></div>
+          {!submitted && <div className={`flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 text-xs font-bold ${timeLeft < 60 ? "bg-red-600" : "bg-green-600"}`}><Timer size={15} /> Time Left: {formatTime(timeLeft)}</div>}
+        </div>
+      </div>
+      <div className="container-app py-4 sm:py-6">
+        <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_300px]">
 
           {/* Main question area */}
-          <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+          <div className="rounded-2xl border border-slate-200 bg-white p-3 shadow-[0_8px_24px_rgba(15,35,82,0.07)] sm:p-5">
             {submitError && (
               <div className="mb-4 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">
                 {submitError}
@@ -228,9 +301,9 @@ export default function ExamPlayer() {
             )}
 
             {!submitted && (
-              <div className="mb-4 flex items-center justify-between">
-                <div className="text-sm text-slate-600">Time Left: <span className="font-mono font-semibold text-lg">{formatTime(timeLeft)}</span></div>
-                <div className="text-sm text-slate-600">Questions: {questions.length}</div>
+              <div className="mb-4 flex items-center justify-between border-b border-slate-100 pb-3">
+                <div className="flex items-center gap-2 text-sm text-slate-600"><Clock3 size={16} className="text-gold" /> Question <span className="font-bold text-navy">{currentIndex + 1}</span> of {questions.length}</div>
+                <div className="text-xs font-semibold text-muted">Marks: {questions[currentIndex].marks || 1}</div>
               </div>
             )}
 
@@ -238,13 +311,7 @@ export default function ExamPlayer() {
             {!submitted && (
               <div>
                 <div className="mb-4 rounded-lg border p-4">
-                  <div className="flex items-start justify-between mb-3">
-                    <div>
-                      <div className="text-sm text-slate-600">Question <span className="font-semibold">{currentIndex + 1}</span> of {questions.length}</div>
-                      <div className="mt-2 text-base font-medium">{questions[currentIndex].text}</div>
-                    </div>
-                    <div className="text-sm text-slate-500">Marks: {questions[currentIndex].marks || 1}</div>
-                  </div>
+                  <div className="mb-3 flex items-start justify-between gap-3"><div className="text-base font-semibold leading-7 text-navy">{questions[currentIndex].text}</div><Flag size={17} className={marked[questions[currentIndex].id] ? "shrink-0 text-gold" : "shrink-0 text-slate-300"} /></div>
 
                   <div className="grid gap-2 md:grid-cols-2">
                     {questions[currentIndex].options.map((opt, oi) => {
@@ -261,12 +328,12 @@ export default function ExamPlayer() {
                   <div className="mt-4 flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <button onClick={prevQuestion} disabled={currentIndex===0} className="rounded-md border px-3 py-2">Prev</button>
-                      <button onClick={nextQuestion} disabled={currentIndex===questions.length-1} className="rounded-md border px-3 py-2">Next</button>
-                      <button onClick={() => toggleMark(questions[currentIndex].id)} className="rounded-md border px-3 py-2">{marked[questions[currentIndex].id] ? 'Unmark' : 'Mark for review'}</button>
+                      <button onClick={nextQuestion} disabled={currentIndex===questions.length-1} className="flex items-center gap-2 rounded-md border border-blue-300 px-3 py-2 text-sm font-semibold text-blue-700 transition hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-50">Save &amp; Next <ArrowRight size={15} /></button>
+                      <button onClick={() => toggleMark(questions[currentIndex].id)} className="flex items-center gap-2 rounded-md border px-3 py-2 text-sm"><Flag size={15} />{marked[questions[currentIndex].id] ? 'Unmark' : 'Mark for review'}</button>
                     </div>
 
                     <div className="flex items-center gap-2">
-                      <button onClick={() => setSubmitConfirmOpen(true)} className="btn-primary rounded-md bg-red-600 px-4 py-2 text-white">Submit Test</button>
+                      <button onClick={() => setSubmitConfirmOpen(true)} className="btn-primary flex items-center justify-center rounded-md bg-red-600 px-4 py-2 text-white"><Send size={15} /> Submit Test</button>
                       <button onClick={() => { if (confirm('Are you sure you want to abandon this test? Your answers will not be saved.')) navigate(-1); }} className="rounded-md border px-4 py-2">Cancel</button>
                     </div>
                   </div>
@@ -275,11 +342,11 @@ export default function ExamPlayer() {
                 {/* Question navigation palette (mobile inline) */}
                 <div className="mt-3">
                   <div className="text-sm text-slate-600 mb-2">Question Palette</div>
-                  <div className="grid grid-cols-8 gap-2">
+                  <div className="grid grid-cols-5 gap-2 sm:grid-cols-8">
                     {questions.map((q, i) => {
                       const answered = answers[q.id] !== undefined && answers[q.id] !== null;
                       const isMarked = marked[q.id];
-                      const cls = `w-10 h-10 flex items-center justify-center rounded ${i===currentIndex ? 'bg-blue-600 text-white' : answered ? 'bg-green-100 text-green-800' : isMarked ? 'bg-yellow-100 text-yellow-800' : 'bg-slate-100'}`;
+                      const cls = `flex h-9 w-9 items-center justify-center rounded text-sm ${i===currentIndex ? 'bg-blue-600 text-white' : answered ? 'bg-green-100 text-green-800' : isMarked ? 'bg-yellow-100 text-yellow-800' : 'bg-slate-100'}`;
                       return (
                         <button key={q.id} onClick={() => gotoQuestion(i)} className={cls} title={`Q ${i+1}${isMarked? ' (marked)':''}${answered? ' (answered)':''}`}>
                           {i+1}
@@ -293,58 +360,39 @@ export default function ExamPlayer() {
 
             {/* Result view with optional per-question feedback */}
             {submitted && result && (
-              <div className="mt-6 rounded-lg border border-slate-200 bg-white p-4">
-                <h3 className="text-lg font-bold text-blue-700">Result</h3>
-                <p className="mt-2">Score: <span className="font-mono font-semibold">{result.score}</span> / <span className="font-mono">{result.maxScore}</span></p>
-                <p className="mt-1">Total Questions: {result.total}</p>
+              <div className="rounded-2xl border border-slate-200 bg-white p-3 sm:p-5">
+                <div className="text-center"><h3 className="text-xl font-bold text-blue-700">Result Summary</h3><p className="mt-1 text-sm text-muted">{exam?.name}</p></div>
+                <div className="mt-4 flex overflow-x-auto rounded-xl border border-slate-200 bg-slate-50">
+                  {[{ id: "summary", label: "Summary", Icon: BarChart3 }, { id: "all", label: "All", Icon: ListChecks }, { id: "correct", label: "Correct", Icon: Check }, { id: "incorrect", label: "Incorrect", Icon: X }, { id: "unanswered", label: "Unanswered", Icon: CircleHelp }].map(({ id: tabId, label, Icon }) => <button key={tabId} type="button" onClick={() => setResultTab(tabId)} className={`flex min-w-[92px] flex-1 flex-col items-center gap-1 px-3 py-3 text-[10px] font-bold uppercase tracking-wide transition ${resultTab === tabId ? "bg-blue-600 text-white" : "text-slate-500 hover:bg-white"}`}><Icon size={16} />{label}</button>)}
+                </div>
 
-                {/** if detailed server feedback present show per-question breakdown */}
-                {result.details && Array.isArray(result.details) && (
-                  <div className="mt-4">
-                    <h4 className="font-medium">Detailed Feedback</h4>
-                    <div className="mt-2 space-y-3">
-                      {result.details.map((d, idx) => {
-                        const q = questions.find(q => String(q.id) === String(d.questionId)) || questions[idx];
-                        const userAns = d.givenAnswerIndex ?? answers[q.id];
-                        const correctAns = d.correctAnswerIndex ?? d.correctIndex ?? null;
-                        const earned = d.marksObtained ?? d.marksGot ?? (d.correct ? (q.marks||1) : 0);
-                        return (
-                          <div key={q.id} className="rounded-md border p-3">
-                            <div className="flex items-start justify-between">
-                              <div>
-                                <div className="text-sm font-semibold">Q {idx+1}. {q.text}</div>
-                                <div className="mt-2 text-sm">
-                                  <div>User Answer: <span className="font-mono">{typeof userAns === 'number' ? q.options[userAns] ?? `Option ${userAns}` : 'Not Answered'}</span></div>
-                                  <div>Correct Answer: <span className="font-mono">{typeof correctAns === 'number' ? q.options[correctAns] ?? `Option ${correctAns}` : 'Not Provided'}</span></div>
-                                  <div>Marks: <span className="font-mono">{earned}</span></div>
-                                </div>
-                              </div>
-                              <div className={`text-sm font-semibold ${d.correct ? 'text-green-600' : 'text-red-600'}`}>{d.correct ? 'Correct' : 'Incorrect'}</div>
-                            </div>
-                          </div>
-                        );
-                      })}
+                {resultTab === "summary" ? (
+                  <div className="mt-5">
+                    <h4 className="text-sm font-bold text-blue-700">Question Stats</h4>
+                    <div className="mt-3 grid gap-5 lg:grid-cols-2">
+                      <div className="space-y-3">
+                        {[[Trophy, "Total Score", `${result.score ?? 0} / ${result.maxScore ?? result.total ?? resultItems.length}`, "bg-gold"], [CircleHelp, "Rank", result.rank ?? "-", "bg-violet-600"], [Check, "Correct", resultCounts.correct, "bg-green-500"], [X, "Incorrect", resultCounts.incorrect, "bg-red-500"], [CircleMinus, "Unsolved", resultCounts.unanswered, "bg-slate-400"], [ListChecks, "Solved", resultItems.length - resultCounts.unanswered, "bg-orange-500"]].map(([Icon, label, value, color]) => <div key={label} className="flex items-center gap-3"><div className={`flex h-10 w-10 items-center justify-center rounded-full text-white ${color}`}><Icon size={20} /></div><span className="text-sm text-muted">{label}:</span><strong className="text-navy">{value}</strong></div>)}
+                      </div>
+                      <div className="flex min-h-[210px] items-end justify-center gap-5 rounded-xl bg-slate-50 p-5">
+                        {[["Correct", resultCounts.correct, "bg-green-500"], ["Incorrect", resultCounts.incorrect, "bg-red-500"], ["Unanswered", resultCounts.unanswered, "bg-blue-500"]].map(([label, value, color]) => <div key={label} className="flex h-full flex-1 flex-col items-center justify-end gap-2"><span className="text-xs font-bold text-navy">{value}</span><div className={`w-full max-w-16 rounded-t-md ${color}`} style={{ height: `${Math.max(10, (value / Math.max(resultItems.length, 1)) * 150)}px` }} /><span className="text-center text-[10px] text-muted">{label}</span></div>)}
+                      </div>
                     </div>
                   </div>
+                ) : (
+                  <div className="mt-5 space-y-3">
+                    <h4 className="text-sm font-bold text-blue-700">{resultTab === "all" ? "All Questions" : `${resultTab[0].toUpperCase()}${resultTab.slice(1)} Questions`} ({resultTab === "all" ? resultItems.length : resultItems.filter((item) => item.status.toLowerCase() === resultTab).length})</h4>
+                    {resultItems.filter((item) => resultTab === "all" || item.status.toLowerCase() === resultTab).map((item, index) => <div key={item.id} className="rounded-xl border border-slate-200 p-3"><div className="flex items-start justify-between gap-3"><div className="text-sm font-semibold text-navy">Q{index + 1}. {item.text}</div><span className={`shrink-0 rounded-full px-2 py-1 text-[10px] font-bold ${item.status === "CORRECT" ? "bg-green-50 text-green-700" : item.status === "INCORRECT" ? "bg-red-50 text-red-700" : "bg-slate-100 text-slate-600"}`}>{item.status}</span></div><div className="mt-2 grid gap-1 text-xs text-muted sm:grid-cols-2"><span>Your Answer: <strong className="text-navy">{item.selectedAnswer ?? "Not Answered"}</strong></span><span>Correct Answer: <strong className="text-green-700">{item.correctAnswer ?? "Not Provided"}</strong></span></div>{item.markedForReview && <span className="mt-2 inline-block rounded-full bg-amber-50 px-2 py-1 text-[10px] font-semibold text-amber-700">Marked for review</span>}</div>)}
+                  </div>
                 )}
-
-                <div className="mt-4 flex gap-2">
-                  <button onClick={() => navigate('/sankalp/test-series')} className="rounded-md border px-3 py-2">Back to Series</button>
-                  <button
-                    onClick={() => navigate('/student/profile', { state: { tab: 'result', submittedAttempt: result } })}
-                    className="rounded-md bg-blue-600 px-3 py-2 text-white"
-                  >
-                    View in My Result
-                  </button>
-                </div>
+                <div className="mt-5 flex flex-col gap-2 sm:flex-row"><button onClick={() => navigate('/sankalp/test-series')} className="rounded-lg border px-3 py-2 text-sm">Back to Series</button><button onClick={() => navigate('/student/profile', { state: { tab: 'result', submittedAttempt: result } })} className="rounded-lg bg-blue-600 px-3 py-2 text-sm font-semibold text-white">View in My Result</button></div>
               </div>
             )}
 
           </div>
 
           {/* Aside with exam details and palette (desktop) */}
-          <aside className="order-first md:order-last">
-            <div className="sticky top-20 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+          <aside className="order-first lg:order-last">
+            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-[0_8px_24px_rgba(15,35,82,0.07)] lg:sticky lg:top-20">
               <h4 className="text-sm font-bold text-slate-700">Exam Details</h4>
               <dl className="mt-3 space-y-2 text-sm text-slate-600">
                 <div><dt className="font-medium">Name</dt><dd>{exam?.name}</dd></div>
@@ -360,11 +408,11 @@ export default function ExamPlayer() {
               {!submitted && (
                 <div className="mt-4">
                   <div className="text-sm text-slate-600 mb-2">Palette</div>
-                  <div className="grid grid-cols-4 gap-2">
+                  <div className="grid grid-cols-6 gap-2 sm:grid-cols-8 lg:grid-cols-4">
                     {questions.map((q, i) => {
                       const answered = answers[q.id] !== undefined && answers[q.id] !== null;
                       const isMarked = marked[q.id];
-                      const cls = `w-10 h-10 flex items-center justify-center rounded ${i===currentIndex ? 'bg-blue-600 text-white' : answered ? 'bg-green-100 text-green-800' : isMarked ? 'bg-yellow-100 text-yellow-800' : 'bg-slate-100'}`;
+                      const cls = `flex h-9 w-9 items-center justify-center rounded text-sm ${i===currentIndex ? 'bg-blue-600 text-white' : answered ? 'bg-green-100 text-green-800' : isMarked ? 'bg-yellow-100 text-yellow-800' : 'bg-slate-100'}`;
                       return (
                         <button key={q.id} onClick={() => gotoQuestion(i)} className={cls} title={`Q ${i+1}${isMarked? ' (marked)':''}${answered? ' (answered)':''}`}>
                           {i+1}

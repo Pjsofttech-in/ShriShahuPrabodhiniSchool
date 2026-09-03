@@ -104,14 +104,28 @@ export default function StudentDashboard({ defaultTab = "profile" }) {
       if (!student) return;
       setLoadingResults(true);
       try {
-        const sid = student.id ?? student.studentId ?? user?.studentId ?? user?.id;
-        const list = await fetchStudentResults(sid, student);
-        const loadedResults = Array.isArray(list) ? list : [];
-        if (submittedAttempt?.attemptId && !loadedResults.some((item) => String(item.attemptId ?? item.id) === String(submittedAttempt.attemptId))) {
-          setResults([submittedAttempt, ...loadedResults]);
-        } else {
-          setResults(loadedResults);
-        }
+        const studentIds = [...new Set([
+          student.id,
+          student.studentId,
+          student.userId,
+          student.user?.id,
+          user?.studentId,
+          user?.userId,
+          user?.id,
+        ].filter(Boolean).map(String))];
+        const resultLists = await Promise.all(studentIds.map((studentId) => fetchStudentResults(studentId, student)));
+        const loadedResults = resultLists.flatMap((list) => Array.isArray(list) ? list : []).filter((item, index, list) => {
+          const itemId = item.attemptId ?? item.id ?? item.resultId ?? item.attempt_id;
+          if (!itemId) return true;
+          return list.findIndex((candidate) => String(candidate.attemptId ?? candidate.id ?? candidate.resultId ?? candidate.attempt_id) === String(itemId)) === index;
+        });
+        if (submittedAttempt?.attemptId) {
+          const submittedKey = String(submittedAttempt.attemptId);
+          const mergedResults = loadedResults.some((item) => String(item.attemptId ?? item.id) === submittedKey)
+            ? loadedResults.map((item) => String(item.attemptId ?? item.id) === submittedKey ? { ...item, ...submittedAttempt } : item)
+            : [submittedAttempt, ...loadedResults];
+          setResults(mergedResults);
+        } else setResults(loadedResults);
       } catch (err) {
         console.warn('Could not load student results', err);
         setResults([]);
@@ -221,16 +235,27 @@ export default function StudentDashboard({ defaultTab = "profile" }) {
               {results.map((r) => {
                 // Try to canonicalize fields from common server shapes
                 const attemptId = r.attemptId ?? r.id ?? r.resultId ?? r.attempt_id ?? r.attemptId;
-                const examName = r.examName ?? r.exam_name ?? r.exam?.name ?? r.examTitle ?? r.title ?? "Exam";
-                const obtained = r.obtainedMarks ?? r.obtained_marks ?? r.marks ?? r.score ?? r.obtained ?? null;
-                const total = r.totalMarks ?? r.total_marks ?? r.total ?? r.maxMarks ?? null;
+                const examName = r.examName ?? r.exam_name ?? r.exam?.examName ?? r.exam?.name ?? r.examTitle ?? r.testSeries?.title ?? r.testSeries?.name ?? r.title ?? "Exam";
+                const resultData = r.result ?? r;
+                const obtained = resultData.obtainedMarks ?? resultData.obtained_marks ?? resultData.marks ?? resultData.score ?? resultData.obtained ?? null;
+                const total = resultData.totalMarks ?? resultData.total_marks ?? resultData.total ?? resultData.maxMarks ?? null;
                 const startedAt = r.startedAt ?? r.started_at ?? r.createdAt ?? r.created_at ?? r.attemptedAt ?? null;
+                const attemptedCount = r.attemptedCount ?? r.attemptedQuestions ?? r.answeredCount ?? null;
+                const unattemptedCount = r.unattemptedCount ?? r.unattemptedQuestions ?? r.unansweredCount ?? null;
+                const reviewedCount = r.reviewedCount ?? r.markedCount ?? r.markedForReviewCount ?? null;
 
                 return (
-                  <div key={String(attemptId || Math.random())} className="p-3 border rounded-md flex items-center justify-between">
+                  <div key={String(attemptId || Math.random())} className="flex flex-col gap-3 rounded-xl border border-slate-200 p-4 sm:flex-row sm:items-center sm:justify-between">
                     <div>
-                      <div className="font-semibold">{examName}</div>
+                      <div className="font-semibold text-navy">{examName}</div>
                       <div className="text-xs text-muted">Attempt: {attemptId ?? "—"} • {startedAt ? new Date(startedAt).toLocaleString() : "—"}</div>
+                      {(attemptedCount !== null || unattemptedCount !== null || reviewedCount !== null) && (
+                        <div className="mt-2 flex flex-wrap gap-2 text-[10px] font-semibold">
+                          {attemptedCount !== null && <span className="rounded-full bg-green-50 px-2 py-1 text-green-700">Attempted: {attemptedCount}</span>}
+                          {unattemptedCount !== null && <span className="rounded-full bg-slate-100 px-2 py-1 text-slate-600">Not attempted: {unattemptedCount}</span>}
+                          {reviewedCount !== null && <span className="rounded-full bg-amber-50 px-2 py-1 text-amber-700">Review: {reviewedCount}</span>}
+                        </div>
+                      )}
                     </div>
                     <div className="text-right">
                       <div className="font-bold">{obtained ?? "—"}{total ? ` / ${total}` : ""}</div>
@@ -246,25 +271,28 @@ export default function StudentDashboard({ defaultTab = "profile" }) {
 
           {/* Attempt Modal */}
           {showAttemptModal && selectedAttempt && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-              <div className="bg-white rounded-lg w-[90%] max-w-4xl max-h-[90vh] overflow-auto p-6">
-                <div className="flex justify-between items-start">
+            <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-navy-dark/60 p-3 backdrop-blur-sm sm:p-6">
+              <div className="flex max-h-[calc(100dvh-1.5rem)] w-full max-w-4xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl sm:max-h-[calc(100dvh-3rem)]">
+                <div className="sticky top-0 z-10 flex shrink-0 items-start justify-between border-b border-slate-100 bg-white px-4 py-4 sm:px-6">
                   <div>
-                    <h4 className="font-bold text-lg">{selectedAttempt.examName ?? selectedAttempt.exam_name ?? selectedAttempt.exam?.name ?? 'Exam Attempt'}</h4>
-                    <p className="text-sm text-muted">Attempt ID: {selectedAttempt.attemptId ?? selectedAttempt.id ?? selectedAttempt.resultId ?? '—'}</p>
+                    <h4 className="text-base font-bold text-navy sm:text-lg">{selectedAttempt.examName ?? selectedAttempt.exam_name ?? selectedAttempt.exam?.name ?? 'Exam Attempt'}</h4>
+                    <p className="mt-1 text-xs text-muted sm:text-sm">Attempt ID: {selectedAttempt.attemptId ?? selectedAttempt.id ?? selectedAttempt.resultId ?? '—'}</p>
                   </div>
                   <div className="flex items-center gap-2">
-                    <button className="btn" onClick={() => setShowAttemptModal(false)}>Close</button>
+                    <button className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-muted transition hover:border-navy hover:text-navy sm:text-sm" onClick={() => setShowAttemptModal(false)}>Close</button>
                   </div>
                 </div>
 
-                <div className="mt-4 space-y-4">
+                <div className="min-h-0 overflow-y-auto px-4 py-4 sm:px-6 sm:py-5">
                   {(() => {
                     const result = selectedAttempt.result ?? selectedAttempt;
                     const score = result.obtainedMarks ?? result.obtained_marks ?? result.score ?? result.marks ?? result.totalMarksObtained;
                     const totalMarks = result.maxScore ?? result.totalMarks ?? result.total_marks ?? result.maxMarks ?? result.total;
                     const percentage = result.percentage ?? result.percent ?? (score != null && totalMarks ? ((Number(score) / Number(totalMarks)) * 100).toFixed(2) : null);
                     const status = result.status ?? result.resultStatus ?? result.result ?? null;
+                    const attemptedCount = result.attemptedCount ?? result.attemptedQuestions ?? result.answeredCount ?? null;
+                    const unattemptedCount = result.unattemptedCount ?? result.unattemptedQuestions ?? result.unansweredCount ?? null;
+                    const reviewedCount = result.reviewedCount ?? result.markedCount ?? result.markedForReviewCount ?? null;
                     const submittedAt = result.submittedAt ?? result.submitted_at ?? null;
                     const startedAt = result.startedAt ?? result.started_at ?? null;
 
@@ -276,6 +304,9 @@ export default function StudentDashboard({ defaultTab = "profile" }) {
                         <Row label="Started" value={startedAt ? new Date(startedAt).toLocaleString() : "—"} />
                         <Row label="Submitted" value={submittedAt ? new Date(submittedAt).toLocaleString() : "—"} />
                         <Row label="Total Questions" value={result.totalQuestions ?? result.total ?? "—"} />
+                        <Row label="Attempted" value={attemptedCount ?? "—"} />
+                        <Row label="Not Attempted" value={unattemptedCount ?? "—"} />
+                        <Row label="Marked for Review" value={reviewedCount ?? "—"} />
                       </dl>
                     );
                   })()}
@@ -296,15 +327,25 @@ export default function StudentDashboard({ defaultTab = "profile" }) {
                       const options = q.options ?? q.optionList ?? questionData?.options ?? (questionData ? [questionData.optionA, questionData.optionB, questionData.optionC, questionData.optionD].filter(Boolean) : null);
                       const selected = q.selectedAnswer ?? q.selected_answer ?? q.answerText ?? (typeof q.answerIndex !== 'undefined' && Array.isArray(options) ? options[q.answerIndex] : (q.answer ?? null));
                       const selectedIndex = (typeof q.answerIndex !== 'undefined') ? q.answerIndex : (q.selectedIndex ?? q.selected_index ?? q.selectedOption ?? null);
-                      const correct = q.correctAnswer ?? q.correct_answer ?? q.correctOption ?? q.correct ?? questionData?.correctAnswer ?? questionData?.correct_answer ?? null;
+                      const rawCorrect = q.correctAnswer ?? q.correct_answer ?? q.correctOption ?? q.correct_option ?? q.correct ?? questionData?.correctAnswer ?? questionData?.correct_answer ?? null;
+                      const correctIndex = q.correctIndex ?? q.correct_index ?? q.correctAnswerIndex ?? q.correct_answer_index ?? questionData?.correctIndex ?? null;
+                      const correct = correctIndex !== null && correctIndex !== undefined && Array.isArray(options) ? options[Number(correctIndex)] : rawCorrect;
                       const marksObtained = q.marksObtained ?? q.marks_obtained ?? q.marksObt ?? q.marks_obt ?? q.marks ?? null;
                       const marksTotal = q.marks ?? q.totalMarks ?? q.total_marks ?? null;
                       const explanation = q.answerExplanation ?? q.answer_explanation ?? q.explanation ?? q.question?.answerExplanation ?? null;
+                      const questionStatus = q.status ?? (selected !== null && selected !== undefined ? "ATTEMPTED" : "UNATTEMPTED");
+                      const markedForReview = Boolean(q.markedForReview ?? q.marked_for_review ?? q.isMarked ?? q.reviewed);
 
                       return (
                         <div key={String(qId || idx)} className="p-3 border rounded-md">
                           <div className="flex justify-between">
-                            <div className="font-semibold">{`Q${idx + 1}. `}{text}</div>
+                            <div>
+                              <div className="font-semibold">{`Q${idx + 1}. `}{text}</div>
+                              <div className="mt-2 flex flex-wrap gap-2 text-[10px] font-semibold">
+                                <span className={`rounded-full px-2 py-1 ${questionStatus === "ATTEMPTED" ? "bg-green-50 text-green-700" : "bg-slate-100 text-slate-600"}`}>{questionStatus}</span>
+                                {markedForReview && <span className="rounded-full bg-amber-50 px-2 py-1 text-amber-700">MARKED FOR REVIEW</span>}
+                              </div>
+                            </div>
                             <div className="text-sm text-muted">Marks: {marksObtained ?? '—'}{marksTotal ? ` / ${marksTotal}` : ''}</div>
                           </div>
 

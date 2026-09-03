@@ -69,6 +69,7 @@ function priceLabel(series) {
 
 function featureList(series) {
   const features = [
+    ...(Array.isArray(series?.features) ? series.features : []),
     series?.featureOne,
     series?.featureTwo,
     series?.featureThree,
