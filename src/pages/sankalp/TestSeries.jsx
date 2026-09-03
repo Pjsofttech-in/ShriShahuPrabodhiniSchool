@@ -165,29 +165,30 @@ export default function TestSeries() {
                     key={item.id}
                     className="group flex h-full flex-col overflow-hidden rounded-[26px] border border-[#ffd8b5] bg-white shadow-[0_14px_32px_rgba(15,35,82,0.08)] transition duration-300 hover:-translate-y-1 hover:border-[#ff9a4d] hover:shadow-[0_18px_40px_rgba(255,109,0,0.16)]"
                   >
-                    <div className="relative overflow-hidden border-b border-[#ffead8] bg-[radial-gradient(circle_at_top,_rgba(255,237,213,0.9),_transparent_34%),linear-gradient(135deg,#fff7ed_0%,#ffffff_58%,#fffaf5_100%)] p-4">
-                      <div className="mb-3 flex items-center justify-between">
-                        <span className="inline-flex items-center gap-1.5 rounded-full border border-[#ffb36b] bg-[#fff0e3] px-2.5 py-1 text-[9px] font-bold uppercase tracking-[0.18em] text-[#9a3412]">
-                          <Sparkles size={10} className="text-[#ed6a00]" />
-                          LIVE
-                        </span>
-                        <button type="button" className="rounded-full bg-[#fff0e3] p-1.5 text-[#c2410c] transition hover:bg-[#ffdfc2]" aria-label={`Share ${safeTitle}`}>
-                          <Share2 size={14} />
-                        </button>
-                      </div>
-
-                      <div className="flex items-start gap-3">
-                        <div className="relative h-28 w-28 shrink-0 overflow-hidden rounded-xl border border-white/15 bg-white/5 shadow-inner">
-                          <SeriesImage src={item.image} alt={safeTitle} className="object-cover" />
-                        </div>
-
-                        <div className="min-w-0 flex-1 text-white">
-                          <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[#c2410c]">{badge}</p>
-                          <h2 className="mt-2 line-clamp-3 text-[1.08rem] font-black leading-[1.25] text-[#4a2416]">{safeTitle}</h2>
+                    <div className="relative overflow-hidden border-b border-[#ffead8] bg-[radial-gradient(circle_at_top,_rgba(255,237,213,0.9),_transparent_34%),linear-gradient(135deg,#fff7ed_0%,#ffffff_58%,#fffaf5_100%)]">
+                      <div className="relative aspect-[16/9] overflow-hidden bg-navy-dark">
+                        <SeriesImage src={item.image} alt={safeTitle} className="object-cover" />
+                        <div className="absolute inset-x-0 top-0 flex items-center justify-between bg-gradient-to-b from-navy-dark/75 to-transparent p-3">
+                          <span className="inline-flex items-center gap-1.5 rounded-full border border-white/30 bg-gold px-2.5 py-1 text-[9px] font-bold uppercase tracking-[0.18em] text-white shadow-sm">
+                            <Sparkles size={10} />
+                            LIVE
+                          </span>
+                          <button type="button" className="rounded-full border border-white/30 bg-navy-dark/55 p-1.5 text-white transition hover:bg-gold" aria-label={`Share ${safeTitle}`}>
+                            <Share2 size={14} />
+                          </button>
                         </div>
                       </div>
 
-                      <div className="mt-4 space-y-2 text-[11px] text-[#70402b]">
+                      <div className="p-4">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0 flex-1">
+                            <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-gold-dark">{badge}</p>
+                            <h2 className="mt-1 line-clamp-2 text-[1.05rem] font-black leading-[1.25] text-navy">{safeTitle}</h2>
+                          </div>
+                          <span className="shrink-0 rounded-full bg-gold px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.06em] text-white shadow-sm">{badge}</span>
+                        </div>
+                      </div>
+                      <div className="space-y-2 px-4 pb-4 text-[11px] text-[#70402b]">
                         {features.map((feature) => (
                           <div key={feature} className="flex items-center gap-2">
                             <span className="h-1.5 w-1.5 rounded-full bg-[#ff8a1f]" />
