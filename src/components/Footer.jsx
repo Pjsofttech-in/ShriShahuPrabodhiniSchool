@@ -50,7 +50,7 @@ export default function Footer() {
 
               <div>
                 <h3 className="font-display text-lg font-bold leading-tight text-white">Shri Shahu Prabodhini</h3>
-                <p className="text-sm text-gold">SANKALP EXAM</p>
+                <p className="text-sm text-gold">SANKALP FOUNDATION</p>
               </div>
             </div>
 
