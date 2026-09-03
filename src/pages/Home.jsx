@@ -520,14 +520,31 @@ export default function Home() {
             <SectionHeading eyebrow="Get In Touch" title="Contact Us" desc="Have a question about admissions, centers or results? Send us a message." />
             <ContactMiniForm />
           </div>
-          <div className="aspect-[4/3] min-h-[260px] overflow-hidden rounded-xl border border-black/5 shadow-lg sm:min-h-[320px] md:aspect-auto md:h-[520px]">
-            <iframe
-              title="School location map"
-              src={getMapEmbedUrl(contactInfo?.mapLink)}
-              className="h-full w-full border-0"
-              loading="lazy"
-              referrerPolicy="no-referrer-when-downgrade"
-            />
+          <div className="overflow-hidden rounded-xl bg-navy shadow-lg">
+            <div className="flex items-start justify-between gap-4 border-b border-white/10 px-5 py-4 text-white sm:px-6">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-[0.18em] text-gold">Find Us</p>
+                <h2 className="mt-1 text-xl font-bold sm:text-2xl">{contactInfo?.address || "Swargate, Pune"}</h2>
+              </div>
+              <MapPin className="mt-1 shrink-0 text-gold" size={24} />
+            </div>
+            <div className="aspect-[4/3] min-h-[260px] w-full sm:min-h-[320px] md:aspect-auto md:h-[420px]">
+              <iframe
+                title={`School location map - ${contactInfo?.address || "Swargate, Pune"}`}
+                src={getMapEmbedUrl(contactInfo?.mapLink)}
+                className="h-full w-full border-0"
+                loading="lazy"
+                referrerPolicy="no-referrer-when-downgrade"
+              />
+            </div>
+            <a
+              href={contactInfo?.mapLink || "https://www.google.com/maps/search/?api=1&query=Swargate%2C%20Pune"}
+              target="_blank"
+              rel="noreferrer"
+              className="flex min-h-12 items-center justify-center border-t border-white/10 px-4 py-3 text-center text-sm font-semibold text-white transition hover:bg-[#263238] hover:text-gold"
+            >
+              Open in Google Maps <MapPin size={16} className="ml-2 shrink-0 text-gold" />
+            </a>
           </div>
         </div>
       </section>
