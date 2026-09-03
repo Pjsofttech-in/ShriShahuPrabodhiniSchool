@@ -3,6 +3,7 @@ import { Outlet, useLocation } from "react-router-dom";
 import { useEffect } from "react";
 import Navbar from "./Navbar.jsx";
 import Footer from "./Footer.jsx";
+import FloatingActions from "./FloatingActions.jsx";
 
 export default function Layout() {
   const location = useLocation();
@@ -43,6 +44,7 @@ export default function Layout() {
         <Outlet />
       </main>
       {location.pathname !== "/login" && <Footer />}
+      <FloatingActions />
     </div>
   );
 }
