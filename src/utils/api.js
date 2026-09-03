@@ -6,8 +6,8 @@ const STATIC_ADMIN_TOKEN = import.meta.env.VITE_ADMIN_TOKEN || "";
 
 // Admin credentials for fetching live token
 const ADMIN_CREDENTIALS = {
-  email: "admin@gmail.com",
-  password: "Admin@123"
+  username: import.meta.env.VITE_ADMIN_USERNAME || "",
+  password: import.meta.env.VITE_ADMIN_PASSWORD || "",
 };
 
 // Token caching
@@ -65,10 +65,10 @@ async function fetchFreshAdminToken() {
       });
       
       // Fallback to static token if available
-      if (STATIC_ADMIN_TOKEN) {
+      if (STATIC_ADMIN_TOKEN && isTokenValid(STATIC_ADMIN_TOKEN, getTokenExpiration(STATIC_ADMIN_TOKEN))) {
         cachedAdminToken = STATIC_ADMIN_TOKEN;
         adminTokenExpiresAt = getTokenExpiration(STATIC_ADMIN_TOKEN);
-        console.log("⚠️ Using fallback static token from .env");
+        console.log("⚠️ Using valid fallback token from .env");
         return cachedAdminToken;
       }
       throw error;
@@ -109,7 +109,11 @@ function isPublicRequest(config) {
   if (method === "post" && url.includes("/auth/") && url.includes("/login")) {
     return true;
   }
-  
+
+  if (method === "post" && url.includes("/createContactForm")) {
+    return true;
+  }
+
   return false;
 }
 
@@ -124,7 +128,6 @@ api.interceptors.request.use(async (config) => {
   
   let tokenToUse = token;
   
-  // For ebook endpoints: fetch fresh token from live backend if user not logged in
   if (isEbookEndpoint && !token) {
     try {
       tokenToUse = await getAdminToken();
@@ -135,7 +138,9 @@ api.interceptors.request.use(async (config) => {
   }
   
   try {
-    if (tokenToUse && !isPublic) {
+    if (isPublic) {
+      delete config.headers?.Authorization;
+    } else if (tokenToUse) {
       config.headers = config.headers || {};
       config.headers.Authorization = `Bearer ${tokenToUse}`;
       console.log("✅ Token ADDED", {

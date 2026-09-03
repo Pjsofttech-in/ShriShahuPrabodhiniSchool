@@ -10,7 +10,7 @@ import {
 } from "../data/siteData.js";
 import {
   fetchCourses, fetchFaculties, fetchGallery, fetchTestimonials,
-  fetchToppers, fetchHeroSections,
+  fetchToppers, fetchHeroSections, fetchContactInfo, submitContactForm,
 } from "../services/backendService.js";
 import { API_BASE_URL } from "../utils/api.js";
 
@@ -95,18 +95,25 @@ function resolveImageUrl(image) {
   return `${API_BASE_URL.replace(/\/+$/, "")}/${String(image).replace(/^\/+/, "")}`;
 }
 
+function getMapEmbedUrl(mapLink) {
+  const value = String(mapLink || "").trim();
+  if (/^(https?:\/\/)?(www\.)?openstreetmap\.org\/export\/embed/i.test(value)) return value;
+  if (/google\.com\/maps\/embed/i.test(value)) return value;
+  return "https://www.openstreetmap.org/export/embed.html?bbox=73.855%2C18.493%2C73.885%2C18.525&layer=mapnik&marker=18.509%2C73.870";
+}
+
 function MissingImage({ className = "" }) {
   return <div className={`flex h-full min-h-24 flex-col items-center justify-center gap-2 bg-navy-light text-white/70 ${className}`}><ImageOff className="text-gold" size={28} /><span className="text-xs">Image not available</span></div>;
 }
 
 export default function Home() {
-  const [liveData, setLiveData] = React.useState({ heroSections: [], courses: [], toppers: [], gallery: [], faculties: [], testimonials: [] });
+  const [liveData, setLiveData] = React.useState({ heroSections: [], courses: [], toppers: [], gallery: [], faculties: [], testimonials: [], contactInfo: null });
 
   React.useEffect(() => {
     let active = true;
-    Promise.allSettled([fetchHeroSections(), fetchCourses(), fetchToppers(), fetchGallery(), fetchFaculties(), fetchTestimonials()]).then((results) => {
+    Promise.allSettled([fetchHeroSections(), fetchCourses(), fetchToppers(), fetchGallery(), fetchFaculties(), fetchTestimonials(), fetchContactInfo()]).then((results) => {
       if (!active) return;
-      const [heroResult, coursesResult, toppersResult, galleryResult, facultiesResult, testimonialsResult] = results;
+      const [heroResult, coursesResult, toppersResult, galleryResult, facultiesResult, testimonialsResult, contactResult] = results;
       setLiveData({
         heroSections: heroResult.status === "fulfilled" ? heroResult.value : [],
         courses: coursesResult.status === "fulfilled" ? coursesResult.value : [],
@@ -114,12 +121,13 @@ export default function Home() {
         gallery: galleryResult.status === "fulfilled" ? galleryResult.value : [],
         faculties: facultiesResult.status === "fulfilled" ? facultiesResult.value : [],
         testimonials: testimonialsResult.status === "fulfilled" ? testimonialsResult.value : [],
+        contactInfo: contactResult.status === "fulfilled" ? contactResult.value : null,
       });
     });
     return () => { active = false; };
   }, []);
 
-  const { heroSections, courses, toppers, gallery, faculties, testimonials } = liveData;
+  const { heroSections, courses, toppers, gallery, faculties, testimonials, contactInfo } = liveData;
   const heroSlides = heroSections
     .sort((first, second) => first.priority - second.priority);
 
@@ -512,12 +520,13 @@ export default function Home() {
             <SectionHeading eyebrow="Get In Touch" title="Contact Us" desc="Have a question about admissions, centers or results? Send us a message." />
             <ContactMiniForm />
           </div>
-          <div className="rounded-xl overflow-hidden shadow-lg border border-black/5 min-h-[360px]">
+          <div className="aspect-[4/3] min-h-[260px] overflow-hidden rounded-xl border border-black/5 shadow-lg sm:min-h-[320px] md:aspect-auto md:h-[520px]">
             <iframe
               title="School location map"
-              src={schoolInfo.mapEmbed}
-              className="w-full h-full min-h-[360px]"
+              src={getMapEmbedUrl(contactInfo?.mapLink)}
+              className="h-full w-full border-0"
               loading="lazy"
+              referrerPolicy="no-referrer-when-downgrade"
             />
           </div>
         </div>
@@ -527,10 +536,44 @@ export default function Home() {
 }
 
 function ContactMiniForm() {
+  const [form, setForm] = useState({
+    name: "",
+    mobileNo: "",
+    email: "",
+    course: "",
+    subject: "Home contact enquiry",
+    academicYear: "",
+    description: "",
+  });
   const [sent, setSent] = useState(false);
-  function submit(e) {
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
+
+  function updateField(e) {
+    setForm((current) => ({ ...current, [e.target.name]: e.target.value }));
+    setError("");
+  }
+
+  async function submit(e) {
     e.preventDefault();
-    setSent(true);
+    if (!/^\d{10}$/.test(form.mobileNo)) {
+      setError("Mobile number must be exactly 10 digits.");
+      return;
+    }
+    setSubmitting(true);
+    setError("");
+    try {
+      await submitContactForm(form);
+      setSent(true);
+    } catch (submitError) {
+      setError(
+        submitError?.response?.data?.message ||
+        submitError?.response?.data?.error ||
+        "Unable to send your message right now. Please try again."
+      );
+    } finally {
+      setSubmitting(false);
+    }
   }
   if (sent) {
     return (
@@ -540,26 +583,41 @@ function ContactMiniForm() {
     );
   }
   return (
-    <form onSubmit={submit} className="card p-6 space-y-4">
+    <form onSubmit={submit} className="card space-y-4 p-6">
       <div className="grid sm:grid-cols-2 gap-4">
         <div>
-          <label className="label-field">Full Name</label>
-          <input required className="input-field" placeholder="Your name" />
+          <label className="label-field" htmlFor="home-contact-name">Full Name</label>
+          <input id="home-contact-name" name="name" value={form.name} onChange={updateField} required className="input-field" placeholder="Your name" />
         </div>
         <div>
-          <label className="label-field">Mobile No.</label>
-          <input required className="input-field" placeholder="10-digit mobile" />
+          <label className="label-field" htmlFor="home-contact-mobile">Mobile No.</label>
+          <input id="home-contact-mobile" name="mobileNo" value={form.mobileNo} onChange={updateField} required pattern="[0-9]{10}" maxLength="10" inputMode="numeric" className="input-field" placeholder="10-digit mobile" />
         </div>
       </div>
       <div>
-        <label className="label-field">Email</label>
-        <input type="email" className="input-field" placeholder="you@example.com" />
+        <label className="label-field" htmlFor="home-contact-email">Email</label>
+        <input id="home-contact-email" name="email" value={form.email} onChange={updateField} type="email" className="input-field" placeholder="you@example.com" />
+      </div>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div>
+          <label className="label-field" htmlFor="home-contact-academic-year">Academic Year</label>
+          <input id="home-contact-academic-year" name="academicYear" value={form.academicYear} onChange={updateField} className="input-field" placeholder="e.g. 2026-27" />
+        </div>
+        <div>
+          <label className="label-field" htmlFor="home-contact-course">Course</label>
+          <input id="home-contact-course" name="course" value={form.course} onChange={updateField} className="input-field" placeholder="Class or course" />
+        </div>
       </div>
       <div>
-        <label className="label-field">Message</label>
-        <textarea required rows={4} className="input-field" placeholder="How can we help?" />
+        <label className="label-field" htmlFor="home-contact-subject">Subject</label>
+        <input id="home-contact-subject" name="subject" value={form.subject} onChange={updateField} className="input-field" placeholder="What is your question about?" />
       </div>
-      <button className="btn-primary w-full justify-center">Send Message</button>
+      <div>
+        <label className="label-field" htmlFor="home-contact-description">Message</label>
+        <textarea id="home-contact-description" name="description" value={form.description} onChange={updateField} required rows={4} className="input-field" placeholder="How can we help?" />
+      </div>
+      {error && <p className="text-sm font-semibold text-maroon" role="alert">{error}</p>}
+      <button type="submit" disabled={submitting} className="btn-primary w-full justify-center disabled:cursor-not-allowed disabled:opacity-60">{submitting ? "Sending..." : "Send Message"}</button>
     </form>
   );
 }
