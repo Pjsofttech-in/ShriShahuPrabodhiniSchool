@@ -46,7 +46,16 @@ async function fetchFreshAdminToken() {
         timeout: 10000
       });
       
-      const token = response?.data?.token || response?.data?.accessToken || response?.data?.data?.token;
+      const token = response?.data?.token ||
+        response?.data?.accessToken ||
+        response?.data?.access_token ||
+        response?.data?.jwt ||
+        response?.data?.data?.token ||
+        response?.data?.data?.accessToken ||
+        response?.data?.data?.access_token ||
+        response?.data?.result?.token ||
+        response?.data?.result?.accessToken ||
+        response?.headers?.authorization;
       
       if (token) {
         cachedAdminToken = String(token).replace(/^Bearer\s+/i, "").trim();
@@ -98,7 +107,9 @@ const api = axios.create({
 
 function getAuthToken() {
   const sessionToken = sessionStorage.getItem("ssp_token");
-  return sessionToken ? sessionToken.replace(/^Bearer\s+/i, "").trim() : "";
+  const localToken = localStorage.getItem("ssp_token");
+  const token = sessionToken || localToken;
+  return token ? token.replace(/^Bearer\s+/i, "").trim() : "";
 }
 
 function isPublicRequest(config) {
@@ -110,11 +121,11 @@ function isPublicRequest(config) {
     return true;
   }
 
-  if (method === "post" && url.includes("/createContactForm")) {
-    return true;
-  }
-
   return false;
+}
+
+function isEbookEndpoint(url = "") {
+  return url.includes("/vmMaterial") || url.includes("/vmCategory") || url.includes("/vmSubCategory");
 }
 
 api.interceptors.request.use(async (config) => {
@@ -124,14 +135,14 @@ api.interceptors.request.use(async (config) => {
 
   const token = getAuthToken();
   const isPublic = isPublicRequest(config);
-  const isEbookEndpoint = config.url?.includes("/vmMaterial") || config.url?.includes("/vmCategory") || config.url?.includes("/vmSubCategory");
+  const isAdminEndpoint = isEbookEndpoint(config.url) || config.url?.includes("/createContactForm");
   
   let tokenToUse = token;
   
-  if (isEbookEndpoint && !token) {
+  if (isAdminEndpoint && !token) {
     try {
       tokenToUse = await getAdminToken();
-      console.log("✅ Using fresh admin token from live backend for ebook request");
+      console.log("✅ Using fresh admin token from live backend");
     } catch (error) {
       console.error("❌ Could not fetch admin token:", error.message);
     }
@@ -144,7 +155,7 @@ api.interceptors.request.use(async (config) => {
       config.headers = config.headers || {};
       config.headers.Authorization = `Bearer ${tokenToUse}`;
       console.log("✅ Token ADDED", {
-        type: isEbookEndpoint ? "ebook" : "protected",
+        type: isAdminEndpoint ? "admin" : "protected",
         source: token ? "user-token" : "admin-token",
         url: config.url
       });
