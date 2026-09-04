@@ -6,6 +6,7 @@ import {
   BadgeCheck, Medal, Trophy, LoaderCircle,
 } from "lucide-react";
 import ImageSlider from "../components/ImageSlider.jsx";
+import CourseCard from "../components/CourseCard.jsx";
 import {
   sliderSlides, featureCounts, schoolFeatures, examInfo, schoolInfo,
 } from "../data/siteData.js";
@@ -259,26 +260,9 @@ export default function Home() {
     />
 
     {/* Courses Grid */}
-    <div className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+    <div className="mt-8 grid items-start grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
       {courses.slice(0, 4).map((c) => (
-        <div key={c.id} className="group flex h-full flex-col overflow-hidden rounded-2xl border border-[#ffd8b5] bg-white shadow-[0_14px_32px_rgba(15,35,82,0.08)] transition-all duration-300 hover:-translate-y-1 hover:border-[#ff9a4d] hover:shadow-[0_18px_40px_rgba(255,109,0,0.16)]">
-          <div className="relative aspect-[16/9] overflow-hidden bg-navy-dark">
-            {c.image ? <img src={resolveImageUrl(c.image)} alt={c.name} className="h-full w-full object-cover object-center transition-transform duration-500 group-hover:scale-105" /> : <MissingImage className="h-full w-full" />}
-            <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-navy-dark/80 to-transparent px-4 pb-3 pt-8">
-              <span className="rounded-full bg-gold px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.12em] text-white shadow-sm">Sankalp Course</span>
-            </div>
-          </div>
-
-          <div className="flex flex-1 flex-col border-t border-[#ffead8] p-5">
-            <h3 className="mb-2 text-base font-bold text-navy">{c.name}</h3>
-            <p className="mb-4 text-xs leading-5 text-muted line-clamp-3">{c.desc}</p>
-            <div className="mb-4 flex items-center justify-between text-xs text-muted">
-              <span>{c.duration}</span>
-              <span className="font-bold text-navy">{c.fee}</span>
-            </div>
-            <Link to="/register" className="btn-primary w-full justify-center">Enroll Now</Link>
-          </div>
-        </div>
+        <CourseCard key={c.id} course={c} />
       ))}
     </div>
 

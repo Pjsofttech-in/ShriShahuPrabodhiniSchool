@@ -6,6 +6,7 @@ import ProtectedRoute from "./components/ProtectedRoute.jsx";
 
 import Home from "./pages/Home.jsx";
 import Courses from "./pages/Courses.jsx";
+import CourseDetails from "./pages/CourseDetails.jsx";
 import Features from "./pages/Features.jsx";
 import Awards from "./pages/Awards.jsx";
 import Toppers from "./pages/Toppers.jsx";
@@ -59,6 +60,7 @@ export default function App() {
             <Route path="/exam/:id" element={<ExamPlayer />} />
 
             <Route path="/courses" element={<Courses />} />
+            <Route path="/courses/:id" element={<CourseDetails />} />
             <Route path="/features" element={<Features />} />
             <Route path="/awards" element={<Awards />} />
             <Route path="/toppers" element={<Toppers />} />

@@ -56,6 +56,8 @@ img.img-cover { width: 100%; height: 100%; object-fit: contain; object-position:
 .card { @apply bg-white rounded-xl shadow-[0_4px_20px_rgba(11,37,69,0.08)] border border-black/5 transition-all duration-300; }
 .input-field { @apply w-full border border-black/15 rounded-md px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-gold focus:border-transparent transition; }
 .label-field { @apply block text-sm font-semibold text-navy mb-1.5; }
+.course-image-frame { @apply relative aspect-[16/9] overflow-hidden bg-[#f4f7f8]; }
+.course-detail-image-frame { @apply min-h-[18rem] bg-[#f4f7f8] sm:min-h-[24rem] lg:min-h-[34rem]; }
 
 ::selection { background: #FF6D00; color: #FFFFFF; }
 
