@@ -190,7 +190,7 @@ export default function Home() {
               const image = resolveImageUrl(award.image);
               return <article key={award.id} className="group flex h-full flex-col overflow-hidden rounded-[26px] border border-[#ffe0c2] bg-white shadow-[0_12px_30px_rgba(11,37,69,0.08)] transition duration-300 hover:-translate-y-1.5 hover:border-gold/60 hover:shadow-[0_18px_38px_rgba(255,109,0,0.15)]">
                 <div className="relative h-56 overflow-hidden bg-[linear-gradient(145deg,#fff7ed,#f3f4f6)] sm:h-48">
-                  {image ? <img src={image} alt={award.title} className="h-full w-full object-cover transition duration-500 group-hover:scale-105" /> : <div className="flex h-full items-center justify-center bg-navy-light"><Icon size={56} className="text-white" strokeWidth={1.2} /></div>}
+                  {image ? <img src={image} alt={award.title} className="h-full w-full object-contain object-center transition duration-500 group-hover:scale-[1.02]" /> : <div className="flex h-full items-center justify-center bg-navy-light"><Icon size={56} className="text-white" strokeWidth={1.2} /></div>}
                   <div className="absolute inset-0 bg-gradient-to-t from-navy/75 via-transparent to-transparent" />
                   <span className="absolute left-4 top-4 inline-flex items-center gap-1.5 rounded-full bg-gold px-3 py-1.5 text-xs font-bold text-white shadow-md"><CalendarDays size={15} /> {award.year || "Recognition"}</span>
                 </div>
