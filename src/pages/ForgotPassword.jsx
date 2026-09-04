@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { ArrowLeft, CheckCircle2, KeyRound, Mail, MessageSquare, ShieldCheck } from "lucide-react";
+import { ArrowLeft, CheckCircle2, KeyRound, Mail, ShieldCheck } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import PageHeader from "../components/PageHeader.jsx";
 import {
@@ -14,7 +14,6 @@ function apiMessage(error, fallback) {
 
 export default function ForgotPassword() {
   const navigate = useNavigate();
-  const [method, setMethod] = useState("mobile");
   const [identifier, setIdentifier] = useState("");
   const [otp, setOtp] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -41,10 +40,10 @@ export default function ForgotPassword() {
     clearFeedback();
     setBusy(true);
     try {
-      await requestPasswordOtp(identifier, method);
+      await requestPasswordOtp(identifier);
       setStep(2);
       setResendIn(30);
-      setMessage(`OTP sent to your ${method === "email" ? "email address" : "mobile number"}.`);
+      setMessage("OTP sent to your email address.");
     } catch (requestError) {
       setError(apiMessage(requestError, "We could not send the OTP. Please check your details and try again."));
     } finally {
@@ -57,7 +56,7 @@ export default function ForgotPassword() {
     clearFeedback();
     setBusy(true);
     try {
-      await verifyPasswordOtp(identifier, otp, method);
+      await verifyPasswordOtp(identifier, otp);
       setStep(3);
       setMessage("OTP verified. Create your new password.");
     } catch (verifyError) {
@@ -81,7 +80,7 @@ export default function ForgotPassword() {
 
     setBusy(true);
     try {
-      await resetStudentPassword(identifier, otp, newPassword, method);
+      await resetStudentPassword(identifier, newPassword);
       setStep(4);
       setMessage("Your password has been reset successfully.");
     } catch (resetError) {
@@ -96,7 +95,7 @@ export default function ForgotPassword() {
     clearFeedback();
     setBusy(true);
     try {
-      await requestPasswordOtp(identifier, method);
+      await requestPasswordOtp(identifier);
       setResendIn(30);
       setMessage("A new OTP has been sent.");
     } catch (requestError) {
@@ -144,13 +143,9 @@ export default function ForgotPassword() {
 
               {step === 1 && (
                 <form onSubmit={sendOtp} className="space-y-5">
-                  <div className="grid grid-cols-2 gap-2 rounded-2xl bg-[#fff7ed] p-1">
-                    <button type="button" onClick={() => setMethod("mobile")} className={`flex items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-semibold ${method === "mobile" ? "bg-[#ff6d00] text-white shadow-md" : "text-[#7c2d12]"}`}><MessageSquare size={16} /> Mobile</button>
-                    <button type="button" onClick={() => setMethod("email")} className={`flex items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-semibold ${method === "email" ? "bg-[#ff6d00] text-white shadow-md" : "text-[#7c2d12]"}`}><Mail size={16} /> Email</button>
-                  </div>
                   <div>
-                    <label className="label-field">{method === "email" ? "Email address" : "Mobile number"}</label>
-                    <input required type={method === "email" ? "email" : "tel"} inputMode={method === "email" ? undefined : "numeric"} value={identifier} onChange={(event) => setIdentifier(event.target.value)} placeholder={method === "email" ? "student@example.com" : "9876543210"} className="input-field" />
+                    <label className="label-field">Email address</label>
+                    <div className="relative"><Mail className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[#e85d04]" size={17} /><input required type="email" value={identifier} onChange={(event) => setIdentifier(event.target.value)} placeholder="student@example.com" className="input-field pl-10" /></div>
                   </div>
                   <button disabled={busy} className="btn-primary w-full justify-center disabled:cursor-not-allowed disabled:opacity-60">{busy ? "Sending OTP..." : "Send OTP"}</button>
                 </form>
