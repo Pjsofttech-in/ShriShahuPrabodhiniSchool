@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import ImageSlider from "../components/ImageSlider.jsx";
 import CourseCard from "../components/CourseCard.jsx";
+import GalleryLightbox from "../components/GalleryLightbox.jsx";
 import {
   sliderSlides, featureCounts, schoolFeatures, examInfo, schoolInfo,
 } from "../data/siteData.js";
@@ -136,6 +137,8 @@ export default function Home() {
   const { heroSections, courses, toppers, awards, gallery, faculties, testimonials, contactInfo } = liveData;
   const heroSlides = heroSections
     .sort((first, second) => first.priority - second.priority);
+  const galleryPreview = gallery.slice(0, 5);
+  const galleryFocusIndex = Math.floor((galleryPreview.length - 1) / 2);
 
   return (
     <div>
@@ -301,7 +304,7 @@ export default function Home() {
             flex-col
             w-full
             max-w-none
-            overflow-hidden
+            overflow-visible
             rounded-[1.25rem]
             border
             border-gold/20
@@ -358,27 +361,15 @@ export default function Home() {
     />
 
     {/* Gallery Grid */}
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-10">
-      {gallery.slice(0, 4).map((g) => (
+    <div className="mt-10 flex items-center justify-start gap-3 overflow-x-auto px-2 py-8 sm:justify-center sm:gap-4 sm:overflow-visible md:gap-5">
+      {galleryPreview.map((g, index) => (
         <div
           key={g.id}
-          className="
-            relative
-            rounded-xl
-            overflow-hidden
-            group
-            h-44
-            transition-all
-            duration-500
-            hover:-translate-y-2
-            hover:shadow-2xl
-            hover:ring-2
-            hover:ring-gold/40
-          "
+          className={`group relative h-40 min-w-[72%] shrink-0 overflow-visible rounded-xl transition-all duration-500 hover:z-30 hover:-translate-y-2 hover:shadow-2xl hover:ring-2 hover:ring-gold/40 sm:h-48 sm:min-w-0 sm:flex-1 md:h-56 ${index === galleryFocusIndex ? "sm:flex-[1.28] sm:scale-110" : "sm:scale-95"}`}
         >
-          {g.images?.[0] ? <img src={resolveImageUrl(g.images[0])} alt={g.title} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" /> : <MissingImage />}
+          {g.images?.[0] ? <GalleryLightbox image={resolveImageUrl(g.images[0])} title={g.title} compact><img src={resolveImageUrl(g.images[0])} alt={g.title} className="relative z-0 w-full h-full rounded-xl object-cover transition-all duration-500 group-hover:z-20 group-hover:scale-[1.28] group-hover:shadow-[0_18px_42px_rgba(8,24,39,0.38)] group-hover:ring-4 group-hover:ring-gold group-hover:ring-offset-2 group-hover:ring-offset-white" /></GalleryLightbox> : <MissingImage />}
 
-          <div className="absolute inset-0 bg-navy-dark/0 group-hover:bg-navy-dark/50 transition-colors duration-500 flex items-end p-3">
+          <div className="pointer-events-none absolute inset-0 flex items-end bg-navy-dark/0 p-3 transition-colors duration-500 group-hover:bg-navy-dark/50">
             <p className="text-white text-xs font-semibold opacity-0 translate-y-3 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-500">
               {g.title}
             </p>
@@ -473,32 +464,34 @@ export default function Home() {
 </section>
 
       {/* 9. Student Testimonials */}
-      <section className="section-pad bg-navy">
-        <div className="container-app ">
-        <div className="mb-10 text-center max-w-2xl mx-auto">
-          <span className="eyebrow">Voices</span>
-          <h2 className="text-2xl md:text-4xl font-bold">
-            <span className="text-gold">What</span> <span className="text-white">Our</span> <span className="text-gold">Students</span> <span className="text-white">Say</span>
-          </h2>
-        </div>
-          <div className="grid md:grid-cols-3 gap-6">
-            {testimonials.slice(0, 3).map((t) => (
-              <div key={t.id} className="bg-white/5 border border-white/10 rounded-xl p-6 relative">
-                <Quote className="text-gold mb-3" size={26} />
-                <p className="text-white/85 text-sm leading-relaxed mb-5">"{t.description || "No testimonial text available."}"</p>
-                <div className="flex items-center gap-3">
-                  {t.image ? <img src={resolveImageUrl(t.image)} alt={t.name} className="w-11 h-11 rounded-full object-cover" /> : <MissingImage className="h-11 w-11 min-h-0 rounded-full" />}
-                  <div>
-                    <p className="text-white font-bold text-sm">{t.name}</p>
-                    <p className="text-white/50 text-xs">{[t.exam, t.post].filter(Boolean).join(" · ") || "Student"}</p>
+      <section className="relative overflow-hidden bg-gradient-to-br from-[#172126] via-[#21343b] to-[#172126] section-pad">
+        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold/70 to-transparent" />
+        <div className="container-app relative">
+          <div className="content-reveal mx-auto mb-8 max-w-2xl text-center">
+            <span className="eyebrow testimonial-float">Voices</span>
+            <h2 className="text-2xl font-bold sm:text-3xl md:text-4xl">
+              <span className="text-gold">What</span> <span className="text-white">Our</span> <span className="text-gold">Students</span> <span className="text-white">Say</span>
+            </h2>
+          </div>
+          <div className="grid items-stretch gap-5 md:grid-cols-3">
+            {testimonials.slice(0, 3).map((t, index) => (
+              <article key={t.id} className="testimonial-reveal group relative flex h-full min-h-[16rem] flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#263238] p-6 shadow-[0_14px_35px_rgba(0,0,0,0.18)] transition-all duration-300 hover:-translate-y-2 hover:border-gold/60 hover:shadow-[0_20px_44px_rgba(255,109,0,0.2)]" style={{ animationDelay: `${index * 100}ms` }}>
+                <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-gold to-[#ff9a4d] opacity-80 transition-opacity group-hover:opacity-100" />
+                <Quote className="testimonial-float mb-5 text-gold" size={30} strokeWidth={1.8} />
+                <p className="flex-1 text-sm leading-7 text-white/80">“{t.description || "No testimonial text available."}”</p>
+                <div className="mt-7 flex items-center gap-3 border-t border-white/10 pt-4">
+                  {t.image ? <img src={resolveImageUrl(t.image)} alt={t.name} className="h-12 w-12 rounded-full border-2 border-gold/50 object-cover transition-transform duration-300 group-hover:scale-110" /> : <MissingImage className="h-12 w-12 min-h-0 rounded-full" />}
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-bold text-white">{t.name}</p>
+                    <p className="truncate text-xs text-white/50">{[t.exam, t.post].filter(Boolean).join(" · ") || "Student"}</p>
                   </div>
                 </div>
-              </div>
+              </article>
             ))}
           </div>
-          <div className="text-center mt-10">
-            <Link to="/testimonials" className="border-2 border-white/30 text-white font-bold px-6 py-3 rounded-md hover:bg-white/10 transition inline-flex">
-              View All Testimonials
+          <div className="mt-10 text-center">
+            <Link to="/testimonials" className="inline-flex items-center gap-2 rounded-md border-2 border-gold/70 px-6 py-3 font-bold text-white transition hover:-translate-y-1 hover:bg-gold hover:text-white hover:shadow-[0_8px_20px_rgba(255,109,0,0.25)]">
+              View All Testimonials <ArrowRight size={16} />
             </Link>
           </div>
         </div>

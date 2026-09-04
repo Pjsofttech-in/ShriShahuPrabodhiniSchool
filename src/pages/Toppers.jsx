@@ -66,29 +66,19 @@ export default function Toppers() {
 
   return (
     <div>
-      <PageHeader title="Sankalp Exam Toppers" crumb="Toppers" />
+      <PageHeader title="Sankalp Exam Toppers" compact crumb="Toppers" />
 
-      <section className="relative overflow-hidden bg-cream py-10 md:py-14">
+      <section className="relative overflow-hidden bg-cream py-5 md:py-8">
         <div className="absolute -left-24 top-8 h-72 w-72 rounded-full bg-gold/10" />
 
         <div className="container-app relative">
           {!loading && !error && toppers.length > 0 && (
             <div
-              className="mb-40 flex flex-wrap items-center justify-between gap-20"
+              className="mb-5 flex flex-wrap items-center justify-center gap-4"
               role="group"
               aria-label="Filter toppers by year"
             >
-              <div className="w-full text-center">
-                <p className="text-xs font-bold uppercase tracking-[0.2em] text-gold-dark">
-                  Hall of Fame
-                </p>
-
-                <h2 className="mt-2 text-4xl font-black text-navy md:text-5xl">
-                  Our <span className="text-gold-dark">Toppers</span>
-                </h2>
-              </div>
-
-              <div className="mx-auto flex flex-wrap justify-center gap-2">
+              <div className="flex flex-wrap justify-center gap-2">
                 {years.map((y) => (
                   <button
                     key={y}
@@ -122,34 +112,34 @@ export default function Toppers() {
           )}
 
           {!loading && !error && filtered.length > 0 && (
-            <div className="mt-4 grid gap-8 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-2">
-              {filtered.slice(0, 2).map((topper, index) => {
+            <div className="grid items-start gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              {filtered.map((topper, index) => {
                 const image = resolveImageUrl(topper.image);
 
                 return (
                   <article
                     key={topper.id}
-                    className="topper-reveal mx-auto w-full max-w-[22rem] overflow-hidden rounded-[1.25rem] border border-black/5 bg-white shadow-[0_8px_24px_rgba(11,37,69,0.08)] transition-all duration-500 hover:-translate-y-1 hover:shadow-[0_18px_40px_rgba(11,37,69,0.12)]"
-                    style={{ animationDelay: `${index * 40}ms` }}
+                    className="topper-reveal mx-auto w-full overflow-hidden rounded-2xl border border-gold/20 bg-white shadow-[0_8px_24px_rgba(11,37,69,0.1)] transition-all duration-500 hover:-translate-y-1.5 hover:border-gold/60 hover:shadow-[0_18px_40px_rgba(255,109,0,0.18)]"
+                    style={{ animationDelay: `${index * 90}ms` }}
                   >
                     <div className="p-0">
-                      <div className="overflow-hidden bg-[#e9e9e9]">
+                      <div className="aspect-[4/3.5] overflow-hidden bg-[#f4f1ed]">
                         {image ? (
                           <img
                             src={image}
                             alt={topper.name}
-                            className="h-[23rem] w-full object-cover object-center"
+                            className="h-full w-full object-cover object-top transition-transform duration-500 hover:scale-105"
                           />
                         ) : (
-                          <div className="flex h-[23rem] w-full items-center justify-center bg-slate-200">
+                          <div className="flex h-full w-full items-center justify-center bg-slate-200">
                             <GraduationCap size={44} className="text-slate-400" strokeWidth={1.1} />
                           </div>
                         )}
                       </div>
                     </div>
 
-                    <div className="px-4 pb-4 pt-4 text-center">
-                      <h3 className="text-[1.05rem] font-bold leading-tight text-navy">
+                    <div className="border-t border-[#ffead8] px-4 pb-4 pt-4 text-center">
+                      <h3 className="text-base font-bold leading-tight text-navy">
                         {topper.name}
                       </h3>
 
