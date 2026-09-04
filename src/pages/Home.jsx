@@ -2,7 +2,8 @@ import React, { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   GraduationCap, Target, MapPin, FileCheck2, ArrowRight, CalendarDays,
-  Quote, MapPinned, ImageOff, BookOpen, Zap, Globe, CheckCircle,
+  Quote, MapPinned, ImageOff, BookOpen, Zap, Globe, CheckCircle, Award,
+  BadgeCheck, Medal, Trophy, LoaderCircle,
 } from "lucide-react";
 import ImageSlider from "../components/ImageSlider.jsx";
 import {
@@ -10,11 +11,12 @@ import {
 } from "../data/siteData.js";
 import {
   fetchCourses, fetchFaculties, fetchGallery, fetchTestimonials,
-  fetchToppers, fetchHeroSections, fetchContactInfo, submitContactForm,
+  fetchToppers, fetchAwards, fetchHeroSections, fetchContactInfo, submitContactForm,
 } from "../services/backendService.js";
 import { API_BASE_URL } from "../utils/api.js";
 
 const icons = { GraduationCap, Target, MapPin, FileCheck2, BookOpen, Zap, Globe, CheckCircle };
+const awardIcons = [Trophy, Medal, Award, BadgeCheck];
 
 function Counter({ value, suffix }) {
   const [count, setCount] = useState(0);
@@ -74,9 +76,9 @@ function SectionHeading({
 }) {
   return (
     <div className={`mb-10 ${center ? "text-center max-w-2xl mx-auto" : ""}`}>
-      <span className={`eyebrow ${eyebrowClassName}`}>
+      {eyebrow && <span className={`eyebrow ${eyebrowClassName}`}>
         {eyebrow}
-      </span>
+      </span>}
 
       <ColoredTitle text={title} className={titleClassName} />
 
@@ -107,27 +109,30 @@ function MissingImage({ className = "" }) {
 }
 
 export default function Home() {
-  const [liveData, setLiveData] = React.useState({ heroSections: [], courses: [], toppers: [], gallery: [], faculties: [], testimonials: [], contactInfo: null });
+  const [liveData, setLiveData] = React.useState({ heroSections: [], courses: [], toppers: [], awards: [], gallery: [], faculties: [], testimonials: [], contactInfo: null });
+  const [awardsLoading, setAwardsLoading] = React.useState(true);
 
   React.useEffect(() => {
     let active = true;
-    Promise.allSettled([fetchHeroSections(), fetchCourses(), fetchToppers(), fetchGallery(), fetchFaculties(), fetchTestimonials(), fetchContactInfo()]).then((results) => {
+    Promise.allSettled([fetchHeroSections(), fetchCourses(), fetchToppers(), fetchAwards(), fetchGallery(), fetchFaculties(), fetchTestimonials(), fetchContactInfo()]).then((results) => {
       if (!active) return;
-      const [heroResult, coursesResult, toppersResult, galleryResult, facultiesResult, testimonialsResult, contactResult] = results;
+      const [heroResult, coursesResult, toppersResult, awardsResult, galleryResult, facultiesResult, testimonialsResult, contactResult] = results;
       setLiveData({
         heroSections: heroResult.status === "fulfilled" ? heroResult.value : [],
         courses: coursesResult.status === "fulfilled" ? coursesResult.value : [],
         toppers: toppersResult.status === "fulfilled" ? toppersResult.value : [],
+        awards: awardsResult.status === "fulfilled" ? awardsResult.value.sort((first, second) => Number(second.year) - Number(first.year)) : [],
         gallery: galleryResult.status === "fulfilled" ? galleryResult.value : [],
         faculties: facultiesResult.status === "fulfilled" ? facultiesResult.value : [],
         testimonials: testimonialsResult.status === "fulfilled" ? testimonialsResult.value : [],
         contactInfo: contactResult.status === "fulfilled" ? contactResult.value : null,
       });
+      setAwardsLoading(false);
     });
     return () => { active = false; };
   }, []);
 
-  const { heroSections, courses, toppers, gallery, faculties, testimonials, contactInfo } = liveData;
+  const { heroSections, courses, toppers, awards, gallery, faculties, testimonials, contactInfo } = liveData;
   const heroSlides = heroSections
     .sort((first, second) => first.priority - second.priority);
 
@@ -168,6 +173,36 @@ export default function Home() {
               <div className="flex justify-between"><dt className="text-muted">Centers</dt><dd className="font-bold text-navy">{examInfo.centers}</dd></div>
             </dl>
           </div>
+        </div>
+      </section>
+
+      {/* 3. Awards & Recognition */}
+      <section className="relative overflow-hidden bg-cream py-8 md:py-12">
+        <div className="absolute right-0 top-0 h-72 w-72 translate-x-1/3 -translate-y-1/3 rounded-full bg-gold/10" />
+        <div className="container-app relative">
+          <SectionHeading title="Awards & Recognition" center />
+          {awardsLoading && <div className="flex items-center justify-center gap-3 py-12 text-muted"><LoaderCircle className="animate-spin text-gold" size={24} /> Loading recognitions...</div>}
+          {!awardsLoading && awards.length === 0 && <p className="py-8 text-center text-muted">No recognitions have been published yet.</p>}
+          {!awardsLoading && awards.length > 0 && <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            {awards.slice(0, 4).map((award, index) => {
+              const Icon = awardIcons[index % awardIcons.length];
+              const image = resolveImageUrl(award.image);
+              return <article key={award.id} className="group flex h-full flex-col overflow-hidden rounded-[26px] border border-[#ffe0c2] bg-white shadow-[0_12px_30px_rgba(11,37,69,0.08)] transition duration-300 hover:-translate-y-1.5 hover:border-gold/60 hover:shadow-[0_18px_38px_rgba(255,109,0,0.15)]">
+                <div className="relative h-56 overflow-hidden bg-[linear-gradient(145deg,#fff7ed,#f3f4f6)] sm:h-48">
+                  {image ? <img src={image} alt={award.title} className="h-full w-full object-cover transition duration-500 group-hover:scale-105" /> : <div className="flex h-full items-center justify-center bg-navy-light"><Icon size={56} className="text-white" strokeWidth={1.2} /></div>}
+                  <div className="absolute inset-0 bg-gradient-to-t from-navy/75 via-transparent to-transparent" />
+                  <span className="absolute left-4 top-4 inline-flex items-center gap-1.5 rounded-full bg-gold px-3 py-1.5 text-xs font-bold text-white shadow-md"><CalendarDays size={15} /> {award.year || "Recognition"}</span>
+                </div>
+                <div className="flex flex-1 flex-col p-5">
+                  <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-gold/15 text-gold-dark"><Icon size={20} /></div>
+                  <h3 className="text-lg font-bold leading-tight text-navy">{award.title}</h3>
+                  {award.description && <p className="mt-2 line-clamp-3 text-sm leading-6 text-muted">{award.description}</p>}
+                  <p className="mt-auto border-t border-slate-100 pt-4 text-sm text-muted">Awarded by <strong className="text-navy">{award.by}</strong></p>
+                </div>
+              </article>;
+            })}
+          </div>}
+          <div className="mt-10 flex justify-center"><Link to="/awards" className="btn-outline">View More Awards <ArrowRight size={16} /></Link></div>
         </div>
       </section>
 
