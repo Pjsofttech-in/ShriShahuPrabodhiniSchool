@@ -440,22 +440,22 @@ export default function StudentRegistration() {
             <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-md p-2.5">{error}</div>
           )}
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 items-start">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-start">
             <Field label="Student Name">
-              <input required className="input-field" value={form.name} onChange={(e) => update("name", e.target.value)} />
+              <input required placeholder="Student Name" className="input-field" value={form.name} onChange={(e) => update("name", e.target.value)} />
             </Field>
             <Field label="Father Name">
-              <input required className="input-field" value={form.fatherName} onChange={(e) => update("fatherName", e.target.value)} />
+              <input required placeholder="Father Name" className="input-field" value={form.fatherName} onChange={(e) => update("fatherName", e.target.value)} />
             </Field>
             <Field label="Last Name">
-              <input required className="input-field" value={form.lastName} onChange={(e) => update("lastName", e.target.value)} />
+              <input required placeholder="Last Name" className="input-field" value={form.lastName} onChange={(e) => update("lastName", e.target.value)} />
             </Field>
             <Field label="Mobile">
-              <input required pattern="[0-9]{10}" title="10 digit mobile number" className="input-field" value={form.mobile} onChange={(e) => update("mobile", e.target.value)} />
+              <input required pattern="[0-9]{10}" title="10 digit mobile number" placeholder="Mobile" className="input-field" value={form.mobile} onChange={(e) => update("mobile", e.target.value)} />
             </Field>
             <Field label="Password">
               <div className="relative">
-                <input required type={showPassword ? "text" : "password"} minLength={6} className="input-field pr-10" value={form.password} onChange={(e) => update("password", e.target.value)} />
+                <input required type={showPassword ? "text" : "password"} minLength={6} placeholder="Password" className="input-field pr-10" value={form.password} onChange={(e) => update("password", e.target.value)} />
                 <button type="button" onClick={() => setShowPassword((visible) => !visible)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted hover:text-navy" aria-label={showPassword ? "Hide password" : "Show password"}>
                   {showPassword ? <EyeOff size={17} /> : <Eye size={17} />}
                 </button>
@@ -463,18 +463,18 @@ export default function StudentRegistration() {
             </Field>
             <Field label="Confirm Password">
               <div className="relative">
-                <input required type={showConfirmPassword ? "text" : "password"} minLength={6} className="input-field pr-10" value={form.confirmPassword} onChange={(e) => update("confirmPassword", e.target.value)} />
+                <input required type={showConfirmPassword ? "text" : "password"} minLength={6} placeholder="Confirm Password" className="input-field pr-10" value={form.confirmPassword} onChange={(e) => update("confirmPassword", e.target.value)} />
                 <button type="button" onClick={() => setShowConfirmPassword((visible) => !visible)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted hover:text-navy" aria-label={showConfirmPassword ? "Hide confirm password" : "Show confirm password"}>
                   {showConfirmPassword ? <EyeOff size={17} /> : <Eye size={17} />}
                 </button>
               </div>
             </Field>
             <Field label="Email">
-              <input type="email" className="input-field" value={form.email} onChange={(e) => update("email", e.target.value)} placeholder="Optional" />
+              <input type="email" className="input-field" value={form.email} onChange={(e) => update("email", e.target.value)} placeholder="Email (Optional)" />
             </Field>
             <Field label="Gender">
               <select required className="input-field" value={form.gender} onChange={(e) => update("gender", e.target.value)}>
-                <option value="">Select</option>
+                <option value="">Gender</option>
                 <option>Male</option>
                 <option>Female</option>
                 <option>Other</option>
@@ -482,11 +482,11 @@ export default function StudentRegistration() {
             </Field>
 
             <Field label="Date of Birth">
-              <input required type="date" className="input-field" value={form.dateOfBirth} onChange={(e) => update("dateOfBirth", e.target.value)} />
+              <input required type="date" aria-label="Date of Birth" className="input-field" value={form.dateOfBirth} onChange={(e) => update("dateOfBirth", e.target.value)} />
             </Field>
             <Field label="Class">
               <select required className="input-field" value={form.class} onChange={(e) => update("class", e.target.value)}>
-                <option value="">Select</option>
+                <option value="">Class</option>
                 {[
                   "4th",
                   "5th",
@@ -501,27 +501,27 @@ export default function StudentRegistration() {
             </Field>
             <Field label="Medium">
               <select required className="input-field" value={form.medium} onChange={(e) => update("medium", e.target.value)}>
-                <option value="">Select</option>
+                <option value="">Medium</option>
                 <option>Marathi</option>
                 <option>Semi-English</option>
                 <option>English</option>
               </select>
             </Field>
             <Field label="Address">
-              <input required className="input-field" value={form.address} onChange={(e) => update("address", e.target.value)} />
+              <input required placeholder="Address" className="input-field" value={form.address} onChange={(e) => update("address", e.target.value)} />
             </Field>
 
             <Field label="School Name">
-              <input required className="input-field" value={form.schoolName} onChange={(e) => update("schoolName", e.target.value)} placeholder="Write your school name" />
+              <input required className="input-field" value={form.schoolName} onChange={(e) => update("schoolName", e.target.value)} placeholder="School Name" />
             </Field>
             <Field label="State">
-              <div className="input-field flex items-center bg-gray-50 text-navy font-medium">
-                Maharashtra
+              <div className="input-field flex items-center bg-gray-50 font-medium text-navy">
+                State: Maharashtra
               </div>
             </Field>
             <Field label="District">
               <select required className="input-field" value={form.districtId} onChange={(e) => update("districtId", e.target.value)}>
-                <option value="">Select District</option>
+                <option value="">District</option>
                 {districtOptions.map((d) => (
                   <option key={d.id} value={d.id}>{d.name}</option>
                 ))}
@@ -530,21 +530,21 @@ export default function StudentRegistration() {
 
             <Field label="Taluka">
               <select required disabled={!form.districtId} className="input-field" value={form.talukaId} onChange={(e) => update("talukaId", e.target.value)}>
-                <option value="">{form.districtId ? "Select Taluka" : "Select District First"}</option>
+                <option value="">{form.districtId ? "Taluka" : "Select District First"}</option>
                 {talukaOptions.map((t) => (
                   <option key={t.id} value={t.id}>{t.name}</option>
                 ))}
               </select>
             </Field>
             <Field label="Village">
-              <input required className="input-field" value={form.village} onChange={(e) => update("village", e.target.value)} />
+              <input required placeholder="Village" className="input-field" value={form.village} onChange={(e) => update("village", e.target.value)} />
             </Field>
             <Field label="Pincode">
-              <input required inputMode="numeric" pattern="[0-9]{6}" title="6 digit pincode" className="input-field" value={form.pincode} onChange={(e) => update("pincode", e.target.value)} />
+              <input required inputMode="numeric" pattern="[0-9]{6}" title="6 digit pincode" placeholder="Pincode" className="input-field" value={form.pincode} onChange={(e) => update("pincode", e.target.value)} />
             </Field>
             <Field label="Exam Center">
               <select required disabled={!form.talukaId} className="input-field" value={form.centerId} onChange={(e) => update("centerId", e.target.value)}>
-                <option value="">{form.talukaId ? "Select Center" : "Select Taluka First"}</option>
+                <option value="">{form.talukaId ? "Exam Center" : "Select Taluka First"}</option>
                 {centerOptions.map((center) => (
                   <option key={center.id} value={center.id}>{center.name}</option>
                 ))}
@@ -552,7 +552,7 @@ export default function StudentRegistration() {
             </Field>
             <Field label="Coordinator">
               <select required disabled={!form.centerId} className="input-field" value={form.coordinatorId} onChange={(e) => update("coordinatorId", e.target.value)}>
-                <option value="">{form.centerId ? "Select Coordinator" : "Select Center First"}</option>
+                <option value="">{form.centerId ? "Coordinator" : "Select Center First"}</option>
                 {coordinatorOptions.map((coordinator) => (
                   <option key={coordinator.id} value={coordinator.id}>{coordinator.name}</option>
                 ))}
@@ -607,8 +607,10 @@ export default function StudentRegistration() {
 
 function Field({ label, children }) {
   return (
-    <div>
-      <label className="label-field text-xs">{label}</label>
+    <div className="group/field relative pt-1">
+      <span className="pointer-events-none absolute left-3 top-0 z-10 bg-white px-1 text-[10px] font-bold uppercase tracking-[0.08em] text-gold-dark opacity-0 transition-opacity duration-200 group-focus-within/field:opacity-100">
+        {label}
+      </span>
       {children}
     </div>
   );

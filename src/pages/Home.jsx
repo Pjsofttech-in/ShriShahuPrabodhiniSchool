@@ -504,7 +504,7 @@ export default function Home() {
             <SectionHeading eyebrow="Get In Touch" title="Contact Us" desc="Have a question about admissions, centers or results? Send us a message." />
             <ContactMiniForm />
           </div>
-          <div className="overflow-hidden rounded-xl bg-navy shadow-lg">
+          <div className="h-fit self-start overflow-hidden rounded-xl bg-navy shadow-lg">
             <div className="flex items-start justify-between gap-4 border-b border-white/10 px-5 py-4 text-white sm:px-6">
               <div>
                 <p className="text-xs font-bold uppercase tracking-[0.18em] text-gold">Find Us</p>
@@ -512,7 +512,7 @@ export default function Home() {
               </div>
               <MapPin className="mt-1 shrink-0 text-gold" size={24} />
             </div>
-            <div className="aspect-[4/3] min-h-[260px] w-full sm:min-h-[320px] md:aspect-auto md:h-[420px]">
+            <div className="aspect-[4/3] min-h-[260px] w-full sm:min-h-[320px]">
               <iframe
                 title={`School location map - ${contactInfo?.address || "Swargate, Pune"}`}
                 src={getMapEmbedUrl(contactInfo?.mapLink)}
