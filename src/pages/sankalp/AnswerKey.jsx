@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { FileDown, FileText, LayoutGrid, NotebookPen, BookOpenText, FileCheck2, ScrollText } from "lucide-react";
+import { FileDown, FileText, LayoutGrid, NotebookPen, FileCheck2, ScrollText } from "lucide-react";
 import { Link } from "react-router-dom";
 import PageHeader from "../../components/PageHeader.jsx";
 import { fetchAnswerKeys } from "../../services/backendService.js";
@@ -8,7 +8,7 @@ const quickLinks = [
   { label: "Pages", to: "/sankalp/exam-information", icon: LayoutGrid },
   { label: "Test Series", to: "/sankalp/test-series", icon: NotebookPen },
   { label: "Answer Key", to: "/sankalp/answer-key", icon: FileText },
-  { label: "Ebook", to: "/sankalp/ebook", icon: BookOpenText },
+  { label: "Syllabus", to: "/sankalp/syllabus", icon: FileText },
   { label: "Result Check", to: "/sankalp/result-check", icon: FileCheck2 },
   { label: "Result PDF", to: "/sankalp/results-pdf", icon: ScrollText },
 ];

@@ -2,7 +2,6 @@
 
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "http://localhost:8080").replace(/\/+$/g, "");
 const API_REQUEST_BASE_URL = `${API_BASE_URL.replace(/(?:\/api)+$/i, "")}/api`;
-const STATIC_ADMIN_TOKEN = import.meta.env.VITE_ADMIN_TOKEN || "";
 
 // Admin credentials for fetching live token
 const ADMIN_CREDENTIALS = {
@@ -19,11 +18,11 @@ let tokenFetchPromise = null;
 function getTokenExpiration(token) {
   try {
     const parts = token.split('.');
-    if (parts.length !== 3) return 0;
+    if (parts.length !== 3) return Number.MAX_SAFE_INTEGER;
     const payload = JSON.parse(atob(parts[1]));
-    return (payload.exp || 0) * 1000; // Convert to milliseconds
+    return payload.exp ? payload.exp * 1000 : Number.MAX_SAFE_INTEGER;
   } catch (e) {
-    return 0;
+    return Number.MAX_SAFE_INTEGER;
   }
 }
 
@@ -41,7 +40,10 @@ async function fetchFreshAdminToken() {
 
   tokenFetchPromise = (async () => {
     try {
-      console.log("🔄 Fetching fresh admin token from backend...");
+      if (!ADMIN_CREDENTIALS.username || !ADMIN_CREDENTIALS.password) {
+        throw new Error("Live admin credentials are not configured.");
+      }
+
       const response = await axios.post(`${API_REQUEST_BASE_URL}/auth/admin/login`, ADMIN_CREDENTIALS, {
         timeout: 10000
       });
@@ -55,14 +57,12 @@ async function fetchFreshAdminToken() {
         response?.data?.data?.access_token ||
         response?.data?.result?.token ||
         response?.data?.result?.accessToken ||
-        response?.headers?.authorization;
+        response?.headers?.authorization ||
+        response?.headers?.get?.("authorization");
       
       if (token) {
         cachedAdminToken = String(token).replace(/^Bearer\s+/i, "").trim();
         adminTokenExpiresAt = getTokenExpiration(cachedAdminToken);
-        console.log("✅ Fresh admin token fetched from backend", {
-          expiresAt: new Date(adminTokenExpiresAt).toISOString()
-        });
         return cachedAdminToken;
       } else {
         throw new Error("No token in backend response");
@@ -73,13 +73,6 @@ async function fetchFreshAdminToken() {
         message: error?.message
       });
       
-      // Fallback to static token if available
-      if (STATIC_ADMIN_TOKEN && isTokenValid(STATIC_ADMIN_TOKEN, getTokenExpiration(STATIC_ADMIN_TOKEN))) {
-        cachedAdminToken = STATIC_ADMIN_TOKEN;
-        adminTokenExpiresAt = getTokenExpiration(STATIC_ADMIN_TOKEN);
-        console.log("⚠️ Using valid fallback token from .env");
-        return cachedAdminToken;
-      }
       throw error;
     } finally {
       tokenFetchPromise = null;
@@ -142,9 +135,8 @@ api.interceptors.request.use(async (config) => {
   if (isAdminEndpoint && !token) {
     try {
       tokenToUse = await getAdminToken();
-      console.log("✅ Using fresh admin token from live backend");
     } catch (error) {
-      console.error("❌ Could not fetch admin token:", error.message);
+      console.error("Could not fetch live admin token:", error.message);
     }
   }
   
@@ -154,11 +146,6 @@ api.interceptors.request.use(async (config) => {
     } else if (tokenToUse) {
       config.headers = config.headers || {};
       config.headers.Authorization = `Bearer ${tokenToUse}`;
-      console.log("✅ Token ADDED", {
-        type: isAdminEndpoint ? "admin" : "protected",
-        source: token ? "user-token" : "admin-token",
-        url: config.url
-      });
     }
   } catch (err) {
     console.error('❌ Failed to attach auth header', err);

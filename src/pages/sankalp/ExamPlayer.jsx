@@ -325,14 +325,14 @@ export default function ExamPlayer() {
                     })}
                   </div>
 
-                  <div className="mt-4 flex items-center justify-between">
-                    <div className="flex items-center gap-3">
+                  <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="flex flex-wrap items-center gap-2">
                       <button onClick={prevQuestion} disabled={currentIndex===0} className="rounded-md border px-3 py-2">Prev</button>
                       <button onClick={nextQuestion} disabled={currentIndex===questions.length-1} className="flex items-center gap-2 rounded-md border border-blue-300 px-3 py-2 text-sm font-semibold text-blue-700 transition hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-50">Save &amp; Next <ArrowRight size={15} /></button>
                       <button onClick={() => toggleMark(questions[currentIndex].id)} className="flex items-center gap-2 rounded-md border px-3 py-2 text-sm"><Flag size={15} />{marked[questions[currentIndex].id] ? 'Unmark' : 'Mark for review'}</button>
                     </div>
 
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2 sm:justify-end">
                       <button onClick={() => setSubmitConfirmOpen(true)} className="btn-primary flex items-center justify-center rounded-md bg-red-600 px-4 py-2 text-white"><Send size={15} /> Submit Test</button>
                       <button onClick={() => { if (confirm('Are you sure you want to abandon this test? Your answers will not be saved.')) navigate(-1); }} className="rounded-md border px-4 py-2">Cancel</button>
                     </div>
