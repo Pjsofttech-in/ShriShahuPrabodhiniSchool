@@ -306,8 +306,12 @@ export default function StudentRegistration() {
       setStep("paying");
 
       const order = await createRazorpayOrder(250, form.mobile);
-      if (!order?.id) {
-        throw new Error("Unable to create payment order.");
+      console.log("Backend Order Response:", order);
+      console.log("Razorpay Order ID:", order?.id);
+
+      if (!order?.id || !order.id.startsWith("order_")) {
+        console.error("Invalid Razorpay Order ID:", order?.id);
+        throw new Error("Invalid Razorpay order received from the server.");
       }
 
       const orderId = order.id;
@@ -315,6 +319,7 @@ export default function StudentRegistration() {
       payWithRazorpay({
         amount: 250,
         amountInPaise: orderAmountInPaise,
+        currency: order.currency || "INR",
         name: form.name,
         contact: form.mobile,
         orderId,

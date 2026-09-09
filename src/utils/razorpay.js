@@ -1,7 +1,7 @@
 // Razorpay checkout helper. Order creation and signature verification happen on the API.
 // Never put the Razorpay key secret in Vite environment variables or frontend code.
 
-export const RAZORPAY_KEY_ID = import.meta.env.VITE_RAZORPAY_KEY_ID || "rzp_test_XXXXXXXXXXXX";
+export const RAZORPAY_KEY_ID = import.meta.env.VITE_RAZORPAY_KEY_ID;
 
 export function loadRazorpayScript() {
   return new Promise((resolve) => {
@@ -25,7 +25,22 @@ export function loadRazorpayScript() {
  * @param {Function} opts.onSuccess - called with { paymentId, orderId, signature } on success
  * @param {Function} opts.onFailure - called with (error) on failure/cancel
  */
-export async function payWithRazorpay({ amount, amountInPaise, name, email, contact, orderId, onSuccess, onFailure }) {
+export async function payWithRazorpay({ amount, amountInPaise, currency = "INR", name, email, contact, orderId, onSuccess, onFailure }) {
+  console.log("Razorpay Live Key:", import.meta.env.VITE_RAZORPAY_KEY_ID);
+  console.log("Razorpay Order ID:", orderId);
+
+  if (!RAZORPAY_KEY_ID || !RAZORPAY_KEY_ID.startsWith("rzp_live_")) {
+    console.error("Invalid Razorpay Live Key ID.");
+    onFailure && onFailure("Razorpay Live configuration is missing or invalid.");
+    return;
+  }
+
+  if (!orderId || !orderId.startsWith("order_")) {
+    console.error("Invalid Razorpay Order ID:", orderId);
+    onFailure && onFailure("Invalid Razorpay order received from the server.");
+    return;
+  }
+
   const loaded = await loadRazorpayScript();
   if (!loaded) {
     onFailure && onFailure("Could not load Razorpay SDK. Check your internet connection.");
@@ -35,7 +50,7 @@ export async function payWithRazorpay({ amount, amountInPaise, name, email, cont
   const options = {
     key: RAZORPAY_KEY_ID,
     amount: Number.isFinite(Number(amountInPaise)) ? Number(amountInPaise) : amount * 100,
-    currency: "INR",
+    currency: currency || "INR",
     name: "Shri Shahu Prabodhini",
     description: "Sankalp Scholarship Exam Registration Fee",
     order_id: orderId,
