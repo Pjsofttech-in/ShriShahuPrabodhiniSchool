@@ -290,6 +290,8 @@ export default function StudentRegistration() {
     e?.preventDefault();
     setError("");
 
+    if (!form.name.trim()) return setError("Please enter the student's name.");
+    if (!/^[0-9]{10}$/.test(form.mobile.trim())) return setError("Please enter a valid 10-digit mobile number.");
     if (!form.districtId) return setError("Please select a District.");
     if (!form.talukaId) return setError("Please select a Taluka.");
     if (!form.schoolName.trim()) return setError("Please enter your School Name.");
@@ -309,8 +311,10 @@ export default function StudentRegistration() {
       }
 
       const orderId = order.id;
+      const orderAmountInPaise = Number(order.amount);
       payWithRazorpay({
         amount: 250,
+        amountInPaise: orderAmountInPaise,
         name: form.name,
         contact: form.mobile,
         orderId,

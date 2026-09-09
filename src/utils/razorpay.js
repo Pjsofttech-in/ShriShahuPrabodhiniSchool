@@ -1,16 +1,5 @@
-// Razorpay integration helper.
-//
-// SETUP FOR THE CLIENT / DEVELOPER:
-// 1. Create a Razorpay account -> https://dashboard.razorpay.com/
-// 2. Get your Key ID (test mode: rzp_test_xxxx, live mode: rzp_live_xxxx)
-// 3. Replace RAZORPAY_KEY_ID below with your real key.
-// 4. In production, the "order" MUST be created on your backend (Razorpay Orders API)
-//    using your Key Secret — never expose the Key Secret in frontend code.
-//    This dummy version simulates that order-creation step on the client only,
-//    for demo purposes, and should be swapped for a real API call, e.g.:
-//      const order = await fetch('/api/create-order', { method: 'POST', ... }).then(r => r.json())
-//
-// Docs: https://razorpay.com/docs/payments/payment-gateway/web-integration/standard/
+// Razorpay checkout helper. Order creation and signature verification happen on the API.
+// Never put the Razorpay key secret in Vite environment variables or frontend code.
 
 export const RAZORPAY_KEY_ID = import.meta.env.VITE_RAZORPAY_KEY_ID || "rzp_test_XXXXXXXXXXXX";
 
@@ -29,38 +18,23 @@ export function loadRazorpayScript() {
  * Opens the Razorpay Checkout modal.
  * @param {Object} opts
  * @param {number} opts.amount - Amount in INR (rupees), e.g. 250
+ * @param {number} opts.amountInPaise - Server-created order amount in paise
  * @param {string} opts.name - Student / payer name
  * @param {string} opts.email - Payer email (optional)
  * @param {string} opts.contact - Payer mobile number
  * @param {Function} opts.onSuccess - called with { paymentId, orderId, signature } on success
  * @param {Function} opts.onFailure - called with (error) on failure/cancel
  */
-export async function payWithRazorpay({ amount, name, email, contact, orderId, onSuccess, onFailure }) {
+export async function payWithRazorpay({ amount, amountInPaise, name, email, contact, orderId, onSuccess, onFailure }) {
   const loaded = await loadRazorpayScript();
   if (!loaded) {
     onFailure && onFailure("Could not load Razorpay SDK. Check your internet connection.");
     return;
   }
 
-  if (RAZORPAY_KEY_ID.includes("XXXX")) {
-    const confirmed = window.confirm(
-      `Demo Payment Gateway\n\nAmount: ₹${amount}\nName: ${name}\n\n(No real Razorpay key configured yet — click OK to simulate a successful payment.)`
-    );
-    if (confirmed) {
-      onSuccess && onSuccess({
-        paymentId: "pay_demo_" + Math.random().toString(36).slice(2, 12),
-        orderId: "order_demo_" + Math.random().toString(36).slice(2, 12),
-        signature: "demo_signature_" + Math.random().toString(36).slice(2, 12),
-      });
-    } else {
-      onFailure && onFailure("Payment cancelled by user.");
-    }
-    return;
-  }
-
   const options = {
     key: RAZORPAY_KEY_ID,
-    amount: amount * 100,
+    amount: Number.isFinite(Number(amountInPaise)) ? Number(amountInPaise) : amount * 100,
     currency: "INR",
     name: "Shri Shahu Prabodhini",
     description: "Sankalp Scholarship Exam Registration Fee",

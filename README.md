@@ -17,23 +17,20 @@ To build for hosting:
 npm run build       # outputs to /dist — upload this folder to any static host
 ```
 
-## 2. Connect your real Razorpay account
+## 2. Production configuration
 
-Open `src/utils/razorpay.js`:
-1. Sign up / log in at https://dashboard.razorpay.com/
-2. Copy your **Key ID** (test: `rzp_test_...`, live: `rzp_live_...`)
-3. Replace the placeholder:
-   ```js
-   export const RAZORPAY_KEY_ID = "rzp_test_XXXXXXXXXXXX"; // <- put your real key here
-   ```
-Until you do this, the registration form runs in **Demo Mode** — clicking "Pay & Register"
-shows a simulated payment confirmation so you can test the full flow (roll number, login,
-etc.) without a live key.
+The production client points to `https://shrishahuprabodhini.in/api` and uses the live
+Razorpay Key ID from `.env.production`. The client calls these backend endpoints during
+registration:
 
-**Important (do before going live):** Razorpay orders should be created on a backend server
-using your **Key Secret** (never put the Key Secret in frontend code). This project currently
-simulates that order step on the client for demo purposes only — see the comments in
-`src/utils/razorpay.js` for exactly where to plug in a real `/api/create-order` call.
+- `POST /api/payments/create-order`
+- `POST /api/payments/verify`
+- `POST /api/students`
+
+Configure the matching Razorpay **Key ID** and **Key Secret** in the backend deployment.
+The Key Secret must never be added to a `VITE_` variable, committed to this repository, or
+sent to the browser. The backend must verify the Razorpay signature before allowing the
+student record to be saved.
 
 ## 3. Where things live
 
