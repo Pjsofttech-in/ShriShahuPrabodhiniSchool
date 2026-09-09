@@ -908,25 +908,24 @@ export async function loginUser(role, credentials) {
   }
 }
 
-export async function requestPasswordOtp(identifier, method = "mobile") {
-  const response = await api.post("/api/auth/student/forgot-password", {
-    [method === "email" ? "email" : "mobile"]: String(identifier).trim(),
+export async function requestPasswordOtp(identifier) {
+  const response = await api.post("/api/auth/forgot-password", {
+    email: String(identifier).trim(),
   });
   return response.data;
 }
 
-export async function verifyPasswordOtp(identifier, otp, method = "mobile") {
-  const response = await api.post("/api/auth/student/verify-otp", {
-    [method === "email" ? "email" : "mobile"]: String(identifier).trim(),
+export async function verifyPasswordOtp(identifier, otp) {
+  const response = await api.post("/api/auth/verify-forgot-password-otp", {
+    email: String(identifier).trim(),
     otp: String(otp).trim(),
   });
   return response.data;
 }
 
-export async function resetStudentPassword(identifier, otp, newPassword, method = "mobile") {
-  const response = await api.post("/api/auth/student/reset-password", {
-    [method === "email" ? "email" : "mobile"]: String(identifier).trim(),
-    otp: String(otp).trim(),
+export async function resetStudentPassword(identifier, newPassword) {
+  const response = await api.post("/api/auth/reset-password", {
+    email: String(identifier).trim(),
     newPassword,
   });
   return response.data;

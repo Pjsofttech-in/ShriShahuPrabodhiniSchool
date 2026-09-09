@@ -24,7 +24,6 @@ import logo from "../asset/logo.png";
 const examLinks = [
   { to: "/sankalp/exam-information", label: "Exam Information" },
   { to: "/sankalp/test-series", label: "Test Series" },
-  { to: "/sankalp/ebook", label: "Ebook" },
   { to: "/sankalp/syllabus", label: "Syllabus" },
   { to: "/sankalp/answer-key", label: "Answer Key" },
   { to: "/sankalp/result-check", label: "Result Check" },
@@ -123,7 +122,7 @@ export default function Navbar() {
     : "/login";
 
   return (
-    <header className="sticky top-0 z-50 shadow-lg">
+    <header className="fixed inset-x-0 top-0 z-50 shadow-lg">
       {/* Top strip */}
       <div className="hidden md:block bg-navy-dark text-white/90 text-xs overflow-hidden border-b border-white/15">
         <div className="container-app overflow-hidden py-1.5">
@@ -147,7 +146,7 @@ export default function Navbar() {
             </div>
           </Link>
 
-          <div className="hidden min-w-0 flex-1 items-center justify-end gap-0 2xl:flex 2xl:ml-6">
+          <div className="hidden min-w-0 flex-1 items-center justify-end gap-0 xl:flex xl:ml-6">
             <NavLink to="/home" className={navItemClass}>Home</NavLink>
             <Dropdown label="Sankalp" links={examLinks} />
             <NavLink to="/courses" className={navItemClass}>Courses</NavLink>
@@ -180,16 +179,16 @@ export default function Navbar() {
             </Link>
           </div>
 
-          <button type="button" className="flex h-11 w-11 items-center justify-center rounded-md border-2 border-slate-300 text-navy bg-white hover:bg-slate-50 hover:border-slate-400 2xl:hidden dark:text-slate-200 dark:bg-[#263238] dark:border-slate-600 dark:hover:bg-[#2f3d45] dark:hover:border-slate-500 transition-all duration-300" onClick={() => setMobileOpen((o) => !o)} aria-label="Toggle menu" aria-expanded={mobileOpen}>
+          <button type="button" className="flex h-11 w-11 items-center justify-center rounded-md border-2 border-slate-300 text-navy bg-white hover:bg-slate-50 hover:border-slate-400 xl:hidden dark:text-slate-200 dark:bg-[#263238] dark:border-slate-600 dark:hover:bg-[#2f3d45] dark:hover:border-slate-500 transition-all duration-300" onClick={() => setMobileOpen((o) => !o)} aria-label="Toggle menu" aria-expanded={mobileOpen}>
             {mobileOpen ? <X size={24} strokeWidth={2} /> : <Menu size={24} strokeWidth={2} />}
           </button>
         </div>
 
         {/* Mobile nav */}
         {mobileOpen && (
-          <div className="2xl:hidden border-t border-black/10 bg-white px-3 pb-4 pt-3 dark:border-white/10 dark:bg-[#172126]">
+          <div className="xl:hidden max-h-[calc(100dvh-4rem)] overflow-y-auto border-t border-black/10 bg-white px-3 pb-4 pt-3 dark:border-white/10 dark:bg-[#172126]">
             <div className="rounded-2xl border border-black/5 bg-slate-50 p-2 shadow-[0_12px_30px_rgba(38,50,56,0.12)] dark:border-white/10 dark:bg-[#1d2a30]">
-              <div className="grid grid-cols-5 gap-1">
+              <div className="grid grid-cols-3 gap-1 sm:grid-cols-5">
                 {mobilePrimaryLinks.map((link) => (
                   <NavLink
                     key={link.to}
@@ -229,7 +228,7 @@ export default function Navbar() {
                 </div>
               )}
 
-              <div className="mt-2 flex items-center justify-between gap-1 border-t border-black/5 pt-2 dark:border-white/10">
+              <div className="mt-2 grid grid-cols-4 gap-1 border-t border-black/5 pt-2 dark:border-white/10">
                 {mobileUtilityLinks.map(({ to, label, Icon }) => (
                   <Link
                     key={to}

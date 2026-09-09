@@ -2,19 +2,23 @@ import React, { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   GraduationCap, Target, MapPin, FileCheck2, ArrowRight, CalendarDays,
-  Quote, MapPinned, ImageOff, BookOpen, Zap, Globe, CheckCircle,
+  Quote, MapPinned, ImageOff, BookOpen, Zap, Globe, CheckCircle, Award,
+  BadgeCheck, Medal, Trophy, LoaderCircle,
 } from "lucide-react";
 import ImageSlider from "../components/ImageSlider.jsx";
+import CourseCard from "../components/CourseCard.jsx";
+import GalleryLightbox from "../components/GalleryLightbox.jsx";
 import {
   sliderSlides, featureCounts, schoolFeatures, examInfo, schoolInfo,
 } from "../data/siteData.js";
 import {
   fetchCourses, fetchFaculties, fetchGallery, fetchTestimonials,
-  fetchToppers, fetchHeroSections, fetchContactInfo, submitContactForm,
+  fetchToppers, fetchAwards, fetchHeroSections, fetchContactInfo, submitContactForm,
 } from "../services/backendService.js";
 import { API_BASE_URL } from "../utils/api.js";
 
 const icons = { GraduationCap, Target, MapPin, FileCheck2, BookOpen, Zap, Globe, CheckCircle };
+const awardIcons = [Trophy, Medal, Award, BadgeCheck];
 
 function Counter({ value, suffix }) {
   const [count, setCount] = useState(0);
@@ -74,9 +78,9 @@ function SectionHeading({
 }) {
   return (
     <div className={`mb-10 ${center ? "text-center max-w-2xl mx-auto" : ""}`}>
-      <span className={`eyebrow ${eyebrowClassName}`}>
+      {eyebrow && <span className={`eyebrow ${eyebrowClassName}`}>
         {eyebrow}
-      </span>
+      </span>}
 
       <ColoredTitle text={title} className={titleClassName} />
 
@@ -107,29 +111,34 @@ function MissingImage({ className = "" }) {
 }
 
 export default function Home() {
-  const [liveData, setLiveData] = React.useState({ heroSections: [], courses: [], toppers: [], gallery: [], faculties: [], testimonials: [], contactInfo: null });
+  const [liveData, setLiveData] = React.useState({ heroSections: [], courses: [], toppers: [], awards: [], gallery: [], faculties: [], testimonials: [], contactInfo: null });
+  const [awardsLoading, setAwardsLoading] = React.useState(true);
 
   React.useEffect(() => {
     let active = true;
-    Promise.allSettled([fetchHeroSections(), fetchCourses(), fetchToppers(), fetchGallery(), fetchFaculties(), fetchTestimonials(), fetchContactInfo()]).then((results) => {
+    Promise.allSettled([fetchHeroSections(), fetchCourses(), fetchToppers(), fetchAwards(), fetchGallery(), fetchFaculties(), fetchTestimonials(), fetchContactInfo()]).then((results) => {
       if (!active) return;
-      const [heroResult, coursesResult, toppersResult, galleryResult, facultiesResult, testimonialsResult, contactResult] = results;
+      const [heroResult, coursesResult, toppersResult, awardsResult, galleryResult, facultiesResult, testimonialsResult, contactResult] = results;
       setLiveData({
         heroSections: heroResult.status === "fulfilled" ? heroResult.value : [],
         courses: coursesResult.status === "fulfilled" ? coursesResult.value : [],
         toppers: toppersResult.status === "fulfilled" ? toppersResult.value : [],
+        awards: awardsResult.status === "fulfilled" ? awardsResult.value.sort((first, second) => Number(second.year) - Number(first.year)) : [],
         gallery: galleryResult.status === "fulfilled" ? galleryResult.value : [],
         faculties: facultiesResult.status === "fulfilled" ? facultiesResult.value : [],
         testimonials: testimonialsResult.status === "fulfilled" ? testimonialsResult.value : [],
         contactInfo: contactResult.status === "fulfilled" ? contactResult.value : null,
       });
+      setAwardsLoading(false);
     });
     return () => { active = false; };
   }, []);
 
-  const { heroSections, courses, toppers, gallery, faculties, testimonials, contactInfo } = liveData;
+  const { heroSections, courses, toppers, awards, gallery, faculties, testimonials, contactInfo } = liveData;
   const heroSlides = heroSections
     .sort((first, second) => first.priority - second.priority);
+  const galleryPreview = gallery.slice(0, 5);
+  const galleryFocusIndex = Math.floor((galleryPreview.length - 1) / 2);
 
   return (
     <div>
@@ -168,6 +177,36 @@ export default function Home() {
               <div className="flex justify-between"><dt className="text-muted">Centers</dt><dd className="font-bold text-navy">{examInfo.centers}</dd></div>
             </dl>
           </div>
+        </div>
+      </section>
+
+      {/* 3. Awards & Recognition */}
+      <section className="relative overflow-hidden bg-cream py-8 md:py-12">
+        <div className="absolute right-0 top-0 h-72 w-72 translate-x-1/3 -translate-y-1/3 rounded-full bg-gold/10" />
+        <div className="container-app relative">
+          <SectionHeading title="Awards & Recognition" center />
+          {awardsLoading && <div className="flex items-center justify-center gap-3 py-12 text-muted"><LoaderCircle className="animate-spin text-gold" size={24} /> Loading recognitions...</div>}
+          {!awardsLoading && awards.length === 0 && <p className="py-8 text-center text-muted">No recognitions have been published yet.</p>}
+          {!awardsLoading && awards.length > 0 && <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            {awards.slice(0, 4).map((award, index) => {
+              const Icon = awardIcons[index % awardIcons.length];
+              const image = resolveImageUrl(award.image);
+              return <article key={award.id} className="group flex h-full flex-col overflow-hidden rounded-[26px] border border-[#ffe0c2] bg-white shadow-[0_12px_30px_rgba(11,37,69,0.08)] transition duration-300 hover:-translate-y-1.5 hover:border-gold/60 hover:shadow-[0_18px_38px_rgba(255,109,0,0.15)]">
+                <div className="relative h-56 overflow-hidden bg-[linear-gradient(145deg,#fff7ed,#f3f4f6)] sm:h-48">
+                  {image ? <img src={image} alt={award.title} className="h-full w-full object-contain object-center transition duration-500 group-hover:scale-[1.02]" /> : <div className="flex h-full items-center justify-center bg-navy-light"><Icon size={56} className="text-white" strokeWidth={1.2} /></div>}
+                  <div className="absolute inset-0 bg-gradient-to-t from-navy/75 via-transparent to-transparent" />
+                  <span className="absolute left-4 top-4 inline-flex items-center gap-1.5 rounded-full bg-gold px-3 py-1.5 text-xs font-bold text-white shadow-md"><CalendarDays size={15} /> {award.year || "Recognition"}</span>
+                </div>
+                <div className="flex flex-1 flex-col p-5">
+                  <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-gold/15 text-gold-dark"><Icon size={20} /></div>
+                  <h3 className="text-lg font-bold leading-tight text-navy">{award.title}</h3>
+                  {award.description && <p className="mt-2 line-clamp-3 text-sm leading-6 text-muted">{award.description}</p>}
+                  <p className="mt-auto border-t border-slate-100 pt-4 text-sm text-muted">Awarded by <strong className="text-navy">{award.by}</strong></p>
+                </div>
+              </article>;
+            })}
+          </div>}
+          <div className="mt-10 flex justify-center"><Link to="/awards" className="btn-outline">View More Awards <ArrowRight size={16} /></Link></div>
         </div>
       </section>
 
@@ -224,26 +263,9 @@ export default function Home() {
     />
 
     {/* Courses Grid */}
-    <div className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+    <div className="mt-8 grid items-start grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
       {courses.slice(0, 4).map((c) => (
-        <div key={c.id} className="group flex h-full flex-col overflow-hidden rounded-2xl border border-[#ffd8b5] bg-white shadow-[0_14px_32px_rgba(15,35,82,0.08)] transition-all duration-300 hover:-translate-y-1 hover:border-[#ff9a4d] hover:shadow-[0_18px_40px_rgba(255,109,0,0.16)]">
-          <div className="relative aspect-[16/9] overflow-hidden bg-navy-dark">
-            {c.image ? <img src={resolveImageUrl(c.image)} alt={c.name} className="h-full w-full object-cover object-center transition-transform duration-500 group-hover:scale-105" /> : <MissingImage className="h-full w-full" />}
-            <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-navy-dark/80 to-transparent px-4 pb-3 pt-8">
-              <span className="rounded-full bg-gold px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.12em] text-white shadow-sm">Sankalp Course</span>
-            </div>
-          </div>
-
-          <div className="flex flex-1 flex-col border-t border-[#ffead8] p-5">
-            <h3 className="mb-2 text-base font-bold text-navy">{c.name}</h3>
-            <p className="mb-4 text-xs leading-5 text-muted line-clamp-3">{c.desc}</p>
-            <div className="mb-4 flex items-center justify-between text-xs text-muted">
-              <span>{c.duration}</span>
-              <span className="font-bold text-navy">{c.fee}</span>
-            </div>
-            <Link to="/register" className="btn-primary w-full justify-center">Enroll Now</Link>
-          </div>
-        </div>
+        <CourseCard key={c.id} course={c} />
       ))}
     </div>
 
@@ -282,7 +304,7 @@ export default function Home() {
             flex-col
             w-full
             max-w-none
-            overflow-hidden
+            overflow-visible
             rounded-[1.25rem]
             border
             border-gold/20
@@ -339,27 +361,15 @@ export default function Home() {
     />
 
     {/* Gallery Grid */}
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-10">
-      {gallery.slice(0, 4).map((g) => (
+    <div className="mt-10 flex items-center justify-start gap-3 overflow-x-auto px-2 py-8 sm:justify-center sm:gap-4 sm:overflow-visible md:gap-5">
+      {galleryPreview.map((g, index) => (
         <div
           key={g.id}
-          className="
-            relative
-            rounded-xl
-            overflow-hidden
-            group
-            h-44
-            transition-all
-            duration-500
-            hover:-translate-y-2
-            hover:shadow-2xl
-            hover:ring-2
-            hover:ring-gold/40
-          "
+          className={`group relative h-40 min-w-[72%] shrink-0 overflow-visible rounded-xl transition-all duration-500 hover:z-30 hover:-translate-y-2 hover:shadow-2xl hover:ring-2 hover:ring-gold/40 sm:h-48 sm:min-w-0 sm:flex-1 md:h-56 ${index === galleryFocusIndex ? "sm:flex-[1.28] sm:scale-110" : "sm:scale-95"}`}
         >
-          {g.images?.[0] ? <img src={resolveImageUrl(g.images[0])} alt={g.title} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" /> : <MissingImage />}
+          {g.images?.[0] ? <GalleryLightbox image={resolveImageUrl(g.images[0])} title={g.title} compact><img src={resolveImageUrl(g.images[0])} alt={g.title} className="relative z-0 w-full h-full rounded-xl object-cover transition-all duration-500 group-hover:z-20 group-hover:scale-[1.28] group-hover:shadow-[0_18px_42px_rgba(8,24,39,0.38)] group-hover:ring-4 group-hover:ring-gold group-hover:ring-offset-2 group-hover:ring-offset-white" /></GalleryLightbox> : <MissingImage />}
 
-          <div className="absolute inset-0 bg-navy-dark/0 group-hover:bg-navy-dark/50 transition-colors duration-500 flex items-end p-3">
+          <div className="pointer-events-none absolute inset-0 flex items-end bg-navy-dark/0 p-3 transition-colors duration-500 group-hover:bg-navy-dark/50">
             <p className="text-white text-xs font-semibold opacity-0 translate-y-3 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-500">
               {g.title}
             </p>
@@ -454,32 +464,34 @@ export default function Home() {
 </section>
 
       {/* 9. Student Testimonials */}
-      <section className="section-pad bg-navy">
-        <div className="container-app ">
-        <div className="mb-10 text-center max-w-2xl mx-auto">
-          <span className="eyebrow">Voices</span>
-          <h2 className="text-2xl md:text-4xl font-bold">
-            <span className="text-gold">What</span> <span className="text-white">Our</span> <span className="text-gold">Students</span> <span className="text-white">Say</span>
-          </h2>
-        </div>
-          <div className="grid md:grid-cols-3 gap-6">
-            {testimonials.slice(0, 3).map((t) => (
-              <div key={t.id} className="bg-white/5 border border-white/10 rounded-xl p-6 relative">
-                <Quote className="text-gold mb-3" size={26} />
-                <p className="text-white/85 text-sm leading-relaxed mb-5">"{t.description || "No testimonial text available."}"</p>
-                <div className="flex items-center gap-3">
-                  {t.image ? <img src={resolveImageUrl(t.image)} alt={t.name} className="w-11 h-11 rounded-full object-cover" /> : <MissingImage className="h-11 w-11 min-h-0 rounded-full" />}
-                  <div>
-                    <p className="text-white font-bold text-sm">{t.name}</p>
-                    <p className="text-white/50 text-xs">{[t.exam, t.post].filter(Boolean).join(" · ") || "Student"}</p>
+      <section className="relative overflow-hidden bg-gradient-to-br from-[#172126] via-[#21343b] to-[#172126] section-pad">
+        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold/70 to-transparent" />
+        <div className="container-app relative">
+          <div className="content-reveal mx-auto mb-8 max-w-2xl text-center">
+            <span className="eyebrow testimonial-float">Voices</span>
+            <h2 className="text-2xl font-bold sm:text-3xl md:text-4xl">
+              <span className="text-gold">What</span> <span className="text-white">Our</span> <span className="text-gold">Students</span> <span className="text-white">Say</span>
+            </h2>
+          </div>
+          <div className="grid items-stretch gap-5 md:grid-cols-3">
+            {testimonials.slice(0, 3).map((t, index) => (
+              <article key={t.id} className="testimonial-reveal group relative flex h-full min-h-[16rem] flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#263238] p-6 shadow-[0_14px_35px_rgba(0,0,0,0.18)] transition-all duration-300 hover:-translate-y-2 hover:border-gold/60 hover:shadow-[0_20px_44px_rgba(255,109,0,0.2)]" style={{ animationDelay: `${index * 100}ms` }}>
+                <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-gold to-[#ff9a4d] opacity-80 transition-opacity group-hover:opacity-100" />
+                <Quote className="testimonial-float mb-5 text-gold" size={30} strokeWidth={1.8} />
+                <p className="flex-1 text-sm leading-7 text-white/80">“{t.description || "No testimonial text available."}”</p>
+                <div className="mt-7 flex items-center gap-3 border-t border-white/10 pt-4">
+                  {t.image ? <img src={resolveImageUrl(t.image)} alt={t.name} className="h-12 w-12 rounded-full border-2 border-gold/50 object-cover transition-transform duration-300 group-hover:scale-110" /> : <MissingImage className="h-12 w-12 min-h-0 rounded-full" />}
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-bold text-white">{t.name}</p>
+                    <p className="truncate text-xs text-white/50">{[t.exam, t.post].filter(Boolean).join(" · ") || "Student"}</p>
                   </div>
                 </div>
-              </div>
+              </article>
             ))}
           </div>
-          <div className="text-center mt-10">
-            <Link to="/testimonials" className="border-2 border-white/30 text-white font-bold px-6 py-3 rounded-md hover:bg-white/10 transition inline-flex">
-              View All Testimonials
+          <div className="mt-10 text-center">
+            <Link to="/testimonials" className="inline-flex items-center gap-2 rounded-md border-2 border-gold/70 px-6 py-3 font-bold text-white transition hover:-translate-y-1 hover:bg-gold hover:text-white hover:shadow-[0_8px_20px_rgba(255,109,0,0.25)]">
+              View All Testimonials <ArrowRight size={16} />
             </Link>
           </div>
         </div>
@@ -492,7 +504,7 @@ export default function Home() {
             <SectionHeading eyebrow="Get In Touch" title="Contact Us" desc="Have a question about admissions, centers or results? Send us a message." />
             <ContactMiniForm />
           </div>
-          <div className="overflow-hidden rounded-xl bg-navy shadow-lg">
+          <div className="h-fit self-start overflow-hidden rounded-xl bg-navy shadow-lg">
             <div className="flex items-start justify-between gap-4 border-b border-white/10 px-5 py-4 text-white sm:px-6">
               <div>
                 <p className="text-xs font-bold uppercase tracking-[0.18em] text-gold">Find Us</p>
@@ -500,7 +512,7 @@ export default function Home() {
               </div>
               <MapPin className="mt-1 shrink-0 text-gold" size={24} />
             </div>
-            <div className="aspect-[4/3] min-h-[260px] w-full sm:min-h-[320px] md:aspect-auto md:h-[420px]">
+            <div className="aspect-[4/3] min-h-[260px] w-full sm:min-h-[320px]">
               <iframe
                 title={`School location map - ${contactInfo?.address || "Swargate, Pune"}`}
                 src={getMapEmbedUrl(contactInfo?.mapLink)}

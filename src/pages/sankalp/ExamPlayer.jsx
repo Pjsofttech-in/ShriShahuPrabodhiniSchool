@@ -138,16 +138,21 @@ export default function ExamPlayer() {
   function selectAnswer(qid, optionIndex) {
     setAnswers((a) => ({ ...a, [qid]: optionIndex }));
     const question = questions.find((item) => String(item.id) === String(qid));
+
     if (attemptId && question) {
+      // 🚀 Map 0 -> 'A', 1 -> 'B', 2 -> 'C', 3 -> 'D'
+      const optionLetter = "ABCD"[optionIndex] || "";
+
       saveAttemptAnswer(attemptId, {
         questionId: qid,
-        selectedAnswer: question.options[optionIndex],
+        selectedAnswer: optionLetter, // Saves "A", "B", etc. instead of the full text string
       }).catch((error) => {
         console.warn("Failed to save answer:", error);
         setSubmitError("An answer could not be saved. Please try again.");
       });
     }
   }
+
 
   function computeResult() {
     let score = 0;
@@ -325,14 +330,14 @@ export default function ExamPlayer() {
                     })}
                   </div>
 
-                  <div className="mt-4 flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <button onClick={prevQuestion} disabled={currentIndex===0} className="rounded-md border px-3 py-2">Prev</button>
-                      <button onClick={nextQuestion} disabled={currentIndex===questions.length-1} className="flex items-center gap-2 rounded-md border border-blue-300 px-3 py-2 text-sm font-semibold text-blue-700 transition hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-50">Save &amp; Next <ArrowRight size={15} /></button>
+                  <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <button onClick={prevQuestion} disabled={currentIndex === 0} className="rounded-md border px-3 py-2">Prev</button>
+                      <button onClick={nextQuestion} disabled={currentIndex === questions.length - 1} className="flex items-center gap-2 rounded-md border border-blue-300 px-3 py-2 text-sm font-semibold text-blue-700 transition hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-50">Save &amp; Next <ArrowRight size={15} /></button>
                       <button onClick={() => toggleMark(questions[currentIndex].id)} className="flex items-center gap-2 rounded-md border px-3 py-2 text-sm"><Flag size={15} />{marked[questions[currentIndex].id] ? 'Unmark' : 'Mark for review'}</button>
                     </div>
 
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2 sm:justify-end">
                       <button onClick={() => setSubmitConfirmOpen(true)} className="btn-primary flex items-center justify-center rounded-md bg-red-600 px-4 py-2 text-white"><Send size={15} /> Submit Test</button>
                       <button onClick={() => { if (confirm('Are you sure you want to abandon this test? Your answers will not be saved.')) navigate(-1); }} className="rounded-md border px-4 py-2">Cancel</button>
                     </div>
@@ -346,10 +351,10 @@ export default function ExamPlayer() {
                     {questions.map((q, i) => {
                       const answered = answers[q.id] !== undefined && answers[q.id] !== null;
                       const isMarked = marked[q.id];
-                      const cls = `flex h-9 w-9 items-center justify-center rounded text-sm ${i===currentIndex ? 'bg-blue-600 text-white' : answered ? 'bg-green-100 text-green-800' : isMarked ? 'bg-yellow-100 text-yellow-800' : 'bg-slate-100'}`;
+                      const cls = `flex h-9 w-9 items-center justify-center rounded text-sm ${i === currentIndex ? 'bg-blue-600 text-white' : answered ? 'bg-green-100 text-green-800' : isMarked ? 'bg-yellow-100 text-yellow-800' : 'bg-slate-100'}`;
                       return (
-                        <button key={q.id} onClick={() => gotoQuestion(i)} className={cls} title={`Q ${i+1}${isMarked? ' (marked)':''}${answered? ' (answered)':''}`}>
-                          {i+1}
+                        <button key={q.id} onClick={() => gotoQuestion(i)} className={cls} title={`Q ${i + 1}${isMarked ? ' (marked)' : ''}${answered ? ' (answered)' : ''}`}>
+                          {i + 1}
                         </button>
                       );
                     })}
@@ -398,7 +403,7 @@ export default function ExamPlayer() {
                 <div><dt className="font-medium">Name</dt><dd>{exam?.name}</dd></div>
                 <div><dt className="font-medium">Duration</dt><dd>{exam?.duration || 'N/A'} min</dd></div>
                 <div><dt className="font-medium">Questions</dt><dd>{questions.length}</dd></div>
-                <div><dt className="font-medium">Total Marks</dt><dd>{questions.reduce((s,q)=>s+Number(q.marks||1),0)}</dd></div>
+                <div><dt className="font-medium">Total Marks</dt><dd>{questions.reduce((s, q) => s + Number(q.marks || 1), 0)}</dd></div>
               </dl>
               {!submitted && (
                 <div className="mt-4 text-sm text-slate-600">Keep an eye on the timer. The test will auto-submit when time runs out.</div>
@@ -412,10 +417,10 @@ export default function ExamPlayer() {
                     {questions.map((q, i) => {
                       const answered = answers[q.id] !== undefined && answers[q.id] !== null;
                       const isMarked = marked[q.id];
-                      const cls = `flex h-9 w-9 items-center justify-center rounded text-sm ${i===currentIndex ? 'bg-blue-600 text-white' : answered ? 'bg-green-100 text-green-800' : isMarked ? 'bg-yellow-100 text-yellow-800' : 'bg-slate-100'}`;
+                      const cls = `flex h-9 w-9 items-center justify-center rounded text-sm ${i === currentIndex ? 'bg-blue-600 text-white' : answered ? 'bg-green-100 text-green-800' : isMarked ? 'bg-yellow-100 text-yellow-800' : 'bg-slate-100'}`;
                       return (
-                        <button key={q.id} onClick={() => gotoQuestion(i)} className={cls} title={`Q ${i+1}${isMarked? ' (marked)':''}${answered? ' (answered)':''}`}>
-                          {i+1}
+                        <button key={q.id} onClick={() => gotoQuestion(i)} className={cls} title={`Q ${i + 1}${isMarked ? ' (marked)' : ''}${answered ? ' (answered)' : ''}`}>
+                          {i + 1}
                         </button>
                       );
                     })}

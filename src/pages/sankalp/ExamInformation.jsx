@@ -1,8 +1,8 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   ArrowRight,
-  BookOpenText,
+  ArrowUpRight,
   FileCheck2,
   FileText,
   GraduationCap,
@@ -12,12 +12,13 @@ import {
 } from "lucide-react";
 import PageHeader from "../../components/PageHeader.jsx";
 import { examInfo } from "../../data/siteData.js";
+import { fetchSyllabus } from "../../services/backendService.js";
 
 const quickLinks = [
   { label: "Pages", to: "/sankalp/exam-information", icon: LayoutGrid },
   { label: "Test Series", to: "/sankalp/test-series", icon: NotebookPen },
   { label: "Answer Key", to: "/sankalp/answer-key", icon: FileText },
-  { label: "Ebook", to: "/sankalp/ebook", icon: BookOpenText },
+  { label: "Syllabus", to: "/sankalp/syllabus", icon: FileText },
   { label: "Result Check", to: "/sankalp/result-check", icon: FileCheck2 },
   { label: "Result PDF", to: "/sankalp/results-pdf", icon: ScrollText },
 ];
@@ -30,6 +31,28 @@ const registrationSteps = [
 ];
 
 export default function ExamInformation() {
+  const [syllabus, setSyllabus] = useState([]);
+  const [syllabusLoading, setSyllabusLoading] = useState(true);
+
+  useEffect(() => {
+    let mounted = true;
+
+    fetchSyllabus()
+      .then((data) => {
+        if (mounted) setSyllabus(data);
+      })
+      .catch((error) => {
+        console.error("Failed to fetch syllabus:", error);
+      })
+      .finally(() => {
+        if (mounted) setSyllabusLoading(false);
+      });
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
   return (
     <div>
       <PageHeader title="Sankalp Exam Information" crumb="Exam Information" compact />
@@ -149,6 +172,41 @@ export default function ExamInformation() {
                 </div>
               </div>
             </div>
+          </div>
+
+          <div className="relative mt-6 rounded-[28px] border border-[#ffe7d1] bg-white p-4 shadow-[0_14px_40px_rgba(11,37,69,0.08)] sm:p-5 md:p-8">
+            <div className="mb-5 flex items-end justify-between gap-4 border-b border-slate-200 pb-4">
+              <div>
+                <p className="mb-2 text-xs font-bold uppercase tracking-[0.2em] text-gold-dark">Prepare with confidence</p>
+                <h2 className="text-2xl font-black text-navy md:text-3xl">Syllabus</h2>
+              </div>
+              <Link to="/sankalp/syllabus" className="hidden items-center gap-1 text-sm font-bold text-gold-dark hover:text-gold md:inline-flex">
+                View all <ArrowRight size={15} />
+              </Link>
+            </div>
+
+            {syllabusLoading ? (
+              <div className="py-8 text-center text-sm text-slate-500">Loading syllabus...</div>
+            ) : syllabus.length === 0 ? (
+              <div className="rounded-2xl border border-dashed border-[#f2c49c] bg-[#fffaf5] px-5 py-8 text-center text-sm text-slate-500">
+                No syllabus is available right now.
+              </div>
+            ) : (
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {syllabus.map((item) => (
+                  <div key={item.id} className="flex items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-slate-50/70 px-4 py-4">
+                    <span className="font-bold text-navy">{item.title}</span>
+                    {item.link ? (
+                      <a href={item.link} target="_blank" rel="noreferrer" className="shrink-0 text-gold-dark hover:text-gold" aria-label={`Open ${item.title}`}>
+                        <ArrowUpRight size={18} />
+                      </a>
+                    ) : (
+                      <span className="shrink-0 text-xs text-slate-400">Unavailable</span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </section>

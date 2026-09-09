@@ -6,6 +6,7 @@ import ProtectedRoute from "./components/ProtectedRoute.jsx";
 
 import Home from "./pages/Home.jsx";
 import Courses from "./pages/Courses.jsx";
+import CourseDetails from "./pages/CourseDetails.jsx";
 import Features from "./pages/Features.jsx";
 import Awards from "./pages/Awards.jsx";
 import Toppers from "./pages/Toppers.jsx";
@@ -29,7 +30,6 @@ import AnswerKey from "./pages/sankalp/AnswerKey.jsx";
 import ResultCheck from "./pages/sankalp/ResultCheck.jsx";
 import ResultsPDF from "./pages/sankalp/ResultsPDF.jsx";
 import TestSeries from "./pages/sankalp/TestSeries.jsx";
-import Ebook from "./pages/sankalp/ebook/Ebook.jsx";
 import TestSeriesDetail from "./pages/sankalp/TestSeriesDetail.jsx";
 import StartExam from "./pages/sankalp/StartExam.jsx";
 import ExamPlayer from "./pages/sankalp/ExamPlayer.jsx";
@@ -53,12 +53,12 @@ export default function App() {
             <Route path="/sankalp/result-check" element={<ResultCheck />} />
             <Route path="/sankalp/results-pdf" element={<ResultsPDF />} />
             <Route path="/sankalp/test-series" element={<TestSeries />} />
-            <Route path="/sankalp/ebook" element={<Ebook />} />
             <Route path="/sankalp/test-series/:id" element={<TestSeriesDetail />} />
             <Route path="/exam/:id/start" element={<StartExam />} />
             <Route path="/exam/:id" element={<ExamPlayer />} />
 
             <Route path="/courses" element={<Courses />} />
+            <Route path="/courses/:id" element={<CourseDetails />} />
             <Route path="/features" element={<Features />} />
             <Route path="/awards" element={<Awards />} />
             <Route path="/toppers" element={<Toppers />} />

@@ -40,6 +40,7 @@ export default function Layout() {
   return (
     <div className="min-h-screen flex flex-col">
       <Navbar />
+      <div aria-hidden="true" className="h-16 md:h-[92px] xl:h-[108px]" />
       <main key={location.pathname} className="flex-1 page-transition">
         <Outlet />
       </main>
