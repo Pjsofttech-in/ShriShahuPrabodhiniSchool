@@ -309,7 +309,7 @@ export default function StudentRegistration() {
       console.log("Backend Order Response:", order);
       console.log("Razorpay Order ID:", order?.id);
 
-      if (!order?.id || !order.id.startsWith("order_")) {
+      if (!order?.id || !String(order.id).startsWith("order_")) {
         console.error("Invalid Razorpay Order ID:", order?.id);
         throw new Error("Invalid Razorpay order received from the server.");
       }
@@ -322,7 +322,7 @@ export default function StudentRegistration() {
         currency: order.currency || "INR",
         name: form.name,
         contact: form.mobile,
-        orderId,
+        orderId: order.id,
         onSuccess: async ({ paymentId, orderId: razorpayOrderId, signature }) => {
           try {
             const verification = await verifyRazorpayPayment({
@@ -333,13 +333,11 @@ export default function StudentRegistration() {
 
             console.log("Payment verification response:", verification);
 
-            // Check if verification was successful (handle various response formats)
-            const isVerified = 
+            const isVerified =
               verification === "Payment Successful" ||
               verification?.success === true ||
               verification?.verified === true ||
-              verification?.message === "Payment verified" ||
-              (typeof verification === "object" && verification !== null);
+              verification?.message === "Payment verified";
 
             if (!isVerified) {
               throw new Error("Payment verification failed.");

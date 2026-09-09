@@ -35,7 +35,7 @@ export async function payWithRazorpay({ amount, amountInPaise, currency = "INR",
     return;
   }
 
-  if (!orderId || !orderId.startsWith("order_")) {
+  if (!orderId || !String(orderId).startsWith("order_")) {
     console.error("Invalid Razorpay Order ID:", orderId);
     onFailure && onFailure("Invalid Razorpay order received from the server.");
     return;
@@ -44,6 +44,11 @@ export async function payWithRazorpay({ amount, amountInPaise, currency = "INR",
   const loaded = await loadRazorpayScript();
   if (!loaded) {
     onFailure && onFailure("Could not load Razorpay SDK. Check your internet connection.");
+    return;
+  }
+
+  if (!window.Razorpay) {
+    onFailure && onFailure("Razorpay Checkout failed to load.");
     return;
   }
 
