@@ -2,6 +2,9 @@ import api from "../utils/api.js";
 
 const DYNAMIC_PROFILE_URL =
   import.meta.env.VITE_DYNAMIC_PROFILE_URL || window.location.hostname;
+const LIVE_PROFILE_URL = /^https?:\/\//i.test(DYNAMIC_PROFILE_URL)
+  ? DYNAMIC_PROFILE_URL
+  : `https://${DYNAMIC_PROFILE_URL}`;
 
 function looksLikeEntity(value) {
   if (!value || typeof value !== "object" || Array.isArray(value)) return false;
@@ -56,6 +59,7 @@ function normalizeList(payload) {
       "schools",
       "centers",
       "coordinators",
+      "mentors",
       "students",
       "users",
       "syllabus",
@@ -277,7 +281,9 @@ export async function fetchFeatures() {
 }
 
 export async function fetchMentors() {
-  const response = await api.get("/api/mentors");
+  const response = await api.get("/api2/api/mentors", {
+    params: { url: LIVE_PROFILE_URL },
+  });
 
   return normalizeList(response.data).map((mentor, index) => ({
     id: mentor?.id ?? mentor?.mentorId ?? index + 1,
@@ -289,7 +295,7 @@ export async function fetchMentors() {
     description: mentor?.description ?? mentor?.bio ?? mentor?.about ?? "",
     image: mentor?.mentorImage ?? mentor?.image ?? mentor?.imageUrl ?? mentor?.photo ?? "",
     active: mentor?.active ?? mentor?.isActive ?? true,
-  })).filter((mentor) => mentor.active !== false);
+  }));
 }
 
 export async function fetchHeroSections() {
@@ -322,14 +328,16 @@ export async function fetchHeroSections() {
 }
 
 export async function fetchMarquee() {
-  const response = await api.get("/marquee");
+  const response = await api.get("/api2/marquee", {
+    params: { url: LIVE_PROFILE_URL },
+  });
   const marquee = response?.data?.data ?? response?.data?.result ?? response?.data ?? null;
   if (!marquee || typeof marquee !== "object") return [];
 
   const items = marquee.items ?? marquee.messages ?? marquee.texts ?? marquee.marqueeItems;
   if (Array.isArray(items)) return items.map((item) => typeof item === "string" ? item : item?.text ?? item?.title ?? "").filter(Boolean);
 
-  return [marquee.text, marquee.message, marquee.content, marquee.title, marquee.marqueeText, marquee.marqueeMessage]
+  return [marquee.name, marquee.text, marquee.message, marquee.content, marquee.title, marquee.marqueeText, marquee.marqueeMessage]
     .filter((value) => typeof value === "string" && value.trim())
     .map((value) => value.trim());
 }

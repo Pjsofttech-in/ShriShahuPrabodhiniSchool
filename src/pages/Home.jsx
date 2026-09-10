@@ -348,7 +348,7 @@ export default function Home() {
 
     {/* Courses Grid */}
     <div className="relative mt-8 grid items-stretch grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-      {courses.slice(0, 4).map((c) => (
+      {courses.slice(0, 3).map((c) => (
         <CourseCard key={c.id} course={c} showFullImage overlayMode />
       ))}
     </div>
