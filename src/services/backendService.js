@@ -321,6 +321,63 @@ export async function fetchHeroSections() {
   }));
 }
 
+export async function fetchMarquee() {
+  const response = await api.get("/marquee");
+  const marquee = response?.data?.data ?? response?.data?.result ?? response?.data ?? null;
+  if (!marquee || typeof marquee !== "object") return [];
+
+  const items = marquee.items ?? marquee.messages ?? marquee.texts ?? marquee.marqueeItems;
+  if (Array.isArray(items)) return items.map((item) => typeof item === "string" ? item : item?.text ?? item?.title ?? "").filter(Boolean);
+
+  return [marquee.text, marquee.message, marquee.content, marquee.title, marquee.marqueeText, marquee.marqueeMessage]
+    .filter((value) => typeof value === "string" && value.trim())
+    .map((value) => value.trim());
+}
+
+export async function fetchSlideBars() {
+  const response = await api.get("/api2/getAllSlideBars", { params: { url: DYNAMIC_PROFILE_URL } });
+  return normalizeList(response.data).map((slide, index) => ({
+    id: slide?.id ?? slide?.slideBarId ?? slide?.slideId ?? index + 1,
+    title: slide?.title ?? slide?.heading ?? slide?.slideBarTitle ?? slide?.name ?? "",
+    subtitle: slide?.description ?? slide?.subtitle ?? slide?.subTitle ?? slide?.text ?? "",
+    image: slide?.posterImage ?? slide?.poster ?? slide?.image ?? slide?.imageUrl ?? slide?.slideBarImage ?? slide?.slideBarImages?.[0] ?? "",
+    link: slide?.buttonLink ?? slide?.buttonUrl ?? slide?.url ?? slide?.link ?? "/register",
+    linkLabel: slide?.buttonName ?? slide?.buttonLabel ?? slide?.buttonText ?? slide?.linkLabel ?? "",
+    priority: Number(slide?.priority ?? slide?.displayOrder ?? slide?.sequence ?? index),
+    active: slide?.active ?? slide?.isActive ?? true,
+  })).filter((slide) => slide.active !== false);
+}
+
+export async function fetchFAQs() {
+  const response = await api.get("/faqs");
+  return normalizeList(response.data).map((faq, index) => ({
+    id: faq?.id ?? index + 1,
+    question: faq?.question ?? faq?.faqQuestion ?? faq?.title ?? faq?.questionText ?? "",
+    answer: faq?.answer ?? faq?.faqAnswer ?? faq?.content ?? faq?.description ?? "",
+    active: faq?.active ?? faq?.isActive ?? true,
+    priority: Number(faq?.priority ?? faq?.displayOrder ?? faq?.sequence ?? index),
+  })).filter((faq) => faq.active !== false && faq.question && faq.answer)
+    .sort((first, second) => first.priority - second.priority);
+}
+
+export async function fetchExamSection() {
+  const response = await api.get("/exam-section");
+  const section = response?.data?.data ?? response?.data?.result ?? response?.data ?? null;
+  if (!section || typeof section !== "object") return null;
+
+  return {
+    ...section,
+    name: section.name ?? section.examName ?? section.title ?? "",
+    description: section.description ?? section.examDescription ?? section.content ?? "",
+    eligibleClasses: section.eligibleClasses ?? section.classes ?? section.eligibleClass ?? "",
+    examDate: section.examDate ?? section.date ?? "",
+    registrationDeadline: section.registrationDeadline ?? section.registrationLastDate ?? section.lastDate ?? "",
+    fee: section.fee ?? section.registrationFee ?? section.amount ?? null,
+    pattern: section.pattern ?? section.examPattern ?? section.examStructure ?? "",
+    centers: section.centers ?? section.centerCount ?? section.availableCenters ?? "",
+  };
+}
+
 export async function fetchAwards() {
   const response = await api.get("/api2/getAllAwards", {
     params: { url: DYNAMIC_PROFILE_URL },

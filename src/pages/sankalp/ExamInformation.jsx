@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import PageHeader from "../../components/PageHeader.jsx";
 import { examInfo } from "../../data/siteData.js";
-import { fetchSyllabus } from "../../services/backendService.js";
+import { fetchExamSection, fetchFAQs, fetchSyllabus } from "../../services/backendService.js";
 import logo from "../../asset/logo.png";
 
 const quickLinks = [
@@ -42,26 +42,27 @@ const examFaqs = [
 export default function ExamInformation() {
   const [syllabus, setSyllabus] = useState([]);
   const [syllabusLoading, setSyllabusLoading] = useState(true);
+  const [examSection, setExamSection] = useState(null);
+  const [faqs, setFaqs] = useState(examFaqs);
   const [openFaq, setOpenFaq] = useState(0);
 
   useEffect(() => {
     let mounted = true;
 
-    fetchSyllabus()
-      .then((data) => {
-        if (mounted) setSyllabus(data);
-      })
-      .catch((error) => {
-        console.error("Failed to fetch syllabus:", error);
-      })
-      .finally(() => {
-        if (mounted) setSyllabusLoading(false);
-      });
+    Promise.allSettled([fetchSyllabus(), fetchExamSection(), fetchFAQs()]).then(([syllabusResult, sectionResult, faqResult]) => {
+      if (!mounted) return;
+      if (syllabusResult.status === "fulfilled") setSyllabus(syllabusResult.value);
+      if (sectionResult.status === "fulfilled" && sectionResult.value) setExamSection(sectionResult.value);
+      if (faqResult.status === "fulfilled" && faqResult.value.length) setFaqs(faqResult.value);
+      setSyllabusLoading(false);
+    });
 
     return () => {
       mounted = false;
     };
   }, []);
+
+  const liveExamInfo = { ...examInfo, ...(examSection || {}) };
 
   return (
     <div>
@@ -133,7 +134,7 @@ export default function ExamInformation() {
                 <div>
                   <p className="mb-1 text-[10px] font-bold uppercase tracking-[0.2em] text-gold-dark">Scholarship examination</p>
                   <h2 className="text-xl font-black leading-tight text-navy sm:text-2xl md:text-4xl">
-                  {examInfo.name}
+                  {liveExamInfo.name}
                   </h2>
                 </div>
               </div>
@@ -147,34 +148,34 @@ export default function ExamInformation() {
             <div className="grid gap-8 lg:grid-cols-[1.4fr_0.8fr] lg:items-start">
               <div>
                 <p className="mb-5 text-sm leading-6 text-slate-600 md:mb-6 md:text-base md:leading-7">
-                  The Sankalp Scholarship Exam is conducted every academic year to identify and reward talented students across Maharashtra. The exam evaluates conceptual clarity in Mathematics, Science, Language and General Knowledge appropriate to each class level, and top scorers are awarded scholarships, certificates and felicitation at the annual ceremony.
+                  {liveExamInfo.description || "The Sankalp Scholarship Exam is conducted every academic year to identify and reward talented students across Maharashtra. The exam evaluates conceptual clarity in Mathematics, Science, Language and General Knowledge appropriate to each class level, and top scorers are awarded scholarships, certificates and felicitation at the annual ceremony."}
                 </p>
 
                 <div className="overflow-hidden rounded-2xl border border-slate-200 bg-slate-50/80">
                   <dl className="divide-y divide-slate-200">
                     <div className="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
                       <dt className="text-sm text-slate-500">Eligible Classes</dt>
-                      <dd className="text-sm font-bold text-navy">{examInfo.eligibleClasses}</dd>
+                      <dd className="text-sm font-bold text-navy">{liveExamInfo.eligibleClasses}</dd>
                     </div>
                     <div className="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
                       <dt className="text-sm text-slate-500">Exam Date</dt>
-                      <dd className="text-sm font-bold text-navy">{examInfo.examDate}</dd>
+                      <dd className="text-sm font-bold text-navy">{liveExamInfo.examDate}</dd>
                     </div>
                     <div className="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
                       <dt className="text-sm text-slate-500">Registration Deadline</dt>
-                      <dd className="text-sm font-bold text-navy">{examInfo.registrationDeadline}</dd>
+                      <dd className="text-sm font-bold text-navy">{liveExamInfo.registrationDeadline}</dd>
                     </div>
                     <div className="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
                       <dt className="text-sm text-slate-500">Registration Fee</dt>
-                      <dd className="text-sm font-bold text-navy">₹{examInfo.fee}</dd>
+                      <dd className="text-sm font-bold text-navy">₹{liveExamInfo.fee}</dd>
                     </div>
                     <div className="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
                       <dt className="text-sm text-slate-500">Exam Pattern</dt>
-                      <dd className="max-w-[18rem] text-right text-sm font-bold text-navy">{examInfo.pattern}</dd>
+                      <dd className="max-w-[18rem] text-right text-sm font-bold text-navy">{liveExamInfo.pattern}</dd>
                     </div>
                     <div className="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
                       <dt className="text-sm text-slate-500">Centers Available</dt>
-                      <dd className="text-sm font-bold text-navy">{examInfo.centers}</dd>
+                      <dd className="text-sm font-bold text-navy">{liveExamInfo.centers}</dd>
                     </div>
                   </dl>
                 </div>
@@ -246,7 +247,7 @@ export default function ExamInformation() {
               <h2 className="mt-2 font-display text-2xl font-bold text-navy md:text-3xl">Frequently Asked Questions</h2>
             </div>
             <div className="mx-auto max-w-4xl space-y-3">
-              {examFaqs.map((faq, index) => {
+              {faqs.map((faq, index) => {
                 const isOpen = openFaq === index;
                 return <div key={faq.question} className={`overflow-hidden rounded-2xl border transition-all duration-300 ${isOpen ? "border-gold/60 bg-white shadow-[0_10px_24px_rgba(23,59,95,0.08)]" : "border-[#e8dfcf] bg-white/60"}`}>
                   <button type="button" onClick={() => setOpenFaq(isOpen ? -1 : index)} className="flex w-full items-center justify-between gap-4 px-4 py-4 text-left sm:px-5" aria-expanded={isOpen}>

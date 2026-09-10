@@ -13,7 +13,7 @@ import {
 } from "../data/siteData.js";
 import {
   fetchCourses, fetchFaculties, fetchGallery, fetchTestimonials,
-  fetchToppers, fetchAwards, fetchHeroSections, fetchContactInfo, submitContactForm,
+  fetchToppers, fetchAwards, fetchHeroSections, fetchMarquee, fetchSlideBars, fetchContactInfo, submitContactForm,
 } from "../services/backendService.js";
 import { API_BASE_URL } from "../utils/api.js";
 
@@ -112,17 +112,19 @@ function MissingImage({ className = "" }) {
 }
 
 export default function Home() {
-  const [liveData, setLiveData] = React.useState({ heroSections: [], courses: [], toppers: [], awards: [], gallery: [], faculties: [], testimonials: [], contactInfo: null });
+  const [liveData, setLiveData] = React.useState({ heroSections: [], slideBars: [], marquee: [], courses: [], toppers: [], awards: [], gallery: [], faculties: [], testimonials: [], contactInfo: null });
   const [awardsLoading, setAwardsLoading] = React.useState(true);
   const [galleryIndex, setGalleryIndex] = useState(0);
 
   React.useEffect(() => {
     let active = true;
-    Promise.allSettled([fetchHeroSections(), fetchCourses(), fetchToppers(), fetchAwards(), fetchGallery(), fetchFaculties(), fetchTestimonials(), fetchContactInfo()]).then((results) => {
+    Promise.allSettled([fetchHeroSections(), fetchSlideBars(), fetchMarquee(), fetchCourses(), fetchToppers(), fetchAwards(), fetchGallery(), fetchFaculties(), fetchTestimonials(), fetchContactInfo()]).then((results) => {
       if (!active) return;
-      const [heroResult, coursesResult, toppersResult, awardsResult, galleryResult, facultiesResult, testimonialsResult, contactResult] = results;
+      const [heroResult, slideBarResult, marqueeResult, coursesResult, toppersResult, awardsResult, galleryResult, facultiesResult, testimonialsResult, contactResult] = results;
       setLiveData({
         heroSections: heroResult.status === "fulfilled" ? heroResult.value : [],
+        slideBars: slideBarResult.status === "fulfilled" ? slideBarResult.value : [],
+        marquee: marqueeResult.status === "fulfilled" ? marqueeResult.value : [],
         courses: coursesResult.status === "fulfilled" ? coursesResult.value : [],
         toppers: toppersResult.status === "fulfilled" ? toppersResult.value : [],
         awards: awardsResult.status === "fulfilled" ? awardsResult.value.sort((first, second) => Number(second.year) - Number(first.year)) : [],
@@ -136,9 +138,16 @@ export default function Home() {
     return () => { active = false; };
   }, []);
 
-  const { heroSections, courses, toppers, awards, gallery, faculties, testimonials, contactInfo } = liveData;
-  const heroSlides = heroSections
-    .sort((first, second) => first.priority - second.priority);
+  const { heroSections, slideBars, marquee, courses, toppers, awards, gallery, faculties, testimonials, contactInfo } = liveData;
+  const heroSlides = (slideBars.length > 0 ? slideBars : heroSections)
+    .sort((first, second) => first.priority - second.priority)
+    .map((slide) => ({
+      ...slide,
+      image: resolveImageUrl(slide.image),
+      linkLabel: slide.linkLabel || "Soon will be released",
+      subtitle: slide.subtitle || "Soon will be released",
+    }));
+  const marqueeItems = marquee.length > 0 ? marquee : ["Soon will be released"];
   const galleryPreview = gallery.slice(0, 5);
 
   useEffect(() => {
@@ -164,7 +173,7 @@ export default function Home() {
 
       <div className="marquee-shell overflow-hidden border-y border-[#d5a733] bg-[linear-gradient(90deg,#f3c446_0%,#f4d66d_25%,#edb928_50%,#f5ce68_75%,#efb72d_100%)] shadow-[inset_0_1px_0_rgba(255,255,255,0.45),inset_0_-1px_0_rgba(17,45,73,0.08)]">
         <div className="hero-marquee flex w-max min-w-full items-center gap-8 py-3 text-sm font-semibold uppercase tracking-[0.08em] text-[#112d49] md:text-base">
-          {["₹2.5 Cr Cash Rewards", "NASA Educational Trip", "Exams Dates for Sri Chaitanya/Academy : 11th Oct 2026", "Register Now", "₹2.5 Cr Cash Rewards", "NASA Educational Trip", "Exams Dates for Sri Chaitanya/Academy : 11th Oct 2026", "Register Now"].map((item, index) => (
+          {[...marqueeItems, ...marqueeItems].map((item, index) => (
             <div key={`${item}-${index}`} className="hero-marquee-item flex items-center gap-2 whitespace-nowrap px-2">
               <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-[#112d49] text-[10px] font-bold text-[#f6d46a] shadow-[0_0_12px_rgba(17,45,73,0.35)]">★</span>
               <span className="drop-shadow-[0_1px_0_rgba(255,255,255,0.35)]">{item}</span>
