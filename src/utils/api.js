@@ -1,7 +1,7 @@
 ﻿import axios from "axios";
 
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "http://localhost:8080").replace(/\/+$/g, "");
-const API_REQUEST_BASE_URL = `${API_BASE_URL.replace(/\/+$/, "")}/api`;
+const API_REQUEST_BASE_URL = API_BASE_URL;
 
 // Admin credentials for fetching live token
 const ADMIN_CREDENTIALS = {
@@ -44,7 +44,7 @@ async function fetchFreshAdminToken() {
         throw new Error("Live admin credentials are not configured.");
       }
 
-      const response = await axios.post(`${API_REQUEST_BASE_URL}/api/auth/admin/login`, ADMIN_CREDENTIALS, {
+      const response = await axios.post(`${API_BASE_URL}/api/api/auth/admin/login`, ADMIN_CREDENTIALS, {
         timeout: 10000
       });
       
@@ -123,7 +123,14 @@ function isEbookEndpoint(url = "") {
 
 api.interceptors.request.use(async (config) => {
   if (typeof config.url === "string") {
-    config.url = config.url.replace(/^\/api\/api(?=\/|$)/i, "/api");
+    const api2Path = config.url.match(/^\/(?:api\/)*api2(?=\/|$)/i);
+    const apiPath = config.url.match(/^\/(?:api\/)+(?<resource>.+)$/i);
+    if (api2Path) {
+      const resource = config.url.slice(api2Path[0].length).replace(/^\/+/, "");
+      config.url = `/api/api2${resource ? `/${resource}` : ""}`;
+    } else if (apiPath?.groups?.resource) {
+      config.url = `/api/api/${apiPath.groups.resource}`;
+    }
   }
 
   const token = getAuthToken();

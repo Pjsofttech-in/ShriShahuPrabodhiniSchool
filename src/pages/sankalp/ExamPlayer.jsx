@@ -5,8 +5,10 @@ import {
   fetchExams,
   startExamAttempt,
   fetchAttemptQuestions,
+  fetchQuestionsByExamId,
   saveAttemptAnswer,
   submitExamAttempt,
+  fetchStudentResultById,
   rememberExamAttempt,
   rememberExamResult,
 } from "../../services/backendService.js";
@@ -39,11 +41,12 @@ export default function ExamPlayer() {
   const [resultTab, setResultTab] = useState("summary");
 
   const initialDurationRef = useRef(0);
+  const submittingRef = useRef(false);
 
   function normalizeQuestion(item, index) {
     const question = item?.question && typeof item.question === "object" ? item.question : item;
     const questionId = question?.questionId ?? question?.id ?? item?.questionId ?? `${id}-q-${index + 1}`;
-    const text = question?.questionText ?? question?.text ?? question?.question ?? item?.questionText ?? `Question ${index + 1}`;
+    const text = question?.question ?? question?.questionText ?? question?.text ?? item?.questionText ?? `Question ${index + 1}`;
     let options = question?.options ?? question?.choices ?? question?.optionList ?? item?.options;
 
     if (!options) {
@@ -70,6 +73,13 @@ export default function ExamPlayer() {
       text,
       options,
       marks: Number(item?.marks ?? question?.marks ?? question?.weight ?? 1) || 1,
+      sequence: Number(question?.sequence ?? item?.sequence ?? index + 1),
+      sectionName: question?.sectionName ?? item?.sectionName ?? "",
+      examName: question?.examName ?? item?.examName ?? "",
+      questionType: question?.questionType ?? item?.questionType ?? "MCQ",
+      answerExplanation: question?.answerExplanation ?? item?.answerExplanation ?? "",
+      answerSupportingFile: question?.answerSupportingFile ?? item?.answerSupportingFile ?? "",
+      active: question?.active ?? item?.active ?? true,
       correctIndex: resolvedCorrectIndex >= 0 ? resolvedCorrectIndex : null,
       correctAnswer: rawCorrectAnswer,
     };
@@ -84,7 +94,13 @@ export default function ExamPlayer() {
 
         const attempt = await startExamAttempt(id, passedExam?.testSeriesId ?? found?.testSeriesId);
         setAttemptId(attempt.attemptId);
-        const backendQs = await fetchAttemptQuestions(attempt.attemptId);
+        let backendQs = [];
+        try {
+          backendQs = await fetchAttemptQuestions(attempt.attemptId);
+        } catch (questionError) {
+          console.warn("Attempt questions endpoint unavailable; loading live questions by exam.", questionError);
+        }
+        if (!backendQs.length) backendQs = await fetchQuestionsByExamId(id);
         const normalized = backendQs.map(normalizeQuestion);
 
         if (!normalized.length) throw new Error("This exam has no questions in the database.");
@@ -119,7 +135,6 @@ export default function ExamPlayer() {
       setTimeLeft((t) => {
         if (t <= 1) {
           clearInterval(timerRef.current);
-          handleAutoSubmit();
           return 0;
         }
         return t - 1;
@@ -128,6 +143,13 @@ export default function ExamPlayer() {
     return () => clearInterval(timerRef.current);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [timeLeft, submitted]);
+
+  useEffect(() => {
+    if (timeLeft === 0 && attemptId && !submitted && !loading) {
+      handleAutoSubmit();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [timeLeft, attemptId, loading, submitted]);
 
   function formatTime(s) {
     const mm = String(Math.floor(s / 60)).padStart(2, "0");
@@ -140,12 +162,9 @@ export default function ExamPlayer() {
     const question = questions.find((item) => String(item.id) === String(qid));
 
     if (attemptId && question) {
-      // 🚀 Map 0 -> 'A', 1 -> 'B', 2 -> 'C', 3 -> 'D'
-      const optionLetter = "ABCD"[optionIndex] || "";
-
       saveAttemptAnswer(attemptId, {
         questionId: qid,
-        selectedAnswer: optionLetter, // Saves "A", "B", etc. instead of the full text string
+        selectedAnswer: question.options[optionIndex],
       }).catch((error) => {
         console.warn("Failed to save answer:", error);
         setSubmitError("An answer could not be saved. Please try again.");
@@ -171,20 +190,24 @@ export default function ExamPlayer() {
 
   const resultItems = useMemo(() => {
     if (!result) return [];
-    const source = result.details ?? result.questions ?? result.questionResponses ?? result.answers ?? [];
+    const source = [result.details, result.questions, result.questionResponses, result.resultQuestions, result.resultQuestionResponses, result.answers].find((items) => Array.isArray(items) && items.length > 0) || [];
     return questions.map((question, index) => {
       const detail = source.find((item) => String(item.questionId ?? item.question_id ?? item.id) === String(question.id)) ?? source[index] ?? {};
-      const selectedIndex = detail.selectedIndex ?? detail.selected_index ?? detail.answerIndex ?? detail.answer_index ?? answers[question.id] ?? null;
-      const selectedAnswer = detail.selectedAnswer ?? detail.selected_answer ?? (selectedIndex !== null ? question.options[selectedIndex] : null);
+      const serverAnswer = detail.studentAnswer ?? detail.selectedAnswer ?? detail.selected_answer ?? null;
+      const serverAnswerIndex = typeof serverAnswer === "string"
+        ? question.options.findIndex((option) => String(option).trim() === serverAnswer.trim())
+        : -1;
+      const selectedIndex = detail.selectedIndex ?? detail.selected_index ?? detail.answerIndex ?? detail.answer_index ?? (serverAnswerIndex >= 0 ? serverAnswerIndex : answers[question.id] ?? null);
+      const selectedAnswer = serverAnswer ?? (selectedIndex !== null && selectedIndex >= 0 ? question.options[selectedIndex] : null);
       const rawCorrectAnswer = detail.correctAnswer ?? detail.correct_answer ?? detail.correctOption ?? detail.correct_option ?? detail.answer ?? question.correctAnswer ?? null;
       const rawCorrectIndex = detail.correctIndex ?? detail.correct_index ?? detail.correctAnswerIndex ?? detail.correct_answer_index ?? question.correctIndex ?? null;
       const correctIndex = rawCorrectIndex !== null && rawCorrectIndex !== undefined
         ? Number(rawCorrectIndex)
         : (rawCorrectAnswer !== null && rawCorrectAnswer !== undefined ? question.options.findIndex((option) => String(option).trim() === String(rawCorrectAnswer).trim()) : null);
       const correctAnswer = correctIndex !== null && correctIndex >= 0 ? question.options[correctIndex] : rawCorrectAnswer;
-      const isCorrect = detail.correct === true || (correctIndex !== null && correctIndex >= 0 && selectedIndex !== null && Number(correctIndex) === Number(selectedIndex));
+      const isCorrect = detail.correct === true || (detail.correct === false ? false : correctIndex !== null && correctIndex >= 0 && selectedIndex !== null && Number(correctIndex) === Number(selectedIndex));
       const status = selectedAnswer === null || selectedAnswer === undefined ? "UNANSWERED" : isCorrect ? "CORRECT" : "INCORRECT";
-      return { ...question, detail, selectedIndex, selectedAnswer, correctIndex, correctAnswer, status, markedForReview: Boolean(detail.markedForReview ?? detail.marked_for_review) };
+      return { ...question, detail, selectedIndex, selectedAnswer, correctIndex, correctAnswer, status, marksObtained: detail.marksObtained ?? detail.marks_obtained ?? null, answerExplanation: detail.answerExplanation ?? question.answerExplanation ?? "", markedForReview: Boolean(detail.markedForReview ?? detail.marked_for_review) };
     });
   }, [result, questions, answers]);
 
@@ -195,15 +218,25 @@ export default function ExamPlayer() {
   }), [resultItems]);
 
   async function handleSubmit() {
-    if (!attemptId) {
-      setSubmitError("Exam attempt was not created. Please restart the exam.");
+    if (!attemptId || submittingRef.current) {
+      if (!attemptId) setSubmitError("Exam attempt was not created. Please restart the exam.");
       return;
     }
+    submittingRef.current = true;
+    setSubmitConfirmOpen(false);
     setSubmitted(true);
     clearInterval(timerRef.current);
 
     try {
-      const submittedResult = await submitExamAttempt(attemptId);
+      let submittedResult = await submitExamAttempt(attemptId);
+      const persistedResultId = submittedResult?.resultId ?? submittedResult?.id ?? submittedResult?.result?.id;
+      if (persistedResultId) {
+        try {
+          submittedResult = await fetchStudentResultById(persistedResultId);
+        } catch (refreshError) {
+          console.warn("Submitted result was saved, but the persisted result refresh failed.", refreshError);
+        }
+      }
       const localSummary = computeResult();
       const backendScore = submittedResult?.score ?? submittedResult?.obtainedMarks ?? submittedResult?.obtained_marks ?? submittedResult?.marks ?? submittedResult?.totalMarksObtained;
       const backendMaxScore = submittedResult?.maxScore ?? submittedResult?.max_score ?? submittedResult?.totalMarks ?? submittedResult?.total_marks ?? submittedResult?.maxMarks;
@@ -214,6 +247,7 @@ export default function ExamPlayer() {
         questionId: question.id,
         questionText: question.text,
         options: question.options,
+        studentAnswer: answers[question.id] !== undefined ? question.options[answers[question.id]] : null,
         selectedAnswer: answers[question.id] !== undefined ? question.options[answers[question.id]] : null,
         selectedIndex: answers[question.id] ?? null,
         correctIndex: question.correctIndex,
@@ -242,19 +276,20 @@ export default function ExamPlayer() {
         reviewedCount,
         details: mergedDetails,
       };
-      setResult(resultWithExam);
       rememberExamAttempt(attemptId);
       rememberExamResult(resultWithExam);
       try { await refreshProfile(); } catch (e) { /* ignore */ }
+      navigate("/student/profile", { state: { tab: "result", submittedAttempt: resultWithExam } });
     } catch (err) {
       console.warn('Result submission failed:', err);
       setSubmitError(err?.response?.data?.message || err?.message || "Unable to submit this exam.");
       setSubmitted(false);
+      submittingRef.current = false;
     }
   }
 
   async function handleAutoSubmit() {
-    if (submitted) return;
+    if (submitted || submittingRef.current) return;
     await handleSubmit();
   }
 
@@ -287,18 +322,18 @@ export default function ExamPlayer() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f7f9fc]">
-      <div className="sticky top-0 z-40 bg-navy-dark text-white shadow-lg">
-        <div className="container-app flex min-h-14 items-center justify-between gap-3 py-2">
-          <div className="min-w-0"><p className="truncate text-sm font-semibold">{exam?.name ?? 'Exam'}</p><p className="text-[10px] text-white/60">Duration: {exam?.duration || "-"} minutes</p></div>
-          {!submitted && <div className={`flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 text-xs font-bold ${timeLeft < 60 ? "bg-red-600" : "bg-green-600"}`}><Timer size={15} /> Time Left: {formatTime(timeLeft)}</div>}
+    <div className="min-h-screen bg-[#f8f8fa] text-[#34343d]">
+      <div className="sticky top-0 z-40 bg-[#1e1d2e] text-white shadow-[0_3px_12px_rgba(20,20,35,0.25)]">
+        <div className="flex min-h-[70px] items-center justify-between gap-4 px-5 py-3 sm:px-8">
+          <p className="min-w-0 truncate text-base font-semibold text-white/90 sm:text-lg">{exam?.name ?? 'Exam'} <span className="font-normal text-white/70">| Duration: {exam?.duration || "-"} min</span></p>
+          {!submitted && <div className={`flex shrink-0 items-center gap-2 rounded-xl px-5 py-2.5 text-base font-extrabold ${timeLeft < 60 ? "bg-red-600" : "bg-[#45a74b]"}`}><Timer size={20} /> Time Left: {formatTime(timeLeft)}</div>}
         </div>
       </div>
       <div className="container-app py-4 sm:py-6">
-        <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_300px]">
+        <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_350px]">
 
           {/* Main question area */}
-          <div className="rounded-2xl border border-slate-200 bg-white p-3 shadow-[0_8px_24px_rgba(15,35,82,0.07)] sm:p-5">
+          <div className="rounded-xl border border-slate-100 bg-white p-4 shadow-[0_5px_18px_rgba(25,25,45,0.08)] sm:p-7">
             {submitError && (
               <div className="mb-4 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">
                 {submitError}
@@ -315,16 +350,16 @@ export default function ExamPlayer() {
             {/* Single question view */}
             {!submitted && (
               <div>
-                <div className="mb-4 rounded-lg border p-4">
-                  <div className="mb-3 flex items-start justify-between gap-3"><div className="text-base font-semibold leading-7 text-navy">{questions[currentIndex].text}</div><Flag size={17} className={marked[questions[currentIndex].id] ? "shrink-0 text-gold" : "shrink-0 text-slate-300"} /></div>
+                <div className="mb-4 rounded-xl border border-slate-100 p-5 sm:p-7">
+                  <div className="mb-5 flex items-start justify-between gap-3"><div className="text-base font-semibold leading-7 text-[#41414a] sm:text-lg">Q{currentIndex + 1}. {questions[currentIndex].text}</div><Flag size={19} className={marked[questions[currentIndex].id] ? "shrink-0 fill-[#f28c00] text-[#f28c00]" : "shrink-0 text-slate-400"} /></div>
 
                   <div className="grid gap-2 md:grid-cols-2">
                     {questions[currentIndex].options.map((opt, oi) => {
                       const checked = answers[questions[currentIndex].id] === oi;
                       return (
-                        <label key={oi} className={`flex cursor-pointer items-center gap-3 rounded-md border p-3 ${checked ? 'border-blue-300 bg-blue-50' : ''}`}>
-                          <input type="radio" name={questions[currentIndex].id} checked={checked} onChange={() => selectAnswer(questions[currentIndex].id, oi)} />
-                          <span className="text-sm">{opt}</span>
+                        <label key={oi} className={`flex cursor-pointer items-center gap-3 rounded-lg border px-3 py-3.5 transition sm:px-4 ${checked ? 'border-[#2795db] bg-[#eef8ff]' : 'border-transparent hover:bg-slate-50'}`}>
+                          <input className="h-5 w-5 accent-[#2795db]" type="radio" name={questions[currentIndex].id} checked={checked} onChange={() => selectAnswer(questions[currentIndex].id, oi)} />
+                          <span className="text-base text-[#555560]">{opt}</span>
                         </label>
                       );
                     })}
@@ -332,9 +367,9 @@ export default function ExamPlayer() {
 
                   <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <div className="flex flex-wrap items-center gap-2">
-                      <button onClick={prevQuestion} disabled={currentIndex === 0} className="rounded-md border px-3 py-2">Prev</button>
-                      <button onClick={nextQuestion} disabled={currentIndex === questions.length - 1} className="flex items-center gap-2 rounded-md border border-blue-300 px-3 py-2 text-sm font-semibold text-blue-700 transition hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-50">Save &amp; Next <ArrowRight size={15} /></button>
-                      <button onClick={() => toggleMark(questions[currentIndex].id)} className="flex items-center gap-2 rounded-md border px-3 py-2 text-sm"><Flag size={15} />{marked[questions[currentIndex].id] ? 'Unmark' : 'Mark for review'}</button>
+                      <button onClick={prevQuestion} disabled={currentIndex === 0} className="rounded-md border border-slate-200 px-4 py-2.5 text-sm text-slate-500 disabled:opacity-40">← Previous</button>
+                      <button onClick={nextQuestion} disabled={currentIndex === questions.length - 1 || answers[questions[currentIndex].id] === undefined} className="flex items-center gap-2 rounded-md border border-slate-200 px-4 py-2.5 text-sm font-semibold text-[#2795db] transition hover:bg-blue-50 disabled:cursor-not-allowed disabled:text-slate-300">Save &amp; Next <ArrowRight size={15} /></button>
+                      <button onClick={() => { setMarked((m) => ({ ...m, [questions[currentIndex].id]: false })); nextQuestion(); }} disabled={currentIndex === questions.length - 1} className="rounded-md border border-[#f2b632] px-5 py-2.5 text-sm font-bold text-[#ed9d00] disabled:opacity-40">Skip</button>
                     </div>
 
                     <div className="flex flex-wrap items-center gap-2 sm:justify-end">
@@ -344,22 +379,6 @@ export default function ExamPlayer() {
                   </div>
                 </div>
 
-                {/* Question navigation palette (mobile inline) */}
-                <div className="mt-3">
-                  <div className="text-sm text-slate-600 mb-2">Question Palette</div>
-                  <div className="grid grid-cols-5 gap-2 sm:grid-cols-8">
-                    {questions.map((q, i) => {
-                      const answered = answers[q.id] !== undefined && answers[q.id] !== null;
-                      const isMarked = marked[q.id];
-                      const cls = `flex h-9 w-9 items-center justify-center rounded text-sm ${i === currentIndex ? 'bg-blue-600 text-white' : answered ? 'bg-green-100 text-green-800' : isMarked ? 'bg-yellow-100 text-yellow-800' : 'bg-slate-100'}`;
-                      return (
-                        <button key={q.id} onClick={() => gotoQuestion(i)} className={cls} title={`Q ${i + 1}${isMarked ? ' (marked)' : ''}${answered ? ' (answered)' : ''}`}>
-                          {i + 1}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
               </div>
             )}
 
@@ -386,7 +405,7 @@ export default function ExamPlayer() {
                 ) : (
                   <div className="mt-5 space-y-3">
                     <h4 className="text-sm font-bold text-blue-700">{resultTab === "all" ? "All Questions" : `${resultTab[0].toUpperCase()}${resultTab.slice(1)} Questions`} ({resultTab === "all" ? resultItems.length : resultItems.filter((item) => item.status.toLowerCase() === resultTab).length})</h4>
-                    {resultItems.filter((item) => resultTab === "all" || item.status.toLowerCase() === resultTab).map((item, index) => <div key={item.id} className="rounded-xl border border-slate-200 p-3"><div className="flex items-start justify-between gap-3"><div className="text-sm font-semibold text-navy">Q{index + 1}. {item.text}</div><span className={`shrink-0 rounded-full px-2 py-1 text-[10px] font-bold ${item.status === "CORRECT" ? "bg-green-50 text-green-700" : item.status === "INCORRECT" ? "bg-red-50 text-red-700" : "bg-slate-100 text-slate-600"}`}>{item.status}</span></div><div className="mt-2 grid gap-1 text-xs text-muted sm:grid-cols-2"><span>Your Answer: <strong className="text-navy">{item.selectedAnswer ?? "Not Answered"}</strong></span><span>Correct Answer: <strong className="text-green-700">{item.correctAnswer ?? "Not Provided"}</strong></span></div>{item.markedForReview && <span className="mt-2 inline-block rounded-full bg-amber-50 px-2 py-1 text-[10px] font-semibold text-amber-700">Marked for review</span>}</div>)}
+                    {resultItems.filter((item) => resultTab === "all" || item.status.toLowerCase() === resultTab).map((item, index) => <div key={item.id} className="rounded-xl border border-slate-200 p-3"><div className="flex items-start justify-between gap-3"><div className="text-sm font-semibold text-navy">Q{index + 1}. {item.text}</div><span className={`shrink-0 rounded-full px-2 py-1 text-[10px] font-bold ${item.status === "CORRECT" ? "bg-green-50 text-green-700" : item.status === "INCORRECT" ? "bg-red-50 text-red-700" : "bg-slate-100 text-slate-600"}`}>{item.status}</span></div><div className="mt-2 grid gap-1 text-xs text-muted sm:grid-cols-2"><span>Your Answer: <strong className="text-navy">{item.selectedAnswer ?? "Not Answered"}</strong></span><span>Correct Answer: <strong className="text-green-700">{item.correctAnswer ?? "Not Provided"}</strong></span><span>Marks: <strong className="text-navy">{item.marksObtained ?? "—"}{item.marks != null ? ` / ${item.marks}` : ""}</strong></span></div>{item.answerExplanation && <p className="mt-2 rounded-lg bg-amber-50 p-2 text-xs text-amber-800">{item.answerExplanation}</p>}{item.markedForReview && <span className="mt-2 inline-block rounded-full bg-amber-50 px-2 py-1 text-[10px] font-semibold text-amber-700">Marked for review</span>}</div>)}
                   </div>
                 )}
                 <div className="mt-5 flex flex-col gap-2 sm:flex-row"><button onClick={() => navigate('/sankalp/test-series')} className="rounded-lg border px-3 py-2 text-sm">Back to Series</button><button onClick={() => navigate('/student/profile', { state: { tab: 'result', submittedAttempt: result } })} className="rounded-lg bg-blue-600 px-3 py-2 text-sm font-semibold text-white">View in My Result</button></div>
@@ -397,36 +416,18 @@ export default function ExamPlayer() {
 
           {/* Aside with exam details and palette (desktop) */}
           <aside className="order-first lg:order-last">
-            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-[0_8px_24px_rgba(15,35,82,0.07)] lg:sticky lg:top-20">
-              <h4 className="text-sm font-bold text-slate-700">Exam Details</h4>
-              <dl className="mt-3 space-y-2 text-sm text-slate-600">
-                <div><dt className="font-medium">Name</dt><dd>{exam?.name}</dd></div>
-                <div><dt className="font-medium">Duration</dt><dd>{exam?.duration || 'N/A'} min</dd></div>
-                <div><dt className="font-medium">Questions</dt><dd>{questions.length}</dd></div>
-                <div><dt className="font-medium">Total Marks</dt><dd>{questions.reduce((s, q) => s + Number(q.marks || 1), 0)}</dd></div>
-              </dl>
-              {!submitted && (
-                <div className="mt-4 text-sm text-slate-600">Keep an eye on the timer. The test will auto-submit when time runs out.</div>
-              )}
-
-              {/* Desktop palette */}
-              {!submitted && (
-                <div className="mt-4">
-                  <div className="text-sm text-slate-600 mb-2">Palette</div>
-                  <div className="grid grid-cols-6 gap-2 sm:grid-cols-8 lg:grid-cols-4">
-                    {questions.map((q, i) => {
-                      const answered = answers[q.id] !== undefined && answers[q.id] !== null;
-                      const isMarked = marked[q.id];
-                      const cls = `flex h-9 w-9 items-center justify-center rounded text-sm ${i === currentIndex ? 'bg-blue-600 text-white' : answered ? 'bg-green-100 text-green-800' : isMarked ? 'bg-yellow-100 text-yellow-800' : 'bg-slate-100'}`;
-                      return (
-                        <button key={q.id} onClick={() => gotoQuestion(i)} className={cls} title={`Q ${i + 1}${isMarked ? ' (marked)' : ''}${answered ? ' (answered)' : ''}`}>
-                          {i + 1}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
+            <div className="rounded-xl border border-slate-100 bg-white p-5 shadow-[0_5px_18px_rgba(25,25,45,0.08)] lg:sticky lg:top-20">
+              <h4 className="text-2xl font-bold text-[#292933]">Progress</h4>
+              {!submitted && <div className="mt-5 space-y-3 text-sm text-slate-600"><div className="flex items-center gap-3"><span className="h-4 w-4 rounded-full bg-[#4caf50]" /> Answered</div><div className="flex items-center gap-3"><span className="h-4 w-4 rounded-full bg-[#f28c00]" /> Unanswered</div><div className="grid grid-cols-3 gap-2 pt-2 text-center text-xs font-bold"><span className="rounded-full bg-[#4caf50] px-2 py-2 text-white">Answered: {Object.keys(answers).length}</span><span className="rounded-full bg-[#2997dd] px-2 py-2 text-white">Total: {questions.length}</span><span className="rounded-full bg-[#f5a000] px-2 py-2 text-white">Skipped: {questions.filter((q) => answers[q.id] === undefined).length}</span></div></div>}
+              {!submitted && <div className="mt-5 grid grid-cols-6 gap-2 sm:grid-cols-8 lg:grid-cols-6">
+                {questions.map((q, i) => {
+                  const answered = answers[q.id] !== undefined && answers[q.id] !== null;
+                  const isMarked = marked[q.id];
+                  const cls = `flex h-10 w-10 items-center justify-center rounded-full text-sm font-medium text-white transition ${i === currentIndex ? 'bg-[#f28c00] ring-2 ring-[#2997dd] ring-offset-2' : answered ? 'bg-[#4caf50]' : isMarked ? 'bg-[#f28c00]' : 'bg-[#a8a8aa]'}`;
+                  return <button key={q.id} onClick={() => gotoQuestion(i)} className={cls} title={`Question ${i + 1}`}>{i + 1}</button>;
+                })}
+              </div>}
+              {!submitted && <button onClick={() => setSubmitConfirmOpen(true)} className="mt-7 w-full rounded-md bg-[#2f8735] px-4 py-3 text-lg font-bold text-white shadow-sm transition hover:bg-[#256d2b]">Submit Test</button>}
             </div>
           </aside>
         </div>

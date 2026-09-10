@@ -269,7 +269,7 @@ export default function StudentRegistration() {
       coordinatorId: Number(form.coordinatorId),
       paymentId,
       paymentStatus: "PAID",
-      amount: 250,
+      amount: 100,
     };
 
     return await registerStudent(payload);
@@ -305,7 +305,7 @@ export default function StudentRegistration() {
     try {
       setStep("paying");
 
-      const order = await createRazorpayOrder(250, form.mobile);
+      const order = await createRazorpayOrder(100, form.mobile);
       console.log("Backend Order Response:", order);
       console.log("Razorpay Order ID:", order?.id);
 
@@ -317,7 +317,7 @@ export default function StudentRegistration() {
       const orderId = order.id;
       const orderAmountInPaise = Number(order.amount);
       payWithRazorpay({
-        amount: 250,
+        amount: 100,
         amountInPaise: orderAmountInPaise,
         currency: order.currency || "INR",
         name: form.name,
@@ -573,7 +573,7 @@ export default function StudentRegistration() {
           <div className="pt-2 flex flex-col items-center gap-3">
             <div className="bg-cream rounded-lg px-6 py-3 flex items-center gap-2 border border-gold/30">
               <span className="text-sm text-muted">Registration Fee:</span>
-              <span className="font-display font-bold text-navy text-lg flex items-center"><IndianRupee size={16} /> 250</span>
+              <span className="font-display font-bold text-navy text-lg flex items-center"><IndianRupee size={16} /> 100</span>
             </div>
             <label className="flex items-start gap-2 text-xs text-muted max-w-xl">
               <input
@@ -583,7 +583,7 @@ export default function StudentRegistration() {
                 className="mt-0.5 accent-gold"
               />
               <span>
-                I agree to the <Link to="/terms-and-conditions" className="text-navy font-semibold hover:text-gold">Terms and Conditions</Link> and understand that the ₹250 registration fee is processed through Razorpay.
+                I agree to the <Link to="/terms-and-conditions" className="text-navy font-semibold hover:text-gold">Terms and Conditions</Link> and understand that the ₹100 registration fee is processed through Razorpay.
               </span>
             </label>
             <div className="flex w-full flex-col gap-3 sm:w-[26rem] sm:flex-row">
@@ -593,7 +593,7 @@ export default function StudentRegistration() {
                 disabled={step === "paying" || paymentCompleted}
                 className="btn-primary justify-center disabled:opacity-60 flex-1"
               >
-                {step === "paying" ? "Processing Payment..." : paymentCompleted ? "Payment Completed" : "Pay ₹250"}
+                {step === "paying" ? "Processing Payment..." : paymentCompleted ? "Payment Completed" : "Pay ₹100"}
               </button>
 
               <button

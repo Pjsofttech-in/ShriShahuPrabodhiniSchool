@@ -1,17 +1,16 @@
 import React, { useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
-import { CheckCircle2, IndianRupee, LayoutDashboard, User, FileText } from "lucide-react";
+import { BadgeCheck, Building2, CheckCircle2, CreditCard, FileText, GraduationCap, LayoutDashboard, Mail, ShieldCheck, Trophy, User } from "lucide-react";
 import DashboardShell from "../../components/DashboardShell.jsx";
 import { useAuth } from "../../context/AuthContext.jsx";
 import {
   getMyProfile,
   fetchStudentById,
-  fetchStudentByEmail,
-  fetchStudentByMobile,
   fetchCoordinators,
   fetchCenters,
   fetchStudentResults,
   fetchExamAttemptResult,
+  fetchStudentResultById,
 } from "../../services/backendService.js";
 
 const tabs = [
@@ -30,6 +29,7 @@ export default function StudentDashboard({ defaultTab = "profile" }) {
   const { user } = useAuth();
   const [results, setResults] = useState([]);
   const [loadingResults, setLoadingResults] = useState(false);
+  const [resultsError, setResultsError] = useState("");
   const [selectedAttempt, setSelectedAttempt] = useState(null);
   const [showAttemptModal, setShowAttemptModal] = useState(false);
 
@@ -49,7 +49,16 @@ export default function StudentDashboard({ defaultTab = "profile" }) {
       }
 
       try {
-        const lookupIds = [user?.studentId, user?.student?.id, user?.id, user?.userId].filter(Boolean);
+        const lookupIds = [
+          studentData?.studentId,
+          studentData?.student?.id,
+          studentData?.id,
+          studentData?.userId,
+          user?.studentId,
+          user?.student?.id,
+          user?.id,
+          user?.userId,
+        ].filter(Boolean);
         for (const id of lookupIds) {
           try {
             const found = await fetchStudentById(id);
@@ -62,15 +71,6 @@ export default function StudentDashboard({ defaultTab = "profile" }) {
           }
         }
 
-        if (!studentData?.name && user?.email) {
-          const found = await fetchStudentByEmail(user.email);
-          if (found) studentData = { ...studentData, ...found };
-        }
-
-        if (!studentData?.name && user?.mobile) {
-          const found = await fetchStudentByMobile(user.mobile);
-          if (found) studentData = { ...studentData, ...found };
-        }
       } catch (err) {
         console.warn("Could not enrich the student profile from the students API.", err);
       }
@@ -102,18 +102,15 @@ export default function StudentDashboard({ defaultTab = "profile" }) {
     async function loadResults() {
       if (!student) return;
       setLoadingResults(true);
+      setResultsError("");
       try {
-        const studentIds = [...new Set([
-          student.id,
-          student.studentId,
-          student.userId,
-          student.user?.id,
-          user?.studentId,
-          user?.userId,
-          user?.id,
-        ].filter(Boolean).map(String))];
-        const resultLists = await Promise.all(studentIds.map((studentId) => fetchStudentResults(studentId, student)));
-        const loadedResults = resultLists.flatMap((list) => Array.isArray(list) ? list : []).filter((item, index, list) => {
+        const studentId = student.id ?? student.studentId ?? user?.studentId;
+        if (!studentId) {
+          setResults([]);
+          return;
+        }
+        const persistedResults = await fetchStudentResults(String(studentId), student);
+        const loadedResults = (Array.isArray(persistedResults) ? persistedResults : []).filter((item, index, list) => {
           const itemId = item.attemptId ?? item.id ?? item.resultId ?? item.attempt_id;
           if (!itemId) return true;
           return list.findIndex((candidate) => String(candidate.attemptId ?? candidate.id ?? candidate.resultId ?? candidate.attempt_id) === String(itemId)) === index;
@@ -124,9 +121,14 @@ export default function StudentDashboard({ defaultTab = "profile" }) {
             ? loadedResults.map((item) => String(item.attemptId ?? item.id) === submittedKey ? { ...item, ...submittedAttempt } : item)
             : [submittedAttempt, ...loadedResults];
           setResults(mergedResults);
-        } else setResults(loadedResults);
+        } else setResults(loadedResults.sort((first, second) => {
+          const firstDate = new Date(first?.submittedAt ?? first?.startedAt ?? first?.createdAt ?? 0).getTime();
+          const secondDate = new Date(second?.submittedAt ?? second?.startedAt ?? second?.createdAt ?? 0).getTime();
+          return secondDate - firstDate;
+        }));
       } catch (err) {
         console.warn('Could not load student results', err);
+        setResultsError(err?.response?.data?.message || err?.response?.data?.error || err?.message || "Unable to load your assessment history.");
         setResults([]);
       } finally {
         setLoadingResults(false);
@@ -145,15 +147,21 @@ export default function StudentDashboard({ defaultTab = "profile" }) {
     student.payment?.status ||
     student.payment?.paymentStatus ||
     (student.paymentId || student.payment_id || student.razorpayPaymentId ? "Paid" : "Pending");
-  const paymentId = student.paymentId || student.payment_id || student.razorpayPaymentId || "—";
-  const paymentAmount = student.amount ?? student.registrationFee ?? student.paymentAmount ?? 250;
-  const hasPaymentId = paymentId !== "—";
-  const isPaymentSuccessful = hasPaymentId || ["paid", "success", "successful", "completed", "payment successful"].includes(String(paymentStatusFromApi).toLowerCase());
+  const paymentAmount = student.amount ?? student.registrationFee ?? student.paymentAmount ?? null;
+  const isPaymentSuccessful = Boolean(student.isPaymentDone) || ["paid", "success", "successful", "completed", "payment successful"].includes(String(paymentStatusFromApi).toLowerCase());
   const paymentStatus = isPaymentSuccessful ? "PAID" : paymentStatusFromApi;
   const marks = 70 + (String(rollNo).charCodeAt(String(rollNo).length - 1 || 0) % 30);
+  const displayName = [student.studentName || student.name, student.lastName].filter(Boolean).join(" ") || "Student";
+  const profileInitials = displayName.split(" ").filter(Boolean).slice(0, 2).map((part) => part[0]).join("").toUpperCase();
+  const completedResults = results.filter((result) => {
+    const status = result?.status ?? result?.resultStatus ?? result?.result?.status;
+    return status ? /pass|complete|submit|success/i.test(String(status)) : true;
+  }).length;
+  const formatDate = (value) => value ? new Date(value).toLocaleDateString(undefined, { day: "2-digit", month: "short", year: "numeric" }) : "—";
 
   async function viewAttempt(attempt) {
     const attemptId = attempt.attemptId ?? attempt.id ?? attempt.resultId ?? attempt.attempt_id;
+    const resultId = attempt.resultId ?? attempt.result?.id ?? attempt.id;
     if (!attemptId) {
       setSelectedAttempt(attempt);
       setShowAttemptModal(true);
@@ -161,7 +169,9 @@ export default function StudentDashboard({ defaultTab = "profile" }) {
     }
 
     try {
-      const details = await fetchExamAttemptResult(attemptId);
+      const details = resultId
+        ? await fetchStudentResultById(resultId)
+        : await fetchExamAttemptResult(attemptId);
       setSelectedAttempt({ ...attempt, ...details, attemptId });
     } catch (error) {
       console.warn("Could not load exam attempt result.", error);
@@ -180,74 +190,103 @@ export default function StudentDashboard({ defaultTab = "profile" }) {
         </div>
       )}
       {tab === "profile" && (
-        <div className="card p-6">
-          <h3 className="font-display font-bold text-navy mb-4">My Profile</h3>
-          <dl className="grid sm:grid-cols-2 gap-4 text-sm">
-            <Row label="Name" value={student.name || student.studentName || "—"} />
-            <Row label="Email" value={student.email || "—"} />
-            <Row label="Mobile" value={student.mobile || "—"} />
-            <Row label="Gender" value={student.gender || "—"} />
-            <Row label="Date of Birth" value={student.dateOfBirth || "—"} />
-            <Row label="Class" value={student.class || student.studentClass || "—"} />
-            <Row label="Medium" value={student.medium || "—"} />
-            <Row label="School" value={student.schoolName || "—"} />
-            <Row label="Address" value={student.address || "—"} />
-            <Row label="Village" value={student.village || "—"} />
-            <Row label="District" value={student.district || "—"} />
-            <Row label="Taluka" value={student.taluka || "—"} />
-            <Row label="State" value={student.state || "—"} />
-            <Row label="Pincode" value={student.pincode || "—"} />
-            <Row label="Exam Center" value={center?.centerName || center?.name || "—"} />
-            <Row label="Co-ordinator" value={coordinator?.name || coordinator?.fullName || "—"} />
-            <Row label="Roll Number" value={rollNo} />
-            <Row label="Payment Status" value={paymentStatus} />
-            <Row label="Payment ID" value={paymentId} />
-            <Row label="Registration Fee" value={`₹${paymentAmount}`} />
-          </dl>
-          <div className={`mt-6 rounded-xl border p-4 flex items-center gap-3 ${isPaymentSuccessful ? "border-green-200 bg-green-50" : "border-amber-200 bg-amber-50"}`}>
-            <CheckCircle2 className={isPaymentSuccessful ? "text-green-600 shrink-0" : "text-amber-600 shrink-0"} size={28} />
-            <div>
-              <p className={`font-semibold ${isPaymentSuccessful ? "text-green-700" : "text-amber-700"}`}>
-                {isPaymentSuccessful ? "Payment Successful" : "Payment Pending"}
-              </p>
-              <p className={`text-sm flex items-center gap-1 ${isPaymentSuccessful ? "text-green-700/80" : "text-amber-700/80"}`}>
-                Registration fee paid: <IndianRupee size={14} />{paymentAmount}
-              </p>
+        <div className="space-y-5">
+          <section className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#173b5f] via-[#205b78] to-[#317f89] p-6 text-white shadow-[0_16px_35px_rgba(23,59,95,0.18)] sm:p-8">
+            <div className="absolute -right-14 -top-20 h-52 w-52 rounded-full border-[24px] border-white/10" />
+            <div className="relative flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-center gap-4">
+                <div className="grid h-16 w-16 shrink-0 place-items-center rounded-2xl bg-[#f3b93d] text-xl font-extrabold text-[#173b5f] shadow-lg">{profileInitials}</div>
+                <div>
+                  <p className="mb-1 text-xs font-bold uppercase tracking-[0.2em] text-[#f8d77e]">Student profile</p>
+                  <h2 className="font-display text-2xl font-bold sm:text-3xl">{displayName}</h2>
+                  <p className="mt-1 text-sm text-white/75">Student ID: {student.id ?? student.studentId ?? "—"}</p>
+                </div>
+              </div>
+              <div className={`inline-flex w-fit items-center gap-2 rounded-full border px-3 py-2 text-xs font-bold ${student.active === false ? "border-red-200/30 bg-red-400/15 text-red-100" : "border-emerald-200/30 bg-emerald-400/15 text-emerald-50"}`}>
+                <BadgeCheck size={16} /> {student.active === false ? "Inactive account" : "Active student"}
+              </div>
             </div>
+          </section>
+
+          <div className="grid gap-4 sm:grid-cols-3">
+            <ProfileStat icon={GraduationCap} label="Class & medium" value={`${student.studentClass || student.class || "—"} · ${student.medium || "—"}`} />
+            <ProfileStat icon={Trophy} label="Tests completed" value={String(completedResults)} />
+            <ProfileStat icon={ShieldCheck} label="Payment" value={paymentStatus} positive={isPaymentSuccessful} />
+          </div>
+
+          <div className="grid gap-5 lg:grid-cols-2">
+            <ProfileGroup icon={User} title="Personal details">
+              <Row label="Father name" value={student.fatherName || "—"} />
+              <Row label="Last name" value={student.lastName || "—"} />
+              <Row label="Gender" value={student.gender || "—"} />
+              <Row label="Date of birth" value={formatDate(student.dateOfBirth)} />
+              <Row label="Roll number" value={rollNo} />
+            </ProfileGroup>
+            <ProfileGroup icon={Mail} title="Contact details">
+              <Row label="Email" value={student.email || "—"} />
+              <Row label="Mobile" value={student.mobile || "—"} />
+              <Row label="Address" value={student.address || "—"} />
+              <Row label="Village" value={student.village || "—"} />
+              <Row label="State / pincode" value={`${student.state || "—"} / ${student.pincode || "—"}`} />
+            </ProfileGroup>
+            <ProfileGroup icon={Building2} title="Education & centre">
+              <Row label="School" value={student.school || student.schoolName || "—"} />
+              <Row label="District" value={`${student.districtName || student.district || "—"} (${student.districtId ?? "—"})`} />
+              <Row label="Taluka" value={`${student.talukaName || student.taluka || "—"} (${student.talukaId ?? "—"})`} />
+              <Row label="Centre" value={`${student.centerName || center?.centerName || center?.name || "—"} (${student.centerId ?? "—"})`} />
+              <Row label="Coordinator" value={`${student.coordinatorName || coordinator?.name || coordinator?.fullName || "—"} (${student.coordinatorId ?? "—"})`} />
+            </ProfileGroup>
+            <ProfileGroup icon={CreditCard} title="Account & payment">
+              <Row label="Payment done" value={student.isPaymentDone ? "Yes" : "No"} />
+              <Row label="Payment status" value={paymentStatus} />
+              <Row label="Payment mode" value={student.paymentMode || "—"} />
+              <Row label="Amount" value={student.amount == null ? "—" : `₹${student.amount}`} />
+              <Row label="Member since" value={formatDate(student.createdAt)} />
+            </ProfileGroup>
+          </div>
+
+          <div className={`flex items-center gap-3 rounded-2xl border p-4 ${isPaymentSuccessful ? "border-green-200 bg-green-50" : "border-amber-200 bg-amber-50"}`}>
+            <CheckCircle2 className={isPaymentSuccessful ? "shrink-0 text-green-600" : "shrink-0 text-amber-600"} size={26} />
+            <div><p className={`font-semibold ${isPaymentSuccessful ? "text-green-700" : "text-amber-700"}`}>{isPaymentSuccessful ? "Payment verified" : "Payment pending"}</p><p className="text-sm text-muted">Last updated {formatDate(student.updatedAt)}</p></div>
           </div>
         </div>
       )}
       {tab === "result" && (
-        <div className="card p-6 border-l-4 border-gold">
-          <h3 className="font-display font-bold text-navy text-lg mb-3">Sankalp Exam Result</h3>
-
-          <div className="mb-4">
-            <p className="text-sm text-muted">Below are your past exam attempts. Click "View" to see the solved paper with selected options and per-question details (if available).</p>
-          </div>
+        <div className="space-y-5">
+          <section className="card overflow-hidden border-0 bg-[#173b5f] p-6 text-white shadow-[0_14px_30px_rgba(23,59,95,0.16)] sm:p-8">
+            <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
+              <div><p className="mb-2 text-xs font-bold uppercase tracking-[0.2em] text-[#f8d77e]">Assessment history</p><h3 className="font-display text-2xl font-bold sm:text-3xl">My test results</h3><p className="mt-2 max-w-xl text-sm text-white/70">Every exam attempt linked to your student account appears here, newest first.</p></div>
+              <div className="rounded-xl border border-white/15 bg-white/10 px-5 py-3 text-left sm:text-right"><p className="text-2xl font-bold text-[#f8d77e]">{results.length}</p><p className="text-xs text-white/65">total attempts</p></div>
+            </div>
+          </section>
 
           {loadingResults ? (
-            <div>Loading exam attempts...</div>
+            <div className="card flex items-center gap-3 p-8 text-sm text-muted"><span className="h-4 w-4 animate-spin rounded-full border-2 border-gold border-t-transparent" /> Loading complete test history...</div>
+          ) : resultsError ? (
+            <div className="card border-red-200 bg-red-50 p-8 text-center"><p className="font-semibold text-red-700">Assessment history could not be loaded</p><p className="mt-1 text-sm text-red-600">{resultsError}</p></div>
           ) : results.length === 0 ? (
-            <div className="text-sm text-muted">No exam attempts found.</div>
+            <div className="card p-8 text-center"><Trophy className="mx-auto mb-3 text-gold" size={30} /><p className="font-semibold text-navy">No exam attempts found</p><p className="mt-1 text-sm text-muted">Your completed tests will appear here.</p></div>
           ) : (
-            <div className="space-y-3">
-              {results.map((r) => {
+            <div className="space-y-4">
+              {results.map((r, resultIndex) => {
                 // Try to canonicalize fields from common server shapes
                 const attemptId = r.attemptId ?? r.id ?? r.resultId ?? r.attempt_id ?? r.attemptId;
                 const examName = r.examName ?? r.exam_name ?? r.exam?.examName ?? r.exam?.name ?? r.examTitle ?? r.testSeries?.title ?? r.testSeries?.name ?? r.title ?? "Exam";
                 const resultData = r.result ?? r;
                 const obtained = resultData.obtainedMarks ?? resultData.obtained_marks ?? resultData.marks ?? resultData.score ?? resultData.obtained ?? null;
                 const total = resultData.totalMarks ?? resultData.total_marks ?? resultData.total ?? resultData.maxMarks ?? null;
+                const percentage = resultData.percentage ?? resultData.percent ?? (obtained != null && total ? Math.round((Number(obtained) / Number(total)) * 100) : null);
+                const resultStatus = resultData.status ?? resultData.resultStatus ?? resultData.result ?? "Submitted";
                 const startedAt = r.startedAt ?? r.started_at ?? r.createdAt ?? r.created_at ?? r.attemptedAt ?? null;
                 const attemptedCount = r.attemptedCount ?? r.attemptedQuestions ?? r.answeredCount ?? null;
                 const unattemptedCount = r.unattemptedCount ?? r.unattemptedQuestions ?? r.unansweredCount ?? null;
                 const reviewedCount = r.reviewedCount ?? r.markedCount ?? r.markedForReviewCount ?? null;
 
                 return (
-                  <div key={String(attemptId || Math.random())} className="flex flex-col gap-3 rounded-xl border border-slate-200 p-4 sm:flex-row sm:items-center sm:justify-between">
-                    <div>
-                      <div className="font-semibold text-navy">{examName}</div>
-                      <div className="text-xs text-muted">Attempt: {attemptId ?? "—"} • {startedAt ? new Date(startedAt).toLocaleString() : "—"}</div>
+                  <div key={String(attemptId || resultIndex)} className="card group flex flex-col gap-5 border-l-4 border-l-gold p-5 transition hover:-translate-y-0.5 hover:shadow-[0_12px_28px_rgba(23,59,95,0.12)] sm:flex-row sm:items-center sm:justify-between">
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-2"><div className="font-display text-lg font-bold text-navy">{examName}</div><span className="rounded-full bg-emerald-50 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-emerald-700">{resultStatus}</span></div>
+                      <div className="mt-1 text-xs text-muted">Attempt {attemptId ?? "—"} · {startedAt ? new Date(startedAt).toLocaleString() : "Date unavailable"}</div>
                       {(attemptedCount !== null || unattemptedCount !== null || reviewedCount !== null) && (
                         <div className="mt-2 flex flex-wrap gap-2 text-[10px] font-semibold">
                           {attemptedCount !== null && <span className="rounded-full bg-green-50 px-2 py-1 text-green-700">Attempted: {attemptedCount}</span>}
@@ -256,10 +295,10 @@ export default function StudentDashboard({ defaultTab = "profile" }) {
                         </div>
                       )}
                     </div>
-                    <div className="text-right">
-                      <div className="font-bold">{obtained ?? "—"}{total ? ` / ${total}` : ""}</div>
-                      <div className="mt-2 flex gap-2 justify-end">
-                        <button className="btn btn-sm" onClick={() => viewAttempt(r)}>View</button>
+                    <div className="flex items-center justify-between gap-5 border-t border-slate-100 pt-4 sm:border-t-0 sm:pt-0">
+                      <div className="text-left sm:text-right"><div className="text-2xl font-bold text-navy">{percentage != null ? `${percentage}%` : "—"}</div><div className="text-xs text-muted">Score {obtained ?? "—"}{total ? ` / ${total}` : ""}</div></div>
+                      <div className="flex gap-2 justify-end">
+                        <button className="btn btn-sm transition group-hover:bg-gold" onClick={() => viewAttempt(r)}>View details</button>
                       </div>
                     </div>
                   </div>
@@ -313,7 +352,7 @@ export default function StudentDashboard({ defaultTab = "profile" }) {
                   {/* Try to find questions/answers in multiple possible keys */}
                   {(() => {
                     const result = selectedAttempt.result ?? selectedAttempt;
-                    const qList = result.questions ?? result.questionResponses ?? result.studentAnswers ?? result.answers ?? result.answerDetails ?? result.details ?? result.questionList ?? result.questionsList ?? null;
+                    const qList = [result.questions, result.questionResponses, result.resultQuestions, result.resultQuestionResponses, result.questionResults, result.studentAnswers, result.answers, result.answerDetails, result.details, result.questionList, result.questionsList].find((items) => Array.isArray(items) && items.length > 0) || null;
                     if (!qList || !qList.length) {
                       return <div className="text-sm text-muted">No per-question details are available for this attempt.</div>;
                     }
@@ -393,5 +432,23 @@ function Row({ label, value }) {
       <dt className="text-muted">{label}</dt>
       <dd className="font-semibold text-navy text-right">{value}</dd>
     </div>
+  );
+}
+
+function ProfileStat({ icon: Icon, label, value, positive = false }) {
+  return (
+    <div className="card flex items-center gap-3 p-4">
+      <div className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl ${positive ? "bg-emerald-50 text-emerald-600" : "bg-[#fff6df] text-gold-dark"}`}><Icon size={19} /></div>
+      <div className="min-w-0"><p className="truncate text-xs font-medium text-muted">{label}</p><p className="truncate font-bold text-navy">{value}</p></div>
+    </div>
+  );
+}
+
+function ProfileGroup({ icon: Icon, title, children }) {
+  return (
+    <section className="card p-5 sm:p-6">
+      <div className="mb-5 flex items-center gap-3 border-b border-slate-100 pb-4"><div className="grid h-9 w-9 place-items-center rounded-lg bg-[#edf5f7] text-[#205b78]"><Icon size={18} /></div><h3 className="font-display font-bold text-navy">{title}</h3></div>
+      <dl className="space-y-3 text-sm">{children}</dl>
+    </section>
   );
 }

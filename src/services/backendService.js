@@ -495,13 +495,13 @@ function normalizeTestFeatures(series) {
 
 export async function fetchTestSeries() {
   const seriesList = await requestFirstAvailable([
-    "/api/test-series",
+    "/api/api/test-series",
     "/api/testSeries",
     "/api/testseries",
-    "/api/test-series/all",
+    "/api/api/test-series/all",
     "/api/testSeries/all",
     "/api/testseries/all",
-    "/api/test-series/list",
+    "/api/api/test-series/list",
     "/api/testSeries/list",
     "/api/testseries/list",
   ], "test series");
@@ -531,15 +531,15 @@ export async function fetchTestSeries() {
 
 export async function fetchTestSeriesCategories() {
   const categories = await requestFirstAvailable([
-    "/api/test-series/categories",
-    "/api/test-series/category",
-    "/api/test-series/category/all",
+    "/api/api/test-series/categories",
+    "/api/api/test-series/category",
+    "/api/api/test-series/category/all",
     "/api/testSeries/category",
     "/api/testSeries/categories",
     "/api/testseries/categories",
     "/api/testseries/category",
     "/api/categories/test-series",
-    "/api/test-series-categories",
+    "/api/api/test-series/categories",
     "/api/categories",
   ], "test series categories");
 
@@ -555,13 +555,13 @@ export async function fetchTestSeriesById(id) {
   let lastResponse = null;
 
   const candidates = [
-    `/api/test-series/${id}`,
+    `/api/api/test-series/${id}`,
     `/api/testSeries/${id}`,
     `/api/testseries/${id}`,
-    `/api/test-series/get/${id}`,
+    `/api/api/test-series/get/${id}`,
     `/api/testSeries/get/${id}`,
     `/api/testseries/get/${id}`,
-    `/api/test-series/id/${id}`,
+    `/api/api/test-series/id/${id}`,
     `/api/testSeries/id/${id}`,
     `/api/testseries/id/${id}`,
   ];
@@ -670,6 +670,15 @@ export async function fetchExams() {
   }));
 }
 
+export async function fetchQuestionsByExamId(examId) {
+  const response = await api.get("/api/questions");
+  const questions = normalizeList(response.data);
+  return questions
+    .filter((question) => question?.active !== false)
+    .filter((question) => !examId || String(question?.examId ?? "") === String(examId))
+    .sort((first, second) => Number(first?.sequence ?? 0) - Number(second?.sequence ?? 0));
+}
+
 function unwrapResponse(data) {
   return data?.data ?? data?.result ?? data;
 }
@@ -712,6 +721,11 @@ export async function fetchExamAttemptResult(attemptId) {
   return unwrapResponse(response.data);
 }
 
+export async function fetchStudentResultById(resultId) {
+  const response = await api.get(`/api/results/${encodeURIComponent(resultId)}`);
+  return unwrapResponse(response.data);
+}
+
 export function rememberExamAttempt(attemptId) {
   if (!attemptId) return;
   const saved = JSON.parse(sessionStorage.getItem("ssp_attempt_ids") || "[]");
@@ -727,83 +741,22 @@ export function rememberExamResult(result) {
   sessionStorage.setItem("ssp_attempt_results", JSON.stringify(results));
 }
 
-// Fetch exam results/attempts for a given student. Try several plausible endpoints the backend might expose.
+// Fetch the complete result history for the authenticated student.
 export async function fetchStudentResults(studentId, profile = null) {
   if (!studentId) return [];
   const id = encodeURIComponent(studentId);
-  const profileAttempts = [
-    profile?.attempts,
-    profile?.examAttempts,
-    profile?.exam_attempts,
-    profile?.results,
-  ].find(Array.isArray) || [];
-
-  if (profileAttempts.length) {
-    const profileResults = [];
-    for (const attempt of profileAttempts) {
-      const attemptId = getAttemptId(attempt);
-      if (!attemptId) continue;
-      try {
-        const result = await fetchExamAttemptResult(attemptId);
-        profileResults.push({ ...attempt, ...result, attemptId });
-      } catch (err) {
-        profileResults.push({ ...attempt, attemptId });
-      }
-    }
-    if (profileResults.length) return profileResults;
+  try {
+    const response = await api.get(`/api/results/student/${id}`);
+    const persistedResults = normalizeList(response.data);
+    return persistedResults.filter(Boolean).filter((item, index, list) => {
+      const itemId = item.attemptId ?? item.id ?? item.resultId ?? item.attempt_id;
+      if (!itemId) return true;
+      return list.findIndex((candidate) => String(candidate.attemptId ?? candidate.id ?? candidate.resultId ?? candidate.attempt_id) === String(itemId)) === index;
+    });
+  } catch (error) {
+    console.warn("fetchStudentResults: persisted result history failed", error?.response?.status || error?.message);
+    throw error;
   }
-
-  const endpoints = [
-    "/api/exam-attempts/my",
-    "/api/exam-attempts/me",
-    "/api/exam-results/my",
-    "/api/results/my",
-    `/api/exam-attempts/student/${id}`,
-    `/api/exam-attempts?studentId=${id}`,
-    `/api/exam-results?studentId=${id}`,
-    `/api/exam-results/student/${id}`,
-    `/api/students/${id}/exam-results`,
-    `/api/results?studentId=${id}`,
-    `/api/results/student/${id}`,
-  ];
-
-  const endpointResults = [];
-  for (const ep of endpoints) {
-    try {
-      const res = await api.get(ep);
-      const list = normalizeList(res.data);
-      if (list && list.length) {
-        console.debug('fetchStudentResults: using endpoint', ep, 'returned', list.length, 'items');
-        endpointResults.push(...list);
-      }
-    } catch (err) {
-      console.debug('fetchStudentResults: endpoint', ep, 'failed with', err?.response?.status || err?.message || err);
-    }
-  }
-
-  const savedAttemptIds = JSON.parse(sessionStorage.getItem("ssp_attempt_ids") || "[]");
-  const rememberedResults = JSON.parse(sessionStorage.getItem("ssp_attempt_results") || "[]");
-  const savedResults = [...endpointResults];
-  for (const attemptId of savedAttemptIds) {
-    try {
-      const result = await fetchExamAttemptResult(attemptId);
-      if (result) savedResults.push({ ...result, attemptId });
-    } catch (err) {
-      console.debug('fetchStudentResults: saved attempt failed', attemptId, err?.response?.status || err?.message || err);
-    }
-  }
-  rememberedResults.forEach((result) => {
-    if (!savedResults.some((item) => String(item.attemptId) === String(result.attemptId))) savedResults.push(result);
-  });
-  const uniqueResults = savedResults.filter((item, index, list) => {
-    const itemId = item.attemptId ?? item.id ?? item.resultId ?? item.attempt_id;
-    if (!itemId) return true;
-    return list.findIndex((candidate) => String(candidate.attemptId ?? candidate.id ?? candidate.resultId ?? candidate.attempt_id) === String(itemId)) === index;
-  });
-  if (uniqueResults.length) return uniqueResults;
-
-  console.warn('fetchStudentResults: no results found for student', studentId);
-  return [];
 }
 
 export async function fetchVisionMissions() {
@@ -938,25 +891,39 @@ function normalizeStudent(student) {
     id: student.id ?? student.studentId,
     studentId: student.studentId ?? student.id,
     name: student.name ?? student.studentName ?? student.fullName ?? "",
+    studentName: student.studentName ?? student.name ?? student.fullName ?? "",
+    fatherName: student.fatherName ?? "",
+    lastName: student.lastName ?? "",
     email: student.email ?? student.emailId ?? "",
     mobile: student.mobile ?? student.mobileNo ?? student.phone ?? student.contactNumber ?? "",
     gender: student.gender ?? student.studentGender ?? "",
     dateOfBirth: student.dateOfBirth ?? student.dob ?? student.birthDate ?? "",
     class: student.class ?? student.studentClass ?? student.className ?? "",
+    studentClass: student.studentClass ?? student.class ?? student.className ?? "",
     medium: student.medium ?? student.schoolMedium ?? "",
     schoolName: student.schoolName ?? student.school ?? student.instituteName ?? "",
+    school: student.school ?? student.schoolName ?? student.instituteName ?? "",
     address: student.address ?? student.residentialAddress ?? "",
     village: student.village ?? student.villageName ?? "",
     district: student.district ?? student.districtName ?? "",
+    districtId: student.districtId ?? "",
+    districtName: student.districtName ?? student.district ?? "",
     taluka: student.taluka ?? student.talukaName ?? "",
+    talukaId: student.talukaId ?? "",
+    talukaName: student.talukaName ?? student.taluka ?? "",
     state: student.state ?? student.stateName ?? "",
     pincode: student.pincode ?? student.pinCode ?? student.zipCode ?? "",
-    rollNo: student.rollNo ?? student.rollNumber ?? student.roll_no ?? "",
-    paymentStatus: student.paymentStatus ?? student.payment_status ?? student.payment?.status ?? "",
-    paymentId: student.paymentId ?? student.payment_id ?? student.razorpayPaymentId ?? "",
-    amount: student.amount ?? student.registrationFee ?? student.paymentAmount ?? null,
-    examCenterId: student.examCenterId ?? student.centerId ?? student.examCenter?.id ?? student.center?.id ?? "",
+    centerId: student.centerId ?? student.examCenterId ?? student.examCenter?.id ?? student.center?.id ?? "",
+    centerName: student.centerName ?? student.examCenter?.name ?? student.center?.name ?? "",
     coordinatorId: student.coordinatorId ?? student.coordinator?.id ?? "",
+    coordinatorName: student.coordinatorName ?? student.coordinator?.name ?? student.coordinator?.fullName ?? "",
+    active: student.active ?? null,
+    createdAt: student.createdAt ?? "",
+    updatedAt: student.updatedAt ?? "",
+    isPaymentDone: student.isPaymentDone ?? false,
+    paymentStatus: student.paymentStatus ?? student.payment_status ?? student.payment?.status ?? "",
+    paymentMode: student.paymentMode ?? "",
+    amount: student.amount ?? student.registrationFee ?? student.paymentAmount ?? null,
   };
 }
 
