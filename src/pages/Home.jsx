@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import {
   GraduationCap, Target, MapPin, FileCheck2, ArrowRight, CalendarDays,
   Quote, MapPinned, ImageOff, BookOpen, Zap, Globe, CheckCircle, Award,
-  BadgeCheck, Medal, Trophy, LoaderCircle,
+  BadgeCheck, Medal, Trophy, LoaderCircle, Rocket, Coins, Smartphone, ChevronLeft, ChevronRight,
 } from "lucide-react";
 import ImageSlider from "../components/ImageSlider.jsx";
 import CourseCard from "../components/CourseCard.jsx";
@@ -19,6 +19,12 @@ import { API_BASE_URL } from "../utils/api.js";
 
 const icons = { GraduationCap, Target, MapPin, FileCheck2, BookOpen, Zap, Globe, CheckCircle };
 const awardIcons = [Trophy, Medal, Award, BadgeCheck];
+const prizeHighlights = [
+  { title: "A trip to NASA", description: "Don't miss the chance to explore the wonders of space - win an exciting trip to NASA", Icon: Rocket, tone: "text-[#ff4055]" },
+  { title: "Cash Rewards", description: "Unlock the potential to win cash rewards as you pave the way to a brighter academic future.", Icon: GraduationCap, tone: "text-[#f1b923]" },
+  { title: "Up to 100% Scholarships", description: "Get a chance to win up to 100% scholarships based on your performance", Icon: Coins, tone: "text-[#9d4c0e]" },
+  { title: "Gadgets", description: "Participate in SCORE and stand a chance to earn exciting gadgets based on your performance", Icon: Smartphone, tone: "text-[#31597d]" },
+];
 
 function Counter({ value, suffix }) {
   const [count, setCount] = useState(0);
@@ -55,14 +61,9 @@ function Counter({ value, suffix }) {
 }
 
 function ColoredTitle({ text, className = "" }) {
-  const words = text.split(" ");
   return (
-    <h2 className={`text-2xl md:text-4xl font-bold ${className}`}>
-      {words.map((word, idx) => (
-        <span key={idx} className={idx % 2 === 0 ? "text-gold" : "text-navy"}>
-          {word}{idx < words.length - 1 ? " " : ""}
-        </span>
-      ))}
+    <h2 className={`font-display text-3xl font-bold leading-tight text-[#ed5a00] md:text-4xl ${className}`}>
+      {text}
     </h2>
   );
 }
@@ -77,7 +78,7 @@ function SectionHeading({
   descClassName = "",
 }) {
   return (
-    <div className={`mb-10 ${center ? "text-center max-w-2xl mx-auto" : ""}`}>
+    <div className="mx-auto mb-10 max-w-2xl text-center">
       {eyebrow && <span className={`eyebrow ${eyebrowClassName}`}>
         {eyebrow}
       </span>}
@@ -99,11 +100,11 @@ function resolveImageUrl(image) {
   return `${API_BASE_URL.replace(/\/+$/, "")}/${String(image).replace(/^\/+/, "")}`;
 }
 
-function getMapEmbedUrl(mapLink) {
+function getMapEmbedUrl(mapLink, address = "Shri Shahu Prabodhini School, Pune") {
   const value = String(mapLink || "").trim();
-  if (/^(https?:\/\/)?(www\.)?openstreetmap\.org\/export\/embed/i.test(value)) return value;
   if (/google\.com\/maps\/embed/i.test(value)) return value;
-  return "https://www.openstreetmap.org/export/embed.html?bbox=73.855%2C18.493%2C73.885%2C18.525&layer=mapnik&marker=18.509%2C73.870";
+  if (/google\.com\/maps/i.test(value)) return value.includes("output=embed") ? value : `${value}${value.includes("?") ? "&" : "?"}output=embed`;
+  return `https://www.google.com/maps?q=${encodeURIComponent(address)}&output=embed`;
 }
 
 function MissingImage({ className = "" }) {
@@ -113,6 +114,7 @@ function MissingImage({ className = "" }) {
 export default function Home() {
   const [liveData, setLiveData] = React.useState({ heroSections: [], courses: [], toppers: [], awards: [], gallery: [], faculties: [], testimonials: [], contactInfo: null });
   const [awardsLoading, setAwardsLoading] = React.useState(true);
+  const [galleryIndex, setGalleryIndex] = useState(0);
 
   React.useEffect(() => {
     let active = true;
@@ -138,44 +140,112 @@ export default function Home() {
   const heroSlides = heroSections
     .sort((first, second) => first.priority - second.priority);
   const galleryPreview = gallery.slice(0, 5);
-  const galleryFocusIndex = Math.floor((galleryPreview.length - 1) / 2);
+
+  useEffect(() => {
+    if (galleryPreview.length < 2) return undefined;
+    const timer = window.setInterval(() => {
+      setGalleryIndex((current) => (current + 1) % galleryPreview.length);
+    }, 4200);
+    return () => window.clearInterval(timer);
+  }, [galleryPreview.length]);
+
+  const showPreviousGallery = () => {
+    setGalleryIndex((current) => (current - 1 + galleryPreview.length) % galleryPreview.length);
+  };
+
+  const showNextGallery = () => {
+    setGalleryIndex((current) => (current + 1) % galleryPreview.length);
+  };
 
   return (
     <div>
       {/* 1. Image Slider */}
       <ImageSlider slides={heroSlides.length > 0 ? heroSlides : sliderSlides} />
 
-      {/* 2. Sankalp Exam Info with Registration button */}
-      <section className="section-pad bg-navy relative overflow-hidden">
-        <div className="absolute -right-24 -top-24 w-72 h-72 bg-gold/10 rounded-full" />
-        <div className="absolute -left-16 -bottom-16 w-56 h-56 bg-gold/10 rounded-full" />
-        <div className="container-app relative grid md:grid-cols-2 gap-10 items-center">
-          <div>
-            <span className="eyebrow">Now Open</span>
-            <h2 className="text-2xl md:text-4xl font-bold text-white mb-4">{examInfo.name}</h2>
-            <p className="text-white/70 leading-relaxed mb-6">
-              Open to students of classes {examInfo.eligibleClasses}. Compete with the finest
-              young minds across {examInfo.centers} and win scholarships, certificates &amp; recognition.
-            </p>
-            <ul className="grid grid-cols-2 gap-4 mb-8">
-              <li className="flex items-center gap-2 text-white/85 text-sm"><CalendarDays size={16} className="text-gold" /> Exam: {examInfo.examDate}</li>
-              <li className="flex items-center gap-2 text-white/85 text-sm"><CalendarDays size={16} className="text-gold" /> Last Date: {examInfo.registrationDeadline}</li>
-            </ul>
-            <div className="flex flex-wrap gap-4">
-              <Link to="/register" className="btn-primary">Registration <ArrowRight size={16} /></Link>
-              <Link to="/sankalp/exam-information" className="border-2 border-white/30 text-white font-bold px-6 py-3 rounded-md hover:bg-white/10 transition">
-                Exam Details
-              </Link>
+      <div className="marquee-shell overflow-hidden border-y border-[#d5a733] bg-[linear-gradient(90deg,#f3c446_0%,#f4d66d_25%,#edb928_50%,#f5ce68_75%,#efb72d_100%)] shadow-[inset_0_1px_0_rgba(255,255,255,0.45),inset_0_-1px_0_rgba(17,45,73,0.08)]">
+        <div className="hero-marquee flex w-max min-w-full items-center gap-8 py-3 text-sm font-semibold uppercase tracking-[0.08em] text-[#112d49] md:text-base">
+          {["₹2.5 Cr Cash Rewards", "NASA Educational Trip", "Exams Dates for Sri Chaitanya/Academy : 11th Oct 2026", "Register Now", "₹2.5 Cr Cash Rewards", "NASA Educational Trip", "Exams Dates for Sri Chaitanya/Academy : 11th Oct 2026", "Register Now"].map((item, index) => (
+            <div key={`${item}-${index}`} className="hero-marquee-item flex items-center gap-2 whitespace-nowrap px-2">
+              <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-[#112d49] text-[10px] font-bold text-[#f6d46a] shadow-[0_0_12px_rgba(17,45,73,0.35)]">★</span>
+              <span className="drop-shadow-[0_1px_0_rgba(255,255,255,0.35)]">{item}</span>
             </div>
+          ))}
+        </div>
+      </div>
+
+      <section className="prize-section bg-[#fffdfa] px-4 py-14 sm:px-6 md:py-20">
+        <div className="mx-auto max-w-[1280px]">
+          <h2 className="mb-9 text-center font-display text-3xl font-bold leading-tight text-[#ed5a00] md:text-4xl">
+            Earn Scholarships and Prizes
+          </h2>
+
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            {prizeHighlights.map(({ title, description, Icon, tone }) => (
+              <article key={title} className="prize-card group relative flex min-h-[300px] flex-col items-center overflow-hidden rounded-[24px] border border-[#f3e5c5] bg-[#fff7e5] px-5 pb-7 pt-6 text-center shadow-[0_10px_28px_rgba(23,59,95,0.10)] transition duration-300 hover:-translate-y-2 hover:shadow-[0_18px_36px_rgba(23,59,95,0.16)]">
+                <div className="prize-card-wave" aria-hidden="true" />
+                <div className={`relative z-10 flex h-28 items-center justify-center ${tone}`}>
+                  <Icon size={92} strokeWidth={1.35} className="transition duration-300 group-hover:scale-110 group-hover:-rotate-3" />
+                </div>
+                <h3 className="relative z-10 mt-4 max-w-[250px] font-display text-[1.55rem] font-bold leading-tight text-navy">
+                  {title}
+                </h3>
+                <p className="relative z-10 mt-5 max-w-[280px] text-[0.98rem] leading-6 text-[#426078]">
+                  {description}
+                </p>
+              </article>
+            ))}
           </div>
-          <div className="card p-6 md:p-8 bg-white/95">
-            <h3 className="font-display font-bold text-navy text-lg mb-4">Exam Snapshot</h3>
-            <dl className="space-y-3 text-sm">
-              <div className="flex justify-between border-b border-black/5 pb-2"><dt className="text-muted">Registration Fee</dt><dd className="font-bold text-navy">₹{examInfo.fee}</dd></div>
-              <div className="flex justify-between border-b border-black/5 pb-2"><dt className="text-muted">Eligible Classes</dt><dd className="font-bold text-navy">{examInfo.eligibleClasses}</dd></div>
-              <div className="flex justify-between border-b border-black/5 pb-2"><dt className="text-muted">Exam Pattern</dt><dd className="font-bold text-navy text-right max-w-[60%]">{examInfo.pattern}</dd></div>
-              <div className="flex justify-between"><dt className="text-muted">Centers</dt><dd className="font-bold text-navy">{examInfo.centers}</dd></div>
-            </dl>
+
+          <div className="mt-12 flex justify-center">
+            <Link to="/register" className="group inline-flex items-center gap-3 rounded-full bg-navy px-7 py-3.5 text-base font-semibold text-white shadow-[0_10px_22px_rgba(23,59,95,0.22)] transition duration-300 hover:-translate-y-1 hover:bg-navy-light hover:shadow-[0_16px_28px_rgba(23,59,95,0.28)] sm:px-8">
+              Register for SCORE 2026 now
+              <ArrowRight size={21} className="transition-transform duration-300 group-hover:translate-x-1" />
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* 2. Sankalp Exam Info with Registration button */}
+      <section className="relative overflow-hidden bg-[#fffdfa] py-14 md:py-20">
+        <div className="pointer-events-none absolute -right-24 top-8 h-80 w-80 rounded-full bg-gold/15 blur-3xl" />
+        <div className="pointer-events-none absolute -left-20 bottom-0 h-72 w-72 rounded-full bg-[#dce9f3] blur-3xl" />
+        <div className="container-app relative">
+          <div className="grid overflow-hidden rounded-[30px] border border-[#e9dfcf] bg-white shadow-[0_20px_55px_rgba(23,59,95,0.12)] lg:grid-cols-[1.15fr_0.85fr]">
+            <div className="relative overflow-hidden bg-[linear-gradient(135deg,#f8f3e8_0%,#fffdfa_62%,#f4e8c9_100%)] p-6 sm:p-8 md:p-10">
+              <div className="absolute -bottom-20 -left-12 h-44 w-44 rounded-full border-[22px] border-gold/15" />
+              <div className="absolute right-8 top-8 h-16 w-16 rounded-full bg-gold/15 blur-xl" />
+              <div className="relative max-w-xl">
+                <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-gold/30 bg-white/75 px-3 py-1.5 text-xs font-bold uppercase tracking-[0.16em] text-gold-dark shadow-sm">
+                  <span className="h-2 w-2 rounded-full bg-gold shadow-[0_0_0_4px_rgba(243,185,61,0.18)]" /> Now open for registration
+                </div>
+                <h3 className="font-display text-2xl font-bold text-navy md:text-3xl">{examInfo.name}</h3>
+                <p className="mt-4 max-w-lg text-sm leading-7 text-[#526b7e] md:text-base">Open to students of classes {examInfo.eligibleClasses}. Compete with young minds across {examInfo.centers} and earn scholarships, certificates and recognition.</p>
+                <div className="mt-7 grid gap-3 sm:grid-cols-2">
+                  <div className="flex items-center gap-3 rounded-2xl border border-white/80 bg-white/70 px-4 py-3 text-sm font-semibold text-navy shadow-sm"><CalendarDays size={17} className="text-gold-dark" /> Exam: {examInfo.examDate}</div>
+                  <div className="flex items-center gap-3 rounded-2xl border border-white/80 bg-white/70 px-4 py-3 text-sm font-semibold text-navy shadow-sm"><CalendarDays size={17} className="text-gold-dark" /> Last date: {examInfo.registrationDeadline}</div>
+                </div>
+                <div className="mt-8 flex flex-wrap gap-3">
+                  <Link to="/register" className="btn-primary">Registration <ArrowRight size={16} /></Link>
+                  <Link to="/sankalp/exam-information" className="inline-flex items-center gap-2 rounded-md border-2 border-navy/15 px-6 py-3 font-bold text-navy transition hover:border-navy hover:bg-navy hover:text-white">Exam Details <ArrowRight size={16} /></Link>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-[#173b5f] p-6 text-white sm:p-8 md:p-10">
+              <div className="mb-7 flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-[0.18em] text-gold-light">At a glance</p>
+                  <h3 className="mt-1 font-display text-2xl font-bold">Exam Snapshot</h3>
+                </div>
+                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/10 text-gold-light"><GraduationCap size={23} /></div>
+              </div>
+              <dl className="space-y-0 text-sm">
+                <div className="flex items-center justify-between gap-4 border-t border-white/15 py-4"><dt className="text-white/65">Registration Fee</dt><dd className="font-bold text-gold-light">₹{examInfo.fee}</dd></div>
+                <div className="flex items-center justify-between gap-4 border-t border-white/15 py-4"><dt className="text-white/65">Eligible Classes</dt><dd className="text-right font-bold">{examInfo.eligibleClasses}</dd></div>
+                <div className="flex items-start justify-between gap-4 border-t border-white/15 py-4"><dt className="text-white/65">Exam Pattern</dt><dd className="max-w-[15rem] text-right font-bold leading-5">{examInfo.pattern}</dd></div>
+                <div className="flex items-center justify-between gap-4 border-y border-white/15 py-4"><dt className="text-white/65">Centers</dt><dd className="text-right font-bold">{examInfo.centers}</dd></div>
+              </dl>
+            </div>
           </div>
         </div>
       </section>
@@ -214,7 +284,6 @@ export default function Home() {
       <section className="section-pad bg-gradient-to-b from-slate-50 to-white">
         <div className="container-app">
           <SectionHeading
-            eyebrow="FEATURES"
             title="Built For Better Outcomes"
             center
           />
@@ -252,20 +321,26 @@ export default function Home() {
       </section>
 
     {/* 5. Courses & Enroll button */}
-<section className="section-pad bg-cream">
+<section className="relative overflow-hidden bg-[#f4f7fa] py-14 md:py-20">
+  <div className="pointer-events-none absolute -right-24 top-10 h-72 w-72 rounded-full bg-gold/15 blur-3xl" />
+  <div className="pointer-events-none absolute -left-24 bottom-0 h-72 w-72 rounded-full bg-[#dce9f3] blur-3xl" />
   <div className="container-app">
 
     {/* Center Heading */}
     <SectionHeading
-      eyebrow="Programs"
       title="Our Courses"
       center
     />
 
+    {/* <div className="mx-auto mb-8 flex max-w-3xl items-center justify-center gap-2 text-center text-sm text-muted">
+      <span className="h-2 w-2 rounded-full bg-emerald-500 shadow-[0_0_0_4px_rgba(16,185,129,0.12)]" />
+      Explore our latest programs, updated directly from the live course catalog.
+    </div> */}
+
     {/* Courses Grid */}
-    <div className="mt-8 grid items-start grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+    <div className="relative mt-8 grid items-stretch grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
       {courses.slice(0, 4).map((c) => (
-        <CourseCard key={c.id} course={c} />
+        <CourseCard key={c.id} course={c} showFullImage overlayMode />
       ))}
     </div>
 
@@ -280,111 +355,95 @@ export default function Home() {
 </section>
 
    {/* 6. School Exam Toppers */}
-<section className="section-pad">
-  <div className="container-app">
-
-    {/* Center Heading */}
-    <SectionHeading
-      eyebrow="Hall of Fame"
-      title="Our Toppers"
-      center
-    />
-
-    {/* Toppers Grid */}
-    <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-      {toppers.slice(0, 4).map((t, index) => (
-        <div
-          key={t.id}
-          style={{ animationDelay: `${index * 90}ms` }}
-          className="
-            topper-reveal
-            mx-auto
-            flex
-            h-full
-            flex-col
-            w-full
-            max-w-none
-            overflow-visible
-            rounded-[1.25rem]
-            border
-            border-gold/20
-            bg-white
-            text-center
-            shadow-[0_8px_24px_rgba(11,37,69,0.08)]
-            transition-all
-            duration-500
-            hover:-translate-y-1
-            hover:border-gold/70
-            hover:ring-2
-            hover:ring-gold/20
-            hover:shadow-[0_18px_40px_rgba(11,37,69,0.12)]
-          "
-        >
-          {/* Student Image */}
-          <div className="relative aspect-[1.08/1] w-full overflow-hidden bg-[#e9e9e9] ring-1 ring-inset ring-white/80">
-            {t.image ? <img src={resolveImageUrl(t.image)} alt={t.name} className="h-full w-full object-cover object-top transition-transform duration-700 group-hover:scale-[1.03]" /> : <MissingImage className="h-full w-full" />}
-          </div>
-
-          {/* Content */}
-          <div className="px-4 pb-4 pt-4">
-            <h3 className="text-[1.05rem] font-bold leading-tight text-navy">
-              {t.name}
-            </h3>
-
-            <p className="mt-1 text-sm text-slate-500">
-              Class {t.className || t.post || "-"} · {t.year || "Sankalp Exam"}
-            </p>
-          </div>
-        </div>
-      ))}
+<section className="relative overflow-hidden bg-[#f7f8fa] py-14 md:py-20">
+  <div className="pointer-events-none absolute -right-24 top-12 h-72 w-72 rounded-full bg-gold/15 blur-3xl" />
+  <div className="pointer-events-none absolute -left-24 bottom-0 h-72 w-72 rounded-full bg-[#dce9f3] blur-3xl" />
+  <div className="container-app relative">
+    <div className="mb-9 text-center">
+      <div>
+        <h2 className="text-center font-display text-3xl font-bold leading-tight text-[#ed5a00] md:text-4xl">Our Toppers</h2>
+      </div>
     </div>
 
-    {/* View All Button */}
-    <div className="flex justify-center mt-10">
-      <Link to="/toppers" className="btn-outline">
-        View All Toppers
+    <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+      {toppers.slice(0, 4).map((t, index) => {
+        const rank = t.rank || index + 1;
+        return <article key={t.id} style={{ animationDelay: `${index * 90}ms` }} className="topper-reveal group relative overflow-hidden rounded-[24px] border border-[#e2e7ec] bg-white shadow-[0_12px_30px_rgba(23,59,95,0.10)] transition-all duration-500 hover:-translate-y-2 hover:border-gold/60 hover:shadow-[0_20px_42px_rgba(23,59,95,0.17)]">
+          <div className="relative aspect-[1.05/1] overflow-hidden bg-[#e9eff3]">
+            {t.image ? <img src={resolveImageUrl(t.image)} alt={t.name} className="h-full w-full object-cover object-top transition-transform duration-700 group-hover:scale-105" /> : <MissingImage className="h-full w-full" />}
+            <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-navy/65 to-transparent" />
+            <div className="absolute right-3 top-3 inline-flex items-center gap-1.5 rounded-full border border-white/80 bg-white/90 px-3 py-1.5 text-xs font-bold text-navy shadow-lg backdrop-blur-sm">
+              <Trophy size={14} className="text-gold-dark" /> Rank #{rank}
+            </div>
+            <span className="absolute bottom-3 left-3 rounded-full bg-gold px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-navy">Top achiever</span>
+          </div>
+
+          <div className="px-4 pb-5 pt-4">
+            <h3 className="font-display text-lg font-bold leading-tight text-navy">{t.name}</h3>
+            <p className="mt-1 text-sm text-muted">Class {t.className || t.post || "-"} · {t.year || "Sankalp Exam"}</p>
+            <div className="mt-4 flex items-center justify-between gap-2 border-t border-[#edf0f3] pt-3">
+              <span className="text-xs font-semibold text-gold-dark">Sankalp achiever</span>
+              {t.score && <span className="rounded-full bg-[#f7f1df] px-2.5 py-1 text-xs font-bold text-gold-dark">{t.score}</span>}
+            </div>
+          </div>
+        </article>;
+      })}
+    </div>
+
+    <div className="mt-10 flex justify-center">
+      <Link to="/toppers" className="group inline-flex items-center gap-2 rounded-full border-2 border-navy px-6 py-3 font-bold text-navy transition hover:-translate-y-1 hover:bg-navy hover:text-white hover:shadow-lg">
+        View All Toppers <ArrowRight size={16} className="transition-transform group-hover:translate-x-1" />
       </Link>
     </div>
-
   </div>
 </section>
 
   {/* 7. Gallery */}
-<section className="section-pad bg-cream">
-  <div className="container-app">
+<section className="relative overflow-hidden bg-[#fffaf0] py-14 md:py-20">
+  <div className="pointer-events-none absolute -left-28 top-20 h-72 w-72 rounded-full bg-gold/15 blur-3xl" />
+  <div className="pointer-events-none absolute -right-24 bottom-0 h-80 w-80 rounded-full bg-[#dce9f3] blur-3xl" />
+  <div className="container-app relative">
+    <div className="mx-auto mb-8 max-w-2xl text-center">
+      <h2 className="font-display text-3xl font-bold leading-tight text-[#ed5a00] md:text-4xl">Our Stories</h2>
+    </div>
 
-    {/* Center Heading */}
-    <SectionHeading
-      eyebrow="Moments"
-      title="Our Gallery"
-      center
-    />
-
-    {/* Gallery Grid */}
-    <div className="mt-10 flex items-center justify-start gap-3 overflow-x-auto px-2 py-8 sm:justify-center sm:gap-4 sm:overflow-visible md:gap-5">
-      {galleryPreview.map((g, index) => (
-        <div
-          key={g.id}
-          className={`group relative h-40 min-w-[72%] shrink-0 overflow-visible rounded-xl transition-all duration-500 hover:z-30 hover:-translate-y-2 hover:shadow-2xl hover:ring-2 hover:ring-gold/40 sm:h-48 sm:min-w-0 sm:flex-1 md:h-56 ${index === galleryFocusIndex ? "sm:flex-[1.28] sm:scale-110" : "sm:scale-95"}`}
-        >
-          {g.images?.[0] ? <GalleryLightbox image={resolveImageUrl(g.images[0])} title={g.title} compact><img src={resolveImageUrl(g.images[0])} alt={g.title} className="relative z-0 w-full h-full rounded-xl object-cover transition-all duration-500 group-hover:z-20 group-hover:scale-[1.28] group-hover:shadow-[0_18px_42px_rgba(8,24,39,0.38)] group-hover:ring-4 group-hover:ring-gold group-hover:ring-offset-2 group-hover:ring-offset-white" /></GalleryLightbox> : <MissingImage />}
-
-          <div className="pointer-events-none absolute inset-0 flex items-end bg-navy-dark/0 p-3 transition-colors duration-500 group-hover:bg-navy-dark/50">
-            <p className="text-white text-xs font-semibold opacity-0 translate-y-3 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-500">
-              {g.title}
-            </p>
-          </div>
+    {galleryPreview.length > 0 && (
+      <div className="relative mx-auto max-w-6xl px-0 sm:px-10">
+        <div className="relative flex h-[18rem] items-center justify-center overflow-hidden sm:h-[23rem] md:h-[27rem]">
+          {galleryPreview.map((g, index) => {
+            const offset = (index - galleryIndex + galleryPreview.length) % galleryPreview.length;
+            const normalizedOffset = offset > galleryPreview.length / 2 ? offset - galleryPreview.length : offset;
+            const isActive = normalizedOffset === 0;
+            const isNeighbor = Math.abs(normalizedOffset) === 1;
+            const image = g.images?.[0] ? resolveImageUrl(g.images[0]) : "";
+            return (
+              <div
+                key={g.id}
+                className={`gallery-story-card absolute left-1/2 top-1/2 w-[86%] max-w-[650px] overflow-hidden rounded-[22px] border bg-white shadow-[0_18px_45px_rgba(23,59,95,0.18)] transition-all duration-700 ease-out sm:w-[72%] md:w-[64%] ${isActive ? "z-20 border-gold/60 opacity-100" : isNeighbor ? "z-10 opacity-55" : "pointer-events-none z-0 opacity-0"}`}
+                style={{ transform: `translate(calc(-50% + ${normalizedOffset * 62}%), -50%) scale(${isActive ? 1 : isNeighbor ? 0.78 : 0.65})` }}
+              >
+                {image ? <GalleryLightbox image={image} title={g.title} compact><img src={image} alt={g.title} className="aspect-[16/8] w-full object-cover transition duration-700 hover:scale-105" /></GalleryLightbox> : <MissingImage className="aspect-[16/8]" />}
+                <div className="flex items-center justify-between gap-3 border-t border-[#eee3cf] bg-white px-4 py-3 sm:px-5">
+                  <p className="truncate text-sm font-bold text-navy sm:text-base">{g.title || "Sankalp memory"}</p>
+                  {isActive && <span className="shrink-0 rounded-full bg-gold/15 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-gold-dark">Featured</span>}
+                </div>
+              </div>
+            );
+          })}
         </div>
-      ))}
-    </div>
 
-    {/* View All Button */}
-    <div className="flex justify-center mt-10">
-      <Link to="/gallery" className="btn-outline">
-        View All Gallery
-      </Link>
-    </div>
+        <button type="button" onClick={showPreviousGallery} aria-label="Previous success story" className="absolute left-0 top-1/2 z-30 hidden h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-[#e5d6b5] bg-white text-navy shadow-lg transition hover:-translate-x-1 hover:bg-navy hover:text-white sm:flex"><ChevronLeft size={21} /></button>
+        <button type="button" onClick={showNextGallery} aria-label="Next success story" className="absolute right-0 top-1/2 z-30 hidden h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-[#e5d6b5] bg-white text-navy shadow-lg transition hover:translate-x-1 hover:bg-navy hover:text-white sm:flex"><ChevronRight size={21} /></button>
 
+        <div className="mt-5 flex items-center justify-center gap-2">
+          {galleryPreview.map((g, index) => <button key={g.id} type="button" onClick={() => setGalleryIndex(index)} aria-label={`Show ${g.title || "success story"}`} className={`h-2 rounded-full transition-all duration-300 ${index === galleryIndex ? "w-8 bg-navy" : "w-2 bg-[#d9d9d9] hover:bg-gold"}`} />)}
+        </div>
+      </div>
+    )}
+
+    <div className="mt-9 flex justify-center">
+      <Link to="/gallery" className="btn-outline">View All Gallery <ArrowRight size={16} /></Link>
+    </div>
   </div>
 </section>
 
@@ -394,8 +453,7 @@ export default function Home() {
 
     {/* Center Heading */}
     <SectionHeading
-      eyebrow="Our Mentors"
-      title="Our Experties"
+      title="Our Faculty"
       center
     />
 
@@ -464,33 +522,34 @@ export default function Home() {
 </section>
 
       {/* 9. Student Testimonials */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-[#172126] via-[#21343b] to-[#172126] section-pad">
-        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold/70 to-transparent" />
+      <section className="relative overflow-hidden bg-[#f4f7fa] py-14 md:py-20">
+        <div className="pointer-events-none absolute -left-24 top-8 h-80 w-80 rounded-full bg-gold/15 blur-3xl" />
+        <div className="pointer-events-none absolute -right-24 bottom-0 h-80 w-80 rounded-full bg-[#dce9f3] blur-3xl" />
         <div className="container-app relative">
           <div className="content-reveal mx-auto mb-8 max-w-2xl text-center">
-            <span className="eyebrow testimonial-float">Voices</span>
-            <h2 className="text-2xl font-bold sm:text-3xl md:text-4xl">
-              <span className="text-gold">What</span> <span className="text-white">Our</span> <span className="text-gold">Students</span> <span className="text-white">Say</span>
+            <h2 className="font-display text-3xl font-bold leading-tight text-[#ed5a00] sm:text-4xl md:text-4xl">
+              What Our Students Say
             </h2>
+            <p className="mx-auto mt-3 max-w-xl text-sm leading-6 text-muted md:text-base">Real experiences from students and families who have grown with Sankalp.</p>
           </div>
           <div className="grid items-stretch gap-5 md:grid-cols-3">
             {testimonials.slice(0, 3).map((t, index) => (
-              <article key={t.id} className="testimonial-reveal group relative flex h-full min-h-[16rem] flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#263238] p-6 shadow-[0_14px_35px_rgba(0,0,0,0.18)] transition-all duration-300 hover:-translate-y-2 hover:border-gold/60 hover:shadow-[0_20px_44px_rgba(255,109,0,0.2)]" style={{ animationDelay: `${index * 100}ms` }}>
-                <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-gold to-[#ff9a4d] opacity-80 transition-opacity group-hover:opacity-100" />
-                <Quote className="testimonial-float mb-5 text-gold" size={30} strokeWidth={1.8} />
-                <p className="flex-1 text-sm leading-7 text-white/80">“{t.description || "No testimonial text available."}”</p>
-                <div className="mt-7 flex items-center gap-3 border-t border-white/10 pt-4">
-                  {t.image ? <img src={resolveImageUrl(t.image)} alt={t.name} className="h-12 w-12 rounded-full border-2 border-gold/50 object-cover transition-transform duration-300 group-hover:scale-110" /> : <MissingImage className="h-12 w-12 min-h-0 rounded-full" />}
+              <article key={t.id} className="testimonial-reveal group relative flex h-full min-h-[17rem] flex-col overflow-hidden rounded-[24px] border border-[#e1e8ee] bg-white p-6 shadow-[0_12px_30px_rgba(23,59,95,0.09)] transition-all duration-500 hover:-translate-y-2 hover:border-gold/60 hover:shadow-[0_22px_44px_rgba(23,59,95,0.15)]" style={{ animationDelay: `${index * 100}ms` }}>
+                <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-gold to-[#f7d77b] opacity-90" />
+                <Quote className="testimonial-float mb-5 text-gold-dark" size={32} strokeWidth={1.8} />
+                <p className="flex-1 text-sm leading-7 text-[#526b7e]">“{t.description || "No testimonial text available."}”</p>
+                <div className="mt-7 flex items-center gap-3 border-t border-[#edf0f3] pt-4">
+                  {t.image ? <img src={resolveImageUrl(t.image)} alt={t.name} className="h-12 w-12 rounded-full border-2 border-gold/60 object-cover transition-transform duration-300 group-hover:scale-110" /> : <MissingImage className="h-12 w-12 min-h-0 rounded-full" />}
                   <div className="min-w-0">
-                    <p className="truncate text-sm font-bold text-white">{t.name}</p>
-                    <p className="truncate text-xs text-white/50">{[t.exam, t.post].filter(Boolean).join(" · ") || "Student"}</p>
+                    <p className="truncate text-sm font-bold text-navy">{t.name}</p>
+                    <p className="truncate text-xs text-muted">{[t.exam, t.post].filter(Boolean).join(" · ") || "Student"}</p>
                   </div>
                 </div>
               </article>
             ))}
           </div>
           <div className="mt-10 text-center">
-            <Link to="/testimonials" className="inline-flex items-center gap-2 rounded-md border-2 border-gold/70 px-6 py-3 font-bold text-white transition hover:-translate-y-1 hover:bg-gold hover:text-white hover:shadow-[0_8px_20px_rgba(255,109,0,0.25)]">
+            <Link to="/testimonials" className="group inline-flex items-center gap-2 rounded-full border-2 border-navy px-6 py-3 font-bold text-navy transition hover:-translate-y-1 hover:bg-navy hover:text-white hover:shadow-[0_10px_22px_rgba(23,59,95,0.18)]">
               View All Testimonials <ArrowRight size={16} />
             </Link>
           </div>
@@ -498,14 +557,16 @@ export default function Home() {
       </section>
 
       {/* 10. Contact Us Form & Map */}
-      <section className="section-pad">
-        <div className="container-app grid md:grid-cols-2 gap-10">
+      <section className="relative overflow-hidden bg-[#f4f7fa] py-14 md:py-20">
+        <div className="pointer-events-none absolute -left-24 top-10 h-72 w-72 rounded-full bg-gold/15 blur-3xl" />
+        <div className="pointer-events-none absolute -right-24 bottom-0 h-80 w-80 rounded-full bg-[#dce9f3] blur-3xl" />
+        <div className="container-app relative grid items-start gap-8 md:grid-cols-2 md:gap-10">
           <div>
-            <SectionHeading eyebrow="Get In Touch" title="Contact Us" desc="Have a question about admissions, centers or results? Send us a message." />
+            <h2 className="mb-8 text-center font-display text-3xl font-bold leading-tight text-[#ed5a00] md:text-4xl">Get In Touch</h2>
             <ContactMiniForm />
           </div>
-          <div className="h-fit self-start overflow-hidden rounded-xl bg-navy shadow-lg">
-            <div className="flex items-start justify-between gap-4 border-b border-white/10 px-5 py-4 text-white sm:px-6">
+          <div className="h-fit self-start overflow-hidden rounded-[26px] border border-[#dfe7ed] bg-white shadow-[0_18px_42px_rgba(23,59,95,0.13)]">
+            <div className="flex items-start justify-between gap-4 bg-navy px-5 py-5 text-white sm:px-6">
               <div>
                 <p className="text-xs font-bold uppercase tracking-[0.18em] text-gold">Find Us</p>
                 <h2 className="mt-1 text-xl font-bold sm:text-2xl">{contactInfo?.address || "Swargate, Pune"}</h2>
@@ -515,17 +576,18 @@ export default function Home() {
             <div className="aspect-[4/3] min-h-[260px] w-full sm:min-h-[320px]">
               <iframe
                 title={`School location map - ${contactInfo?.address || "Swargate, Pune"}`}
-                src={getMapEmbedUrl(contactInfo?.mapLink)}
+                src={getMapEmbedUrl(contactInfo?.mapLink, contactInfo?.address || "Shri Shahu Prabodhini School, Swargate, Pune")}
                 className="h-full w-full border-0"
                 loading="lazy"
+                allowFullScreen
                 referrerPolicy="no-referrer-when-downgrade"
               />
             </div>
             <a
-              href={contactInfo?.mapLink || "https://www.google.com/maps/search/?api=1&query=Swargate%2C%20Pune"}
+              href={contactInfo?.mapLink || "https://www.google.com/maps/search/?api=1&query=Shri+Shahu+Prabodhini+School+Pune"}
               target="_blank"
               rel="noreferrer"
-              className="flex min-h-12 items-center justify-center border-t border-white/10 px-4 py-3 text-center text-sm font-semibold text-white transition hover:bg-[#263238] hover:text-gold"
+              className="flex min-h-12 items-center justify-center border-t border-[#e6ebef] bg-white px-4 py-3 text-center text-sm font-semibold text-navy transition hover:bg-cream hover:text-gold-dark"
             >
               Open in Google Maps <MapPin size={16} className="ml-2 shrink-0 text-gold" />
             </a>

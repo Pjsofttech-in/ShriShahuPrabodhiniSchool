@@ -39,7 +39,7 @@ const moreLinks = [
 const mobilePrimaryLinks = [
   { to: "/home", label: "Home" },
   { to: "/courses", label: "Courses" },
-  { to: "/features", label: "Features" },
+  { to: "/features", label: "Mentors" },
   { to: "/toppers", label: "Toppers" },
 ];
 const mobileUtilityLinks = [
@@ -50,17 +50,25 @@ const mobileUtilityLinks = [
   { to: "/notifications", label: "Notifications", Icon: Bell },
 ];
 const mobileMoreLinks = [
-  { to: "/faculties", label: "Faculties", Icon: GraduationCap },
+  { to: "/faculties", label: "Faculty", Icon: GraduationCap },
   { to: "/testimonials", label: "Testimonials", Icon: MessageCircle },
   { to: "/about-us", label: "About Us", Icon: Info },
   { to: "/vision-mission", label: "Vision & Mission", Icon: Target },
 ];
 const navItemClass = ({ isActive }) =>
-  `px-2 xl:px-3 py-2 text-sm font-semibold transition-colors rounded-md ${
+  `px-2 xl:px-3 py-2 text-sm font-semibold transition-all duration-300 rounded-md hover:-translate-y-0.5 hover:bg-[#fff0df] hover:shadow-[0_6px_14px_rgba(232,101,22,0.10)] ${
     isActive
-      ? "text-gold-dark dark:text-gold-light"
-      : "text-navy hover:text-gold dark:text-slate-200 dark:hover:text-gold"
+      ? "text-[#e86516] dark:text-[#ffb36b]"
+      : "text-navy hover:text-[#e86516] dark:text-slate-200 dark:hover:text-[#ffb36b]"
   }`;
+
+function BrandMark() {
+  return (
+    <div className="ml-2 flex min-w-0 shrink items-center md:ml-3">
+      <img src={logo} alt="Shri Shahu Prabodhini School" className="h-14 w-auto object-contain drop-shadow-[0_6px_10px_rgba(23,59,95,0.18)] md:h-16 xl:h-[4.3rem]" />
+    </div>
+  );
+}
 
 function Dropdown({ label, links }) {
   const [open, setOpen] = useState(false);
@@ -122,39 +130,32 @@ export default function Navbar() {
     : "/login";
 
   return (
-    <header className="fixed inset-x-0 top-0 z-50 shadow-lg">
+    <header className="fixed inset-x-0 top-0 z-50 shadow-[0_10px_30px_rgba(23,59,95,0.10)]">
       {/* Top strip */}
-      <div className="hidden md:block bg-navy-dark text-white/90 text-xs overflow-hidden border-b border-white/15">
+      <div className="hidden overflow-hidden border-b border-[#d87838]/40 bg-[linear-gradient(90deg,#f6a23a_0%,#ed6a16_48%,#f3bd63_100%)] text-xs text-[#18282d] shadow-[0_4px_14px_rgba(232,101,22,0.16)] md:block">
         <div className="container-app overflow-hidden py-1.5">
           <div className="announcement-track flex w-max items-center gap-16 whitespace-nowrap hover:[animation-play-state:paused]">
-            <span className="flex items-center gap-2"><Phone size={12} className="text-gold-light" /> 020-24451234 <span className="text-white/40">|</span> info@ssprabodhini.org <span className="text-white/40">|</span> Sankalp Scholarship Exam 2026 Registrations Open</span>
-            <span className="flex items-center gap-2" aria-hidden="true"><Phone size={12} className="text-gold-light" /> 020-24451234 <span className="text-white/40">|</span> info@ssprabodhini.org <span className="text-white/40">|</span> Sankalp Scholarship Exam 2026 Registrations Open</span>
+            <span className="flex items-center gap-2 font-semibold"><Phone size={12} className="text-[#18282d]" /> 020-24451234 <span className="text-[#18282d]/45">|</span> info@ssprabodhini.org <span className="text-[#18282d]/45">|</span> Sankalp Scholarship Exam 2026 Registrations Open</span>
+            <span className="flex items-center gap-2 font-semibold" aria-hidden="true"><Phone size={12} className="text-[#18282d]" /> 020-24451234 <span className="text-[#18282d]/45">|</span> info@ssprabodhini.org <span className="text-[#18282d]/45">|</span> Sankalp Scholarship Exam 2026 Registrations Open</span>
           </div>
         </div>
       </div>
 
-      <nav className="bg-white/95 shadow-[0_8px_24px_rgba(38,50,56,0.12)] backdrop-blur-sm dark:border-b dark:border-white/10 dark:bg-[#172126]/95">
+      <nav className="border-b-2 border-[#e86516]/25 bg-[linear-gradient(100deg,#fffdf8_0%,#fff9f1_58%,#fff0df_100%)] shadow-[0_10px_28px_rgba(232,101,22,0.13)] backdrop-blur-sm dark:border-b dark:border-white/10 dark:bg-[#12273d]/95">
         <div className="flex min-h-16 w-full items-center justify-between px-3 py-2 xl:min-h-20 xl:px-6 xl:py-3">
-          <Link to="/" className="flex min-w-0 shrink items-center gap-3 -ml-2 xl:-ml-4">
-            <div className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-full border-2 border-gold bg-white shadow-md xl:h-14 xl:w-14 dark:bg-[#263238]">
-              <img src={logo} alt="Shri Shahu Prabodhini Logo" className="h-8 w-8 object-contain xl:h-10 xl:w-10" />
-            </div>
-
-            <div className="min-w-0 max-w-[170px] leading-tight">
-              <h1 className="max-w-full break-words font-display text-base font-bold text-navy xl:text-lg dark:text-white">Shri Shahu Prabodhini</h1>
-              <span className="block max-w-full break-words text-[10px] uppercase tracking-[0.18em] text-gold-dark xl:text-[11px]">Sankalp Foundation</span>
-            </div>
+          <Link to="/" className="-ml-2 flex min-w-0 shrink items-center xl:-ml-4">
+            <BrandMark />
           </Link>
 
           <div className="hidden min-w-0 flex-1 items-center justify-end gap-0 xl:flex xl:ml-6">
             <NavLink to="/home" className={navItemClass}>Home</NavLink>
             <Dropdown label="Sankalp" links={examLinks} />
             <NavLink to="/courses" className={navItemClass}>Courses</NavLink>
-            <NavLink to="/features" className={navItemClass}>Features</NavLink>
+            <NavLink to="/features" className={navItemClass}>Mentors</NavLink>
             <NavLink to="/awards" className={navItemClass}>Awards</NavLink>
             <NavLink to="/toppers" className={navItemClass}>Toppers</NavLink>
             <NavLink to="/gallery" className={navItemClass}>Gallery</NavLink>
-            <NavLink to="/faculties" className={navItemClass}>Experties</NavLink>
+            <NavLink to="/faculties" className={navItemClass}>Faculty</NavLink>
             <NavLink to="/testimonials" className={navItemClass}>Testimonial</NavLink>
             <NavLink to="/contact-us" className={navItemClass}>Contact</NavLink>
             <NavLink to="/about-us" className={navItemClass}>About</NavLink>
@@ -173,7 +174,7 @@ export default function Navbar() {
               {darkMode ? <Sun size={19} /> : <Moon size={19} />}
             </button>
 
-            <Link to={loginTarget} className="ml-3 flex items-center gap-2 rounded-lg bg-gold px-4 py-2 font-semibold text-white transition-all duration-300 hover:bg-gold-dark">
+            <Link to={loginTarget} className="ml-3 flex items-center gap-2 rounded-lg bg-[#e86516] px-4 py-2 font-semibold text-white shadow-[0_8px_18px_rgba(232,101,22,0.22)] transition-all duration-300 hover:-translate-y-0.5 hover:bg-[#c84c0b] hover:shadow-[0_12px_24px_rgba(232,101,22,0.30)]">
               <LogIn size={16} />
               {user ? (user.role === "student" ? "Profile" : "Dashboard") : "Login"}
             </Link>

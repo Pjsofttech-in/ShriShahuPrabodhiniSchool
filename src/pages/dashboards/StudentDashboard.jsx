@@ -51,11 +51,10 @@ export default function StudentDashboard({ defaultTab = "profile" }) {
       try {
         const lookupIds = [user?.studentId, user?.student?.id, user?.id, user?.userId].filter(Boolean);
         for (const id of lookupIds) {
-          if (studentData !== user && (studentData.id || studentData.studentId)) break;
           try {
             const found = await fetchStudentById(id);
             if (found) {
-              studentData = found;
+              studentData = { ...studentData, ...found };
               break;
             }
           } catch (err) {
@@ -63,14 +62,14 @@ export default function StudentDashboard({ defaultTab = "profile" }) {
           }
         }
 
-        if (studentData === user && user?.email) {
+        if (!studentData?.name && user?.email) {
           const found = await fetchStudentByEmail(user.email);
-          if (found) studentData = found;
+          if (found) studentData = { ...studentData, ...found };
         }
 
-        if (studentData === user && user?.mobile) {
+        if (!studentData?.name && user?.mobile) {
           const found = await fetchStudentByMobile(user.mobile);
-          if (found) studentData = found;
+          if (found) studentData = { ...studentData, ...found };
         }
       } catch (err) {
         console.warn("Could not enrich the student profile from the students API.", err);

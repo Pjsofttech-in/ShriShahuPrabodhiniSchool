@@ -6,22 +6,23 @@ export default {
     extend: {
       colors: {
         navy: {
-          DEFAULT: '#263238',
-          light: '#455A64',
-          dark: '#172126',
+          DEFAULT: '#173B5F',
+          light: '#3A5D82',
+          dark: '#102B46',
         },
         gold: {
-          DEFAULT: '#FF6D00',
-          light: '#FFB74D',
-          dark: '#E65100',
+          DEFAULT: '#F3B93D',
+          light: '#F8D77C',
+          dark: '#D29416',
         },
         maroon: {
-          DEFAULT: '#EF5350',
-          dark: '#C62828',
+          DEFAULT: '#BB6C49',
+          dark: '#8D4D30',
         },
-          cream: '#F5F7FA',
-          ink: '#263238',
-          muted: '#60727B',
+        cream: '#F7F3EA',
+        ivory: '#FFFDF8',
+        ink: '#1B2E45',
+        muted: '#607382',
       },
       fontFamily: {
         display: ['"Poppins"', 'sans-serif'],
@@ -29,7 +30,10 @@ export default {
         mono: ['"JetBrains Mono"', 'monospace'],
       },
       backgroundImage: {
-          'ribbon': "linear-gradient(135deg, #FF6D00 0%, #E65100 100%)",
+        ribbon: "linear-gradient(135deg, #F3B93D 0%, #D29416 100%)",
+      },
+      boxShadow: {
+        soft: '0 12px 30px rgba(23, 59, 95, 0.10)',
       },
     },
   },

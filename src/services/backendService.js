@@ -62,8 +62,13 @@ function normalizeList(payload) {
       "answerKeys",
       "answerKey",
       "footers",
+      "categories",
+      "category",
+      "categoryList",
       "testSeries",
       "testSerieses",
+      "testSeriesCategories",
+      "testSeriesCategory",
       "exams",
       "attempts",
       "examAttempts",
@@ -271,6 +276,22 @@ export async function fetchFeatures() {
   }));
 }
 
+export async function fetchMentors() {
+  const response = await api.get("/api/mentors");
+
+  return normalizeList(response.data).map((mentor, index) => ({
+    id: mentor?.id ?? mentor?.mentorId ?? index + 1,
+    name: mentor?.mentorName ?? mentor?.name ?? mentor?.fullName ?? "Mentor",
+    designation: mentor?.designation ?? mentor?.mentorDesignation ?? mentor?.role ?? "Academic mentor",
+    subject: mentor?.subject ?? mentor?.specialization ?? mentor?.expertise ?? "",
+    experience: mentor?.experience ?? mentor?.experienceInYears ?? mentor?.yearsOfExperience ?? "",
+    qualification: mentor?.qualification ?? mentor?.education ?? mentor?.mentorQualification ?? "",
+    description: mentor?.description ?? mentor?.bio ?? mentor?.about ?? "",
+    image: mentor?.mentorImage ?? mentor?.image ?? mentor?.imageUrl ?? mentor?.photo ?? "",
+    active: mentor?.active ?? mentor?.isActive ?? true,
+  })).filter((mentor) => mentor.active !== false);
+}
+
 export async function fetchHeroSections() {
   const response = await api.get("/api2/getAllHeroSections", {
     params: { url: DYNAMIC_PROFILE_URL },
@@ -473,8 +494,19 @@ function normalizeTestFeatures(series) {
 }
 
 export async function fetchTestSeries() {
-  const response = await api.get("/api/test-series");
-  return normalizeList(response.data).map((series, index) => ({
+  const seriesList = await requestFirstAvailable([
+    "/api/test-series",
+    "/api/testSeries",
+    "/api/testseries",
+    "/api/test-series/all",
+    "/api/testSeries/all",
+    "/api/testseries/all",
+    "/api/test-series/list",
+    "/api/testSeries/list",
+    "/api/testseries/list",
+  ], "test series");
+
+  return seriesList.map((series, index) => ({
     id: series?.id ?? series?.testSeriesId ?? index + 1,
     title: series?.title ?? series?.name ?? "Test Series",
     description: series?.description ?? "",
@@ -483,6 +515,10 @@ export async function fetchTestSeries() {
     sellingPrice: series?.sellingPrice ?? series?.salePrice ?? null,
     mrp: series?.mrp ?? null,
     subject: series?.subject ?? "",
+    category: typeof (series?.category ?? series?.testCategory ?? series?.testSeriesCategory) === "object"
+      ? (series?.category?.categoryName ?? series?.category?.name ?? series?.category?.title ?? series?.category?.category ?? series?.testCategory?.categoryName ?? series?.testCategory?.name ?? series?.testSeriesCategory?.categoryName ?? series?.testSeriesCategory?.name ?? "")
+      : series?.category ?? series?.categoryName ?? series?.testCategory ?? series?.testSeriesCategory ?? series?.type ?? series?.testType ?? series?.subject ?? "",
+    categoryId: series?.categoryId ?? series?.testCategoryId ?? series?.testSeriesCategoryId ?? series?.category?.id ?? series?.category?.categoryId ?? series?.testCategory?.id ?? series?.testSeriesCategory?.id ?? "",
     featureOne: series?.testFeatureOne ?? series?.featureOne ?? "",
     featureTwo: series?.testFeatureTwo ?? series?.featureTwo ?? "",
     featureThree: series?.testFeatureThree ?? series?.featureThree ?? "",
@@ -493,9 +529,70 @@ export async function fetchTestSeries() {
   }));
 }
 
+export async function fetchTestSeriesCategories() {
+  const categories = await requestFirstAvailable([
+    "/api/test-series/categories",
+    "/api/test-series/category",
+    "/api/test-series/category/all",
+    "/api/testSeries/category",
+    "/api/testSeries/categories",
+    "/api/testseries/categories",
+    "/api/testseries/category",
+    "/api/categories/test-series",
+    "/api/test-series-categories",
+    "/api/categories",
+  ], "test series categories");
+
+  return categories.map((category, index) => ({
+    id: category?.id ?? category?.categoryId ?? index + 1,
+    name: category?.categoryName ?? category?.name ?? category?.title ?? `Category ${index + 1}`,
+  })).filter((category) => category.name);
+}
+
 export async function fetchTestSeriesById(id) {
-  const response = await api.get(`/api/test-series/${id}`);
-  const series = response.data?.data ?? response.data;
+  let payload = null;
+  let lastError = null;
+  let lastResponse = null;
+
+  const candidates = [
+    `/api/test-series/${id}`,
+    `/api/testSeries/${id}`,
+    `/api/testseries/${id}`,
+    `/api/test-series/get/${id}`,
+    `/api/testSeries/get/${id}`,
+    `/api/testseries/get/${id}`,
+    `/api/test-series/id/${id}`,
+    `/api/testSeries/id/${id}`,
+    `/api/testseries/id/${id}`,
+  ];
+
+  for (const endpoint of candidates) {
+    try {
+      const response = await api.get(endpoint);
+      const candidate = response?.data?.data ?? response?.data?.result ?? response?.data ?? null;
+
+      if (candidate && ((Array.isArray(candidate) && candidate.length) || (typeof candidate === "object" && Object.keys(candidate).length))) {
+        payload = candidate;
+        lastResponse = response;
+        break;
+      }
+
+      payload = candidate;
+      lastResponse = response;
+    } catch (error) {
+      lastError = error;
+    }
+  }
+
+  if (!payload) {
+    throw lastError || new Error(`Unable to load test series ${id}`);
+  }
+
+  const normalizedPayload = Array.isArray(payload)
+    ? payload.find((entry) => String(entry?.id ?? entry?.testSeriesId ?? "") === String(id)) ?? payload[0]
+    : payload;
+
+  const series = normalizedPayload?.data ?? normalizedPayload?.result ?? normalizedPayload;
   const linkedExams = extractLinkedExams(series);
 
   if (linkedExams.length > 0) {
@@ -769,6 +866,18 @@ export async function fetchDownloads() {
   });
 }
 
+export async function fetchResultsPdfs() {
+  const response = await api.get("/results-pdfs");
+  return normalizeList(response.data).map((item, index) => ({
+    id: item?.id ?? item?.resultsPdfId ?? index + 1,
+    title: item?.title ?? item?.name ?? item?.pdfTitle ?? item?.fileName ?? `Results PDF ${index + 1}`,
+    file: item?.filePdf ?? item?.pdfFile ?? item?.fileUrl ?? item?.pdfUrl ?? item?.filePath ?? item?.file ?? item?.url ?? item?.link ?? "#",
+    description: item?.description ?? item?.examName ?? item?.resultName ?? "",
+    size: item?.size ?? item?.fileSize ?? "",
+    publishedAt: item?.publishedAt ?? item?.publishedDate ?? item?.createdAt ?? "",
+  }));
+}
+
 export async function fetchSyllabus() {
   const response = await api.get("/api/getAllSyllabus");
   return normalizeList(response.data).map((syllabus, index) => ({
@@ -819,7 +928,36 @@ export async function fetchAnswerKeys() {
 export async function fetchStudentById(studentId) {
   const response = await api.get(`/api/students/${encodeURIComponent(studentId)}`);
   const payload = response.data;
-  return payload?.data ?? payload?.student ?? payload?.user ?? payload;
+  return normalizeStudent(payload?.data ?? payload?.student ?? payload?.user ?? payload);
+}
+
+function normalizeStudent(student) {
+  if (!student || typeof student !== "object") return student;
+  return {
+    ...student,
+    id: student.id ?? student.studentId,
+    studentId: student.studentId ?? student.id,
+    name: student.name ?? student.studentName ?? student.fullName ?? "",
+    email: student.email ?? student.emailId ?? "",
+    mobile: student.mobile ?? student.mobileNo ?? student.phone ?? student.contactNumber ?? "",
+    gender: student.gender ?? student.studentGender ?? "",
+    dateOfBirth: student.dateOfBirth ?? student.dob ?? student.birthDate ?? "",
+    class: student.class ?? student.studentClass ?? student.className ?? "",
+    medium: student.medium ?? student.schoolMedium ?? "",
+    schoolName: student.schoolName ?? student.school ?? student.instituteName ?? "",
+    address: student.address ?? student.residentialAddress ?? "",
+    village: student.village ?? student.villageName ?? "",
+    district: student.district ?? student.districtName ?? "",
+    taluka: student.taluka ?? student.talukaName ?? "",
+    state: student.state ?? student.stateName ?? "",
+    pincode: student.pincode ?? student.pinCode ?? student.zipCode ?? "",
+    rollNo: student.rollNo ?? student.rollNumber ?? student.roll_no ?? "",
+    paymentStatus: student.paymentStatus ?? student.payment_status ?? student.payment?.status ?? "",
+    paymentId: student.paymentId ?? student.payment_id ?? student.razorpayPaymentId ?? "",
+    amount: student.amount ?? student.registrationFee ?? student.paymentAmount ?? null,
+    examCenterId: student.examCenterId ?? student.centerId ?? student.examCenter?.id ?? student.center?.id ?? "",
+    coordinatorId: student.coordinatorId ?? student.coordinator?.id ?? "",
+  };
 }
 
 export async function fetchStudentByRollNo(rollNo) {
@@ -834,24 +972,21 @@ export async function fetchStudentByRollNo(rollNo) {
 
 export async function fetchStudentByMobile(mobile) {
   if (!mobile) return null;
-  const response = await api.get("/api/students", { params: { mobile } });
-  const payload = response.data;
-  const students = Array.isArray(payload)
-    ? payload
-    : payload?.data || payload?.content || payload?.items || payload?.students || [];
-  const student = Array.isArray(students) ? students[0] : students;
-  return student || null;
+  const students = await fetchAllStudentsForLookup();
+  return students.find((student) => String(student.mobile ?? student.mobileNo ?? student.phone ?? "") === String(mobile)) || null;
 }
 
 export async function fetchStudentByEmail(email) {
   if (!email) return null;
-  const response = await api.get("/api/students", { params: { email } });
+  const students = await fetchAllStudentsForLookup();
+  return students.find((student) => String(student.email ?? student.emailId ?? "").toLowerCase() === String(email).toLowerCase()) || null;
+}
+
+async function fetchAllStudentsForLookup() {
+  const response = await api.get("/api/students");
   const payload = response.data;
-  const students = Array.isArray(payload)
-    ? payload
-    : payload?.data || payload?.content || payload?.items || payload?.students || [];
-  const student = Array.isArray(students) ? students[0] : students;
-  return student || null;
+  const students = Array.isArray(payload) ? payload : payload?.data || payload?.content || payload?.items || payload?.students || [];
+  return (Array.isArray(students) ? students : [students]).filter(Boolean).map(normalizeStudent);
 }
 
 export async function registerStudent(payload) {

@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import {
   ArrowRight,
   ArrowUpRight,
+  ChevronDown,
   FileCheck2,
   FileText,
   GraduationCap,
@@ -13,6 +14,7 @@ import {
 import PageHeader from "../../components/PageHeader.jsx";
 import { examInfo } from "../../data/siteData.js";
 import { fetchSyllabus } from "../../services/backendService.js";
+import logo from "../../asset/logo.png";
 
 const quickLinks = [
   { label: "Pages", to: "/sankalp/exam-information", icon: LayoutGrid },
@@ -30,9 +32,17 @@ const registrationSteps = [
   { number: "04", title: "Attempt Your Test", description: "Take your test in the selected slot." },
 ];
 
+const examFaqs = [
+  { question: "Who can apply for the Sankalp Scholarship Exam?", answer: `Students from classes ${examInfo.eligibleClasses} can apply for the examination.` },
+  { question: "What is the examination fee?", answer: `The registration fee is ₹${examInfo.fee}. Complete registration online to confirm your participation.` },
+  { question: "When is the examination scheduled?", answer: `The examination is scheduled for ${examInfo.examDate}. Please complete registration before ${examInfo.registrationDeadline}.` },
+  { question: "What do top performers receive?", answer: "Top performers can receive scholarships, certificates and recognition based on their examination performance." },
+];
+
 export default function ExamInformation() {
   const [syllabus, setSyllabus] = useState([]);
   const [syllabusLoading, setSyllabusLoading] = useState(true);
+  const [openFaq, setOpenFaq] = useState(0);
 
   useEffect(() => {
     let mounted = true;
@@ -57,9 +67,26 @@ export default function ExamInformation() {
     <div>
       <PageHeader title="Sankalp Exam Information" crumb="Exam Information" compact />
 
-      <section className="relative overflow-hidden bg-cream/70 pb-10 pt-0 md:pb-16">
-        <div className="pointer-events-none absolute -right-24 top-24 h-64 w-64 rounded-full bg-gold/10 blur-3xl" />
+      <section className="relative overflow-hidden bg-[#f8f5ee] pb-10 pt-0 md:pb-16">
+        <div className="pointer-events-none absolute -right-24 top-24 h-72 w-72 rounded-full bg-gold/15 blur-3xl" />
+        <div className="pointer-events-none absolute -left-32 bottom-16 h-72 w-72 rounded-full bg-navy/10 blur-3xl" />
         <div className="container-app">
+          <div className="relative mb-6 overflow-hidden rounded-[30px] bg-[linear-gradient(120deg,#173b5f_0%,#255b80_58%,#f0bd43_180%)] p-6 text-white shadow-[0_20px_50px_rgba(23,59,95,0.20)] sm:p-8 md:p-10">
+            <div className="pointer-events-none absolute -right-12 -top-24 h-72 w-72 rounded-full border-[34px] border-white/10" />
+            <div className="pointer-events-none absolute bottom-[-5rem] right-32 h-44 w-44 rounded-full bg-gold/20 blur-2xl" />
+            <div className="relative grid items-center gap-7 md:grid-cols-[1fr_auto]">
+              <div className="max-w-2xl">
+                <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-gold/40 bg-white/10 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.2em] text-gold-light">Sankalp 2026 · Registrations open</div>
+                <h2 className="font-display text-3xl font-bold leading-tight sm:text-4xl md:text-5xl">A stronger start to a <span className="text-gold-light">brighter future.</span></h2>
+                <p className="mt-4 max-w-xl text-sm leading-6 text-white/75 md:text-base">Discover your academic potential through a thoughtfully designed scholarship examination built for ambitious young learners.</p>
+                <Link to="/register" className="mt-6 inline-flex items-center gap-2 rounded-xl bg-gold px-5 py-3 text-sm font-bold text-navy shadow-[0_10px_24px_rgba(243,185,61,0.25)] transition hover:-translate-y-1 hover:bg-gold-light">Start Registration <ArrowRight size={16} /></Link>
+              </div>
+              <div className="hidden h-36 w-36 items-center justify-center rounded-[28px] border border-white/20 bg-white/10 p-3 shadow-inner sm:flex md:h-44 md:w-44">
+                <img src={logo} alt="Sankalp Scholarship Exam" className="h-full w-full rounded-2xl object-contain" />
+              </div>
+            </div>
+          </div>
+
           <div className="relative mb-5 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
             {quickLinks.map(({ label, to, icon: Icon }) => (
               <Link
@@ -67,8 +94,8 @@ export default function ExamInformation() {
                 to={to}
                 className={`inline-flex items-center justify-center gap-1.5 rounded-full border px-2.5 py-2 text-xs font-semibold transition-all duration-300 sm:gap-2 sm:px-4 sm:text-sm ${
                   to === "/sankalp/exam-information"
-                    ? "border-gold bg-gold text-white shadow-[0_10px_20px_rgba(255,109,0,0.16)]"
-                    : "border-slate-200 bg-white text-navy hover:border-gold hover:text-gold-dark hover:shadow-sm"
+                    ? "border-navy bg-navy text-white shadow-[0_10px_20px_rgba(23,59,95,0.20)]"
+                    : "border-[#e4d9c4] bg-white/80 text-navy hover:border-gold hover:text-gold-dark hover:shadow-sm"
                 }`}
               >
                 <Icon size={15} />
@@ -77,17 +104,17 @@ export default function ExamInformation() {
             ))}
           </div>
 
-          <div className="relative mb-6 rounded-[26px] border border-[#ffe0c2] bg-[#fffaf5] px-4 py-5 shadow-[0_12px_30px_rgba(124,45,18,0.06)] md:px-8 md:py-7">
+          <div className="relative mb-6 rounded-[26px] border border-[#e7dcc8] bg-[#fffdf8] px-4 py-5 shadow-[0_18px_42px_rgba(23,59,95,0.09)] md:px-8 md:py-7">
             <div className="mb-6 text-center">
-              <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-[#ed6a00]">Simple registration journey</p>
-              <h2 className="mt-2 text-xl font-black text-navy sm:text-2xl md:text-3xl">Four steps to your <span className="text-[#ed6a00]">Sankalp</span> exam</h2>
+              <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-gold-dark">Simple registration journey</p>
+              <h2 className="mt-2 text-xl font-black text-navy sm:text-2xl md:text-3xl">Four steps to your <span className="text-gold-dark">Sankalp</span> exam</h2>
             </div>
 
             <div className="relative grid gap-5 md:grid-cols-4 md:gap-4">
-              <div className="absolute left-[12%] right-[12%] top-6 hidden h-1 rounded-full bg-[#ffd2a8] md:block" />
+              <div className="absolute left-[12%] right-[12%] top-6 hidden h-1 rounded-full bg-[#ead9ad] md:block" />
               {registrationSteps.map((step) => (
                 <div key={step.number} className="relative text-center">
-                  <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full border-4 border-white bg-navy text-sm font-black text-white shadow-[0_0_0_3px_#ffb36b]">
+                  <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full border-4 border-white bg-navy text-sm font-black text-white shadow-[0_0_0_3px_#e6bd50]">
                     {step.number}
                   </div>
                   <h3 className="text-sm font-bold text-navy">{step.title}</h3>
@@ -97,18 +124,21 @@ export default function ExamInformation() {
             </div>
           </div>
 
-          <div className="relative rounded-[28px] border border-black/5 bg-white p-4 shadow-[0_14px_40px_rgba(11,37,69,0.08)] sm:p-5 md:p-8">
+          <div className="relative rounded-[28px] border border-[#e4d9c4] bg-[#fffdf9] p-4 shadow-[0_18px_44px_rgba(23,59,95,0.10)] sm:p-5 md:p-8">
             <div className="mb-5 flex items-center justify-between gap-3 border-b border-slate-200 pb-4 md:mb-6 md:gap-4 md:pb-5">
-              <div>
-                <p className="mb-2 text-xs font-bold uppercase tracking-[0.2em] text-gold-dark">
-                  Shri Shahu Prabodhini
-                </p>
-                <h2 className="text-xl font-black leading-tight text-navy sm:text-2xl md:text-4xl">
+              <div className="flex min-w-0 items-center gap-3 md:gap-4">
+                <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-[#ead9ae] bg-white p-1 shadow-[0_8px_18px_rgba(23,59,95,0.10)] md:h-16 md:w-16">
+                  <img src={logo} alt="Sankalp exam logo" className="h-full w-full object-contain" />
+                </div>
+                <div>
+                  <p className="mb-1 text-[10px] font-bold uppercase tracking-[0.2em] text-gold-dark">Scholarship examination</p>
+                  <h2 className="text-xl font-black leading-tight text-navy sm:text-2xl md:text-4xl">
                   {examInfo.name}
-                </h2>
+                  </h2>
+                </div>
               </div>
 
-              <div className="hidden rounded-full bg-gold/10 px-4 py-2 text-sm font-bold text-gold-dark md:inline-flex md:items-center md:gap-2">
+              <div className="hidden rounded-full border border-gold/30 bg-gold/10 px-4 py-2 text-sm font-bold text-gold-dark md:inline-flex md:items-center md:gap-2">
                 <GraduationCap size={16} />
                 Premium Academic Platform
               </div>
@@ -151,7 +181,8 @@ export default function ExamInformation() {
               </div>
 
               <div className="lg:pt-2">
-                <div className="rounded-[24px] bg-navy p-6 text-white shadow-[0_18px_40px_rgba(11,37,69,0.18)]">
+                <div className="relative overflow-hidden rounded-[24px] bg-navy p-6 text-white shadow-[0_18px_40px_rgba(23,59,95,0.22)]">
+                  <div className="pointer-events-none absolute -right-12 -top-12 h-32 w-32 rounded-full bg-gold/15 blur-2xl" />
                   <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.18em] text-gold">
                     <ArrowRight size={12} />
                     Ready to Register?
@@ -207,6 +238,27 @@ export default function ExamInformation() {
                 ))}
               </div>
             )}
+          </div>
+
+          <div className="relative mt-6 overflow-hidden rounded-[28px] border border-[#e4d9c4] bg-[#fffdf8] p-5 shadow-[0_18px_44px_rgba(23,59,95,0.09)] sm:p-7 md:p-9">
+            <div className="mb-6 text-center">
+              <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-gold-dark">Need to know more?</p>
+              <h2 className="mt-2 font-display text-2xl font-bold text-navy md:text-3xl">Frequently Asked Questions</h2>
+            </div>
+            <div className="mx-auto max-w-4xl space-y-3">
+              {examFaqs.map((faq, index) => {
+                const isOpen = openFaq === index;
+                return <div key={faq.question} className={`overflow-hidden rounded-2xl border transition-all duration-300 ${isOpen ? "border-gold/60 bg-white shadow-[0_10px_24px_rgba(23,59,95,0.08)]" : "border-[#e8dfcf] bg-white/60"}`}>
+                  <button type="button" onClick={() => setOpenFaq(isOpen ? -1 : index)} className="flex w-full items-center justify-between gap-4 px-4 py-4 text-left sm:px-5" aria-expanded={isOpen}>
+                    <span className="font-bold text-navy">{faq.question}</span>
+                    <ChevronDown size={19} className={`shrink-0 text-gold-dark transition-transform duration-300 ${isOpen ? "rotate-180" : ""}`} />
+                  </button>
+                  <div className={`grid transition-[grid-template-rows] duration-300 ${isOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]"}`}>
+                    <div className="overflow-hidden"><p className="border-t border-[#eee5d5] px-4 pb-4 pt-3 text-sm leading-6 text-muted sm:px-5">{faq.answer}</p></div>
+                  </div>
+                </div>;
+              })}
+            </div>
           </div>
         </div>
       </section>

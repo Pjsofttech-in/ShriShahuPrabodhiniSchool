@@ -1,7 +1,7 @@
 ﻿import axios from "axios";
 
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "http://localhost:8080").replace(/\/+$/g, "");
-const API_REQUEST_BASE_URL = `${API_BASE_URL.replace(/(?:\/api)+$/i, "")}/api`;
+const API_REQUEST_BASE_URL = API_BASE_URL.replace(/(?:\/api)+$/i, "");
 
 // Admin credentials for fetching live token
 const ADMIN_CREDENTIALS = {
@@ -44,7 +44,7 @@ async function fetchFreshAdminToken() {
         throw new Error("Live admin credentials are not configured.");
       }
 
-      const response = await axios.post(`${API_REQUEST_BASE_URL}/auth/admin/login`, ADMIN_CREDENTIALS, {
+      const response = await axios.post(`${API_REQUEST_BASE_URL}/api/auth/admin/login`, ADMIN_CREDENTIALS, {
         timeout: 10000
       });
       

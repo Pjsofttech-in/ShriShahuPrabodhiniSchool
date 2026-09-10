@@ -39,22 +39,18 @@ export default function Footer() {
   };
 
   return (
-    <footer className="bg-navy-dark text-white">
-      <div className="container-app py-12 md:py-14">
+    <footer className="footer-premium relative overflow-hidden border-t border-[#e4eaf0] bg-[linear-gradient(135deg,#f5f8fa_0%,#fffaf0_48%,#edf5f9_100%)] text-navy">
+      <div className="footer-glow footer-glow-gold pointer-events-none absolute -right-24 top-0 h-72 w-72 rounded-full bg-gold/20 blur-3xl" />
+      <div className="footer-glow footer-glow-blue pointer-events-none absolute -left-24 bottom-0 h-72 w-72 rounded-full bg-[#cfe4f0] blur-3xl" />
+      <div className="footer-shimmer pointer-events-none absolute inset-x-0 top-0 h-1" />
+      <div className="container-app relative py-12 md:py-14">
         <div className="grid grid-cols-2 gap-6 sm:gap-8 md:grid-cols-2 lg:grid-cols-4">
-          <div className="col-span-2 md:col-span-2 lg:col-span-1">
-            <div className="mb-4 flex items-center gap-3">
-              <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-full border-2 border-gold bg-white shadow-md">
-                <img src={Logo} alt="Shri Shahu Prabodhini" className="h-9 w-9 object-contain" />
-              </div>
-
-              <div>
-                <h3 className="font-display text-lg font-bold leading-tight text-white">Shri Shahu Prabodhini</h3>
-                <p className="text-sm text-gold">SANKALP FOUNDATION</p>
-              </div>
+          <div className="footer-column col-span-2 md:col-span-2 lg:col-span-1">
+            <div className="mb-5 flex items-center">
+              <img src={Logo} alt="Shri Shahu Prabodhini School" className="h-16 w-auto object-contain drop-shadow-[0_8px_14px_rgba(23,59,95,0.14)] md:h-[4.3rem]" />
             </div>
 
-            <p className="text-sm leading-6 text-white/70">
+            <p className="max-w-xs text-sm leading-6 text-muted">
               Empowering students through the Sankalp Scholarship Examination and quality academic guidance.
             </p>
 
@@ -70,7 +66,7 @@ export default function Footer() {
                   key={href || `social-link-${index}`}
                   href={href || "#"}
                   aria-label="Social media"
-                  className={`group flex h-11 w-11 items-center justify-center rounded-full border border-white/15 bg-white/5 text-white/80 shadow-[0_6px_18px_rgba(255,255,255,0.06)] transition-all duration-300 hover:-translate-y-0.5 hover:text-white ${className}`}
+                  className={`group flex h-11 w-11 items-center justify-center rounded-full border border-[#d9e1e8] bg-white text-muted shadow-[0_8px_18px_rgba(23,59,95,0.08)] transition-all duration-300 hover:-translate-y-0.5 hover:text-white ${className}`}
                 >
                   <Icon className="text-base transition-transform duration-300 group-hover:scale-110" />
                 </a>
@@ -78,9 +74,9 @@ export default function Footer() {
             </div>
           </div>
 
-          <div>
-            <h3 className="mb-5 font-display text-lg font-bold text-white">Quick Links</h3>
-            <ul className="space-y-3 text-sm text-white/75">
+          <div className="footer-column">
+            <h3 className="mb-5 font-display text-lg font-bold text-navy">Quick Links</h3>
+            <ul className="space-y-3 text-sm text-muted">
               <li><Link to="/courses" className="hover:text-gold transition">Courses</Link></li>
               <li><Link to="/toppers" className="hover:text-gold transition">Toppers</Link></li>
               <li><Link to="/gallery" className="hover:text-gold transition">Gallery</Link></li>
@@ -90,9 +86,9 @@ export default function Footer() {
             </ul>
           </div>
 
-          <div>
-            <h3 className="mb-5 font-display text-lg font-bold text-white">Sankalp Exam</h3>
-            <ul className="space-y-3 text-sm text-white/75">
+          <div className="footer-column">
+            <h3 className="mb-5 font-display text-lg font-bold text-navy">Sankalp Exam</h3>
+            <ul className="space-y-3 text-sm text-muted">
               <li><Link to="/sankalp/exam-information" className="hover:text-gold transition">Exam Information</Link></li>
               <li><Link to="/sankalp/syllabus" className="hover:text-gold transition">Syllabus</Link></li>
               <li><Link to="/sankalp/answer-key" className="hover:text-gold transition">Answer Key</Link></li>
@@ -101,9 +97,9 @@ export default function Footer() {
             </ul>
           </div>
 
-          <div>
-            <h3 className="mb-5 font-display text-lg font-bold text-white">Contact</h3>
-            <div className="space-y-4 text-sm text-white/75">
+          <div className="footer-column">
+            <h3 className="mb-5 font-display text-lg font-bold text-navy">Contact</h3>
+            <div className="space-y-4 text-sm text-muted">
               <div className="flex gap-3">
                 <MapPin size={18} className="mt-1 shrink-0 text-gold" />
                 <span>{footerData.address}</span>
@@ -120,7 +116,7 @@ export default function Footer() {
               </div>
             </div>
 
-            <div className="mt-6 flex flex-wrap gap-4 text-sm text-white/75">
+            <div className="mt-6 flex flex-wrap gap-4 text-sm text-muted">
               <Link to="/privacy-policy" className="hover:text-gold transition">Privacy Policy</Link>
               <Link to="/terms-and-conditions" className="hover:text-gold transition">Terms and Conditions</Link>
               <Link to="/refund-policy" className="hover:text-gold transition">Refund Policy</Link>
@@ -130,10 +126,10 @@ export default function Footer() {
         </div>
       </div>
 
-      <div className="border-t border-white/10 py-5">
-        <div className="container-app flex flex-col items-center justify-center gap-3 text-center text-sm text-white/60 md:flex-row">
-          <span>© {new Date().getFullYear()} Shri Shahu Prabodhini. All Rights Reserved.</span>
-          <span className="hidden text-white/30 md:block">|</span>
+      <div className="border-t border-[#dfe7ed] bg-white/65 py-5">
+        <div className="container-app flex flex-col items-center justify-center gap-3 text-center text-sm text-muted md:flex-row">
+          <span>© {new Date().getFullYear()} All Rights Reserved.</span>
+          <span className="hidden text-[#bdc9d2] md:block">|</span>
           <div className="flex items-center justify-center gap-2">
             <span>Designed By</span>
             <img src={pjLogo} alt="PJSoftTech" className="h-6 w-auto object-contain" />
@@ -141,7 +137,7 @@ export default function Footer() {
               href="https://pjsofttech.com/"
               target="_blank"
               rel="noopener noreferrer"
-              className="font-semibold text-white transition hover:text-gold"
+              className="font-semibold text-navy transition hover:text-gold-dark"
             >
               PJSOFTTECH Pvt. Ltd.
             </a>

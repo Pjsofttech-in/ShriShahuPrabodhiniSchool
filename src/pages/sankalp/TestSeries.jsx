@@ -2,10 +2,8 @@ import React, { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { ChevronDown, ImageOff, LoaderCircle, Share2, Sparkles } from "lucide-react";
 import PageHeader from "../../components/PageHeader.jsx";
-import { fetchTestSeries } from "../../services/backendService.js";
+import { fetchTestSeries, fetchTestSeriesCategories } from "../../services/backendService.js";
 import { API_BASE_URL } from "../../utils/api.js";
-
-const FILTERS = ["All", "VN Trophy", "Free Test", "Test Series"];
 
 function imageUrl(image) {
   if (!image) return "";
@@ -41,7 +39,7 @@ function SeriesImage({ src, alt, className = "" }) {
 
   if (!src || failed) {
     return (
-      <div className="flex h-full w-full items-center justify-center bg-[radial-gradient(circle_at_top,_rgba(255,237,213,0.24),_transparent_38%),linear-gradient(135deg,#c2410c_0%,#ea580c_45%,#9a3412_100%)] text-white">
+      <div className="flex h-full w-full items-center justify-center bg-[radial-gradient(circle_at_top,_rgba(191,219,254,0.45),_transparent_38%),linear-gradient(135deg,#dbeafe_0%,#93c5fd_48%,#1d4ed8_100%)] text-white">
         <div className="flex flex-col items-center gap-2 text-center">
           <ImageOff size={28} className="text-white/75" />
           <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/70">Image unavailable</span>
@@ -84,13 +82,18 @@ function featureList(series) {
 
 export default function TestSeries() {
   const [series, setSeries] = useState([]);
+  const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [activeFilter, setActiveFilter] = useState("All");
+  const [expandedFeatures, setExpandedFeatures] = useState(() => new Set());
 
   useEffect(() => {
-    fetchTestSeries()
-      .then((items) => setSeries(items))
+    Promise.all([fetchTestSeries(), fetchTestSeriesCategories()])
+      .then(([items, loadedCategories]) => {
+        setSeries(items);
+        setCategories(loadedCategories);
+      })
       .catch((requestError) => {
         const status = requestError?.response?.status;
         const message = requestError?.response?.data?.message || requestError?.response?.data?.error;
@@ -99,26 +102,40 @@ export default function TestSeries() {
       .finally(() => setLoading(false));
   }, []);
 
+  const filters = useMemo(() => {
+    const liveCategories = categories.length
+      ? categories.map((category) => category.name)
+      : series.map((item) => item.category).filter(Boolean);
+    return ["All", ...new Set(liveCategories)];
+  }, [categories, series]);
+
   const filteredSeries = useMemo(() => {
     const query = activeFilter.toLowerCase();
 
     return series.filter((item) => {
       const haystack = [item.title, item.subject, item.description].join(" ").toLowerCase();
       if (query === "all") return true;
-      if (query === "vn trophy") return haystack.includes("vn trophy") || haystack.includes("trophy");
-      if (query === "free test") return Number(item.sellingPrice ?? item.price ?? 0) === 0 || haystack.includes("free");
-      if (query === "test series") return true;
-      return haystack.includes(query);
+      const category = categories.find((item) => item.name.toLowerCase() === query);
+      if (!category) return String(item.category || "").toLowerCase() === query;
+      return String(item.categoryId) === String(category.id) || String(item.category || "").toLowerCase() === query;
     });
-  }, [series, activeFilter]);
+  }, [series, categories, activeFilter]);
+
+  function toggleFeatures(id) {
+    setExpandedFeatures((current) => {
+      const next = new Set(current);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }
 
   return (
     <div className="min-h-screen bg-white">
       <PageHeader title="Sankalp Test Series" crumb="Test Series" compact />
 
-      <div className="border-b border-[#fed7aa] bg-white py-3 shadow-sm">
-        <div className="container-app flex flex-wrap items-center justify-center gap-2">
-          {FILTERS.map((filter) => {
+      <div className="mt-6 border-b border-[#f2c39d] bg-white py-3 shadow-[0_8px_22px_rgba(237,90,0,0.08)] md:mt-8">
+        <div className="container-app flex max-w-full gap-2 overflow-x-auto pb-1 sm:flex-wrap sm:justify-center">
+          {filters.map((filter) => {
             const isActive = activeFilter === filter;
             return (
               <button
@@ -127,8 +144,8 @@ export default function TestSeries() {
                 onClick={() => setActiveFilter(filter)}
                 className={`rounded-full px-3.5 py-2 text-xs font-semibold transition-all duration-200 ${
                   isActive
-                    ? "bg-[#ff6d00] text-white ring-1 ring-[#ff6d00] shadow-[0_6px_14px_rgba(255,109,0,0.25)]"
-                    : "text-slate-600 hover:bg-[#fff0e3] hover:text-[#e85d00]"
+                    ? "bg-[#fff0df] text-[#e86516] ring-1 ring-[#f3bd63] shadow-[0_6px_14px_rgba(232,101,22,0.16)]"
+                    : "text-slate-600 hover:-translate-y-0.5 hover:bg-[#fff0df] hover:text-[#e86516]"
                 }`}
               >
                 {filter}
@@ -138,7 +155,7 @@ export default function TestSeries() {
         </div>
       </div>
 
-      <section className="bg-white pb-10 pt-4 md:pb-12 md:pt-5">
+      <section className="bg-white pb-10 pt-5 md:pb-14 md:pt-7">
         <div className="container-app">
           {loading && (
             <div className="flex justify-center gap-2 py-20 text-slate-600">
@@ -154,65 +171,61 @@ export default function TestSeries() {
           )}
 
           {!loading && !error && filteredSeries.length > 0 && (
-            <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-4">
+            <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
               {filteredSeries.map((item) => {
                 const safeTitle = item.title || "Test Series";
                 const badge = item.subject || "Test Series";
                 const price = priceLabel(item);
                 const features = featureList(item);
+                const showFeatures = expandedFeatures.has(item.id);
 
                 return (
                   <article
                     key={item.id}
-                    className="group flex h-full flex-col overflow-hidden rounded-[26px] border border-[#ffd8b5] bg-white shadow-[0_14px_32px_rgba(15,35,82,0.08)] transition duration-300 hover:-translate-y-1 hover:border-[#ff9a4d] hover:shadow-[0_18px_40px_rgba(255,109,0,0.16)]"
+                    className="content-reveal group flex h-full flex-col overflow-hidden rounded-[18px] border border-[#ffd8b5] bg-[linear-gradient(180deg,#fff7ed_0%,#fffdf8_100%)] shadow-[0_10px_24px_rgba(15,35,82,0.10)] transition duration-500 hover:-translate-y-2 hover:border-[#ff9a4d] hover:shadow-[0_22px_42px_rgba(237,90,0,0.18)]"
+                    style={{ animationDelay: `${filteredSeries.indexOf(item) * 65}ms` }}
                   >
-                    <div className="relative overflow-hidden border-b border-[#ffead8] bg-[radial-gradient(circle_at_top,_rgba(255,237,213,0.9),_transparent_34%),linear-gradient(135deg,#fff7ed_0%,#ffffff_58%,#fffaf5_100%)]">
-                      <div className="relative aspect-[16/9] overflow-hidden bg-navy-dark">
-                        <SeriesImage src={item.image} alt={safeTitle} className="object-cover" />
+                    <div className="relative overflow-hidden border-b border-[#ffead8] bg-[#fff0df]">
+                      <div className="relative aspect-[1.72] overflow-hidden bg-[#fff7ed] p-2">
+                        <SeriesImage src={item.image} alt={safeTitle} className="object-cover transition duration-700 group-hover:scale-105" />
                         <div className="absolute inset-x-0 top-0 flex items-center justify-between bg-gradient-to-b from-navy-dark/75 to-transparent p-3">
-                          <span className="inline-flex items-center gap-1.5 rounded-full border border-white/30 bg-gold px-2.5 py-1 text-[9px] font-bold uppercase tracking-[0.18em] text-white shadow-sm">
+                          <span className="inline-flex items-center gap-1.5 rounded-full border border-white/30 bg-[#f6a23a] px-2.5 py-1 text-[9px] font-bold uppercase tracking-[0.18em] text-white shadow-sm">
                             <Sparkles size={10} />
                             LIVE
                           </span>
-                          <button type="button" className="rounded-full border border-white/30 bg-navy-dark/55 p-1.5 text-white transition hover:bg-gold" aria-label={`Share ${safeTitle}`}>
+                          <button type="button" className="rounded-full border border-white/30 bg-[#173b5f]/65 p-1.5 text-white transition hover:bg-[#e86516]" aria-label={`Share ${safeTitle}`}>
                             <Share2 size={14} />
                           </button>
                         </div>
                       </div>
 
-                      <div className="p-4">
+                      <div className="p-3">
                         <div className="flex items-start justify-between gap-3">
                           <div className="min-w-0 flex-1">
-                            <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-gold-dark">{badge}</p>
-                            <h2 className="mt-1 line-clamp-2 text-[1.05rem] font-black leading-[1.25] text-navy">{safeTitle}</h2>
+                            <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#b65318]">{badge}</p>
+                            <h2 className="mt-1 line-clamp-2 text-[1rem] font-black leading-[1.25] text-[#e86516]">{safeTitle}</h2>
                           </div>
-                          <span className="shrink-0 rounded-full bg-gold px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.06em] text-white shadow-sm">{badge}</span>
+                          <span className="shrink-0 rounded-full bg-[#f6a23a] px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.06em] text-white shadow-sm">{badge}</span>
                         </div>
-                      </div>
-                      <div className="space-y-2 px-4 pb-4 text-[11px] text-[#70402b]">
-                        {features.map((feature) => (
-                          <div key={feature} className="flex items-center gap-2">
-                            <span className="h-1.5 w-1.5 rounded-full bg-[#ff8a1f]" />
-                            <span className="truncate">{feature}</span>
-                          </div>
-                        ))}
                       </div>
                     </div>
 
-                    <div className="mt-auto border-t border-[#fed7aa] bg-white px-4 py-3">
+                    <div className="mt-auto border-t border-[#fed7aa] bg-white px-3 py-3">
                       <div className="flex items-center justify-between gap-3">
-                        <div className="flex items-center gap-2 text-sm font-semibold text-[#7c2d12]">
+                        <button type="button" onClick={() => toggleFeatures(item.id)} className="flex items-center gap-2 text-sm font-semibold text-[#334e68] transition hover:text-[#e86516]" aria-expanded={showFeatures}>
                           <span>Features</span>
-                          <ChevronDown size={15} className="text-slate-500" />
-                        </div>
+                          <ChevronDown size={15} className={`text-slate-500 transition-transform ${showFeatures ? "rotate-180" : ""}`} />
+                        </button>
                         <span className="rounded-full bg-gradient-to-r from-[#ff8c1a] to-[#ff6a00] px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.08em] text-white shadow-sm">
                           {price}
                         </span>
                       </div>
 
+                      {showFeatures && <div className="mt-3 space-y-2 border-t border-[#ffead8] pt-3 text-[11px] text-[#70402b]">{features.map((feature) => <div key={feature} className="flex items-center gap-2"><span className="h-1.5 w-1.5 rounded-full bg-[#f97316]" /><span className="truncate">{feature}</span></div>)}</div>}
+
                       <Link
                         to={`/sankalp/test-series/${item.id}`}
-                          className="mt-4 flex w-full items-center justify-center rounded-xl bg-gradient-to-r from-[#ff8c1a] to-[#ed4b00] px-3 py-3 text-xs font-bold uppercase tracking-[0.05em] text-white shadow-[0_10px_18px_rgba(255,109,0,0.25)] transition hover:brightness-110"
+                          className="mt-3 flex w-full items-center justify-center rounded-lg bg-gradient-to-r from-[#ff8c1a] to-[#ed4b00] px-3 py-2.5 text-xs font-bold uppercase tracking-[0.05em] text-white shadow-[0_8px_16px_rgba(237,90,0,0.25)] transition hover:-translate-y-0.5 hover:brightness-110 hover:shadow-[0_12px_22px_rgba(237,90,0,0.32)]"
                       >
                         View Test Papers
                       </Link>
