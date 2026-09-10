@@ -300,7 +300,7 @@ export async function fetchMentors() {
 
 export async function fetchHeroSections() {
   const response = await api.get("/api2/getAllHeroSections", {
-    params: { url: DYNAMIC_PROFILE_URL },
+    params: { url: LIVE_PROFILE_URL },
   });
 
   return normalizeList(response.data).map((hero, index) => ({
@@ -322,7 +322,13 @@ export async function fetchHeroSections() {
       hero?.imageUrl ??
       "",
     link: hero?.url ?? hero?.link ?? hero?.buttonUrl ?? "/register",
-    linkLabel: hero?.buttonLabel ?? hero?.linkLabel ?? hero?.buttonText ?? "Register Now",
+    linkLabel:
+      hero?.buttonText ??
+      hero?.buttonLabel ??
+      hero?.buttonName ??
+      hero?.linkLabel ??
+      hero?.ctaText ??
+      "Register Now",
     priority: Number(hero?.priority ?? hero?.displayOrder ?? index),
   }));
 }

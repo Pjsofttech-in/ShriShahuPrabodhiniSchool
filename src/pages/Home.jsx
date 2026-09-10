@@ -144,7 +144,7 @@ export default function Home() {
     .map((slide) => ({
       ...slide,
       image: resolveImageUrl(slide.image),
-      linkLabel: slide.linkLabel || "Soon will be released",
+      linkLabel: slide.linkLabel || "Register Now",
       subtitle: slide.subtitle || "Soon will be released",
     }));
   const marqueeItems = marquee.length > 0 ? marquee : ["Soon will be released"];
