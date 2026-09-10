@@ -1,7 +1,7 @@
 ﻿import axios from "axios";
 
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "http://localhost:8080").replace(/\/+$/g, "");
-const API_REQUEST_BASE_URL = API_BASE_URL.replace(/(?:\/api)+$/i, "");
+const API_REQUEST_BASE_URL = `${API_BASE_URL.replace(/\/+$/, "")}/api`;
 
 // Admin credentials for fetching live token
 const ADMIN_CREDENTIALS = {
