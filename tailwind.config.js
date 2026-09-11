@@ -11,9 +11,9 @@ export default {
           dark: '#102B46',
         },
         gold: {
-          DEFAULT: '#F3B93D',
-          light: '#F8D77C',
-          dark: '#D29416',
+          DEFAULT: 'rgb(237 90 0 / <alpha-value>)',
+          light: 'rgb(237 90 0 / <alpha-value>)',
+          dark: 'rgb(237 90 0 / <alpha-value>)',
         },
         maroon: {
           DEFAULT: '#BB6C49',
@@ -30,7 +30,7 @@ export default {
         mono: ['"JetBrains Mono"', 'monospace'],
       },
       backgroundImage: {
-        ribbon: "linear-gradient(135deg, #F3B93D 0%, #D29416 100%)",
+        ribbon: "linear-gradient(135deg, rgb(237 90 0) 0%, rgb(237 90 0) 100%)",
       },
       boxShadow: {
         soft: '0 12px 30px rgba(23, 59, 95, 0.10)',

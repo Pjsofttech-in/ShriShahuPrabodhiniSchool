@@ -25,7 +25,6 @@ const prizeHighlights = [
   { title: "Up to 100% Scholarships", description: "Get a chance to win up to 100% scholarships based on your performance", Icon: Coins, tone: "text-[#9d4c0e]" },
   { title: "Gadgets", description: "Participate in SCORE and stand a chance to earn exciting gadgets based on your performance", Icon: Smartphone, tone: "text-[#31597d]" },
 ];
-
 function Counter({ value, suffix }) {
   const [count, setCount] = useState(0);
   const ref = useRef(null);
@@ -167,11 +166,11 @@ export default function Home() {
   };
 
   return (
-    <div>
+    <div className="home-page">
       {/* 1. Image Slider */}
       <ImageSlider slides={heroSlides.length > 0 ? heroSlides : sliderSlides} />
 
-      <div className="marquee-shell overflow-hidden border-y border-[#d5a733] bg-[linear-gradient(90deg,#f3c446_0%,#f4d66d_25%,#edb928_50%,#f5ce68_75%,#efb72d_100%)] shadow-[inset_0_1px_0_rgba(255,255,255,0.45),inset_0_-1px_0_rgba(17,45,73,0.08)]">
+      <div className="home-marquee marquee-shell overflow-hidden border-y border-[#d5a733] bg-[linear-gradient(90deg,#f3c446_0%,#f4d66d_25%,#edb928_50%,#f5ce68_75%,#efb72d_100%)] shadow-[inset_0_1px_0_rgba(255,255,255,0.45),inset_0_-1px_0_rgba(17,45,73,0.08)]">
         <div className="hero-marquee flex w-max min-w-full items-center gap-8 py-3 text-sm font-semibold uppercase tracking-[0.08em] text-[#112d49] md:text-base">
           {[...marqueeItems, ...marqueeItems].map((item, index) => (
             <div key={`${item}-${index}`} className="hero-marquee-item flex items-center gap-2 whitespace-nowrap px-2">
@@ -181,38 +180,6 @@ export default function Home() {
           ))}
         </div>
       </div>
-
-      <section className="prize-section bg-[#fffdfa] px-4 py-14 sm:px-6 md:py-20">
-        <div className="mx-auto max-w-[1280px]">
-          <h2 className="mb-9 text-center font-display text-3xl font-bold leading-tight text-[#ed5a00] md:text-4xl">
-            Earn Scholarships and Prizes
-          </h2>
-
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-            {prizeHighlights.map(({ title, description, Icon, tone }) => (
-              <article key={title} className="prize-card group relative flex min-h-[300px] flex-col items-center overflow-hidden rounded-[24px] border border-[#f3e5c5] bg-[#fff7e5] px-5 pb-7 pt-6 text-center shadow-[0_10px_28px_rgba(23,59,95,0.10)] transition duration-300 hover:-translate-y-2 hover:shadow-[0_18px_36px_rgba(23,59,95,0.16)]">
-                <div className="prize-card-wave" aria-hidden="true" />
-                <div className={`relative z-10 flex h-28 items-center justify-center ${tone}`}>
-                  <Icon size={92} strokeWidth={1.35} className="transition duration-300 group-hover:scale-110 group-hover:-rotate-3" />
-                </div>
-                <h3 className="relative z-10 mt-4 max-w-[250px] font-display text-[1.55rem] font-bold leading-tight text-navy">
-                  {title}
-                </h3>
-                <p className="relative z-10 mt-5 max-w-[280px] text-[0.98rem] leading-6 text-[#426078]">
-                  {description}
-                </p>
-              </article>
-            ))}
-          </div>
-
-          <div className="mt-12 flex justify-center">
-            <Link to="/register" className="group inline-flex items-center gap-3 rounded-full bg-navy px-7 py-3.5 text-base font-semibold text-white shadow-[0_10px_22px_rgba(23,59,95,0.22)] transition duration-300 hover:-translate-y-1 hover:bg-navy-light hover:shadow-[0_16px_28px_rgba(23,59,95,0.28)] sm:px-8">
-              Register for SCORE 2026 now
-              <ArrowRight size={21} className="transition-transform duration-300 group-hover:translate-x-1" />
-            </Link>
-          </div>
-        </div>
-      </section>
 
       {/* 2. Sankalp Exam Info with Registration button */}
       <section className="relative overflow-hidden bg-[#fffdfa] py-14 md:py-20">
@@ -256,6 +223,17 @@ export default function Home() {
               </dl>
             </div>
           </div>
+
+          <div className="mt-5 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+            {prizeHighlights.map(({ title, description, Icon, tone }) => (
+              <article key={title} className="prize-card group relative flex min-h-[260px] flex-col items-center overflow-hidden rounded-[24px] border border-[#f3e5c5] bg-[#fff7e5] px-5 pb-6 pt-5 text-center shadow-[0_10px_28px_rgba(23,59,95,0.10)] transition duration-300 hover:-translate-y-2 hover:shadow-[0_18px_36px_rgba(23,59,95,0.16)]">
+                <div className="prize-card-wave" aria-hidden="true" />
+                <div className={`relative z-10 flex h-24 items-center justify-center ${tone}`}><Icon size={76} strokeWidth={1.35} className="transition duration-300 group-hover:scale-110 group-hover:-rotate-3" /></div>
+                <h3 className="relative z-10 mt-3 max-w-[250px] font-display text-xl font-bold leading-tight text-navy">{title}</h3>
+                <p className="relative z-10 mt-3 max-w-[280px] text-sm leading-6 text-[#426078]">{description}</p>
+              </article>
+            ))}
+          </div>
         </div>
       </section>
 
@@ -285,7 +263,7 @@ export default function Home() {
               </article>;
             })}
           </div>}
-          <div className="mt-10 flex justify-center"><Link to="/awards" className="btn-outline">View More Awards <ArrowRight size={16} /></Link></div>
+          <div className="mt-10 flex justify-center"><Link to="/awards" className="btn-outline rounded-full">View More Awards <ArrowRight size={16} /></Link></div>
         </div>
       </section>
 
@@ -355,7 +333,7 @@ export default function Home() {
 
     {/* View All Button */}
     <div className="flex justify-center mt-10">
-      <Link to="/courses" className="btn-outline">
+      <Link to="/courses" className="btn-outline rounded-full">
         View All Courses
       </Link>
     </div>
@@ -400,7 +378,7 @@ export default function Home() {
     </div>
 
     <div className="mt-10 flex justify-center">
-      <Link to="/toppers" className="group inline-flex items-center gap-2 rounded-full border-2 border-navy px-6 py-3 font-bold text-navy transition hover:-translate-y-1 hover:bg-navy hover:text-white hover:shadow-lg">
+      <Link to="/toppers" className="btn-outline rounded-full">
         View All Toppers <ArrowRight size={16} className="transition-transform group-hover:translate-x-1" />
       </Link>
     </div>
@@ -451,7 +429,7 @@ export default function Home() {
     )}
 
     <div className="mt-9 flex justify-center">
-      <Link to="/gallery" className="btn-outline">View All Gallery <ArrowRight size={16} /></Link>
+      <Link to="/gallery" className="btn-outline rounded-full">View All Gallery <ArrowRight size={16} /></Link>
     </div>
   </div>
 </section>
@@ -522,7 +500,7 @@ export default function Home() {
 
     {/* View All Button */}
     <div className="flex justify-center mt-10">
-      <Link to="/faculties" className="btn-outline">
+      <Link to="/faculties" className="btn-outline rounded-full">
         View All Faculties
       </Link>
     </div>
@@ -558,7 +536,7 @@ export default function Home() {
             ))}
           </div>
           <div className="mt-10 text-center">
-            <Link to="/testimonials" className="group inline-flex items-center gap-2 rounded-full border-2 border-navy px-6 py-3 font-bold text-navy transition hover:-translate-y-1 hover:bg-navy hover:text-white hover:shadow-[0_10px_22px_rgba(23,59,95,0.18)]">
+            <Link to="/testimonials" className="btn-outline rounded-full">
               View All Testimonials <ArrowRight size={16} />
             </Link>
           </div>

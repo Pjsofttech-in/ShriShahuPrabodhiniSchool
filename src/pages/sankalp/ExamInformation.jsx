@@ -9,6 +9,9 @@ import {
   GraduationCap,
   LayoutGrid,
   NotebookPen,
+  Rocket,
+  Coins,
+  Smartphone,
   ScrollText,
 } from "lucide-react";
 import PageHeader from "../../components/PageHeader.jsx";
@@ -18,6 +21,7 @@ import logo from "../../asset/logo.png";
 
 const quickLinks = [
   { label: "Pages", to: "/sankalp/exam-information", icon: LayoutGrid },
+  { label: "Mentors", to: "/features", icon: GraduationCap },
   { label: "Test Series", to: "/sankalp/test-series", icon: NotebookPen },
   { label: "Answer Key", to: "/sankalp/answer-key", icon: FileText },
   { label: "Syllabus", to: "/sankalp/syllabus", icon: FileText },
@@ -37,6 +41,13 @@ const examFaqs = [
   { question: "What is the examination fee?", answer: `The registration fee is ₹${examInfo.fee}. Complete registration online to confirm your participation.` },
   { question: "When is the examination scheduled?", answer: `The examination is scheduled for ${examInfo.examDate}. Please complete registration before ${examInfo.registrationDeadline}.` },
   { question: "What do top performers receive?", answer: "Top performers can receive scholarships, certificates and recognition based on their examination performance." },
+];
+
+const prizeHighlights = [
+  { title: "A trip to NASA", description: "Don't miss the chance to explore the wonders of space - win an exciting trip to NASA", Icon: Rocket, tone: "text-[#ff4055]" },
+  { title: "Cash Rewards", description: "Unlock the potential to win cash rewards as you pave the way to a brighter academic future.", Icon: GraduationCap, tone: "text-[#f1b923]" },
+  { title: "Up to 100% Scholarships", description: "Get a chance to win up to 100% scholarships based on your performance", Icon: Coins, tone: "text-[#9d4c0e]" },
+  { title: "Gadgets", description: "Participate in SCORE and stand a chance to earn exciting gadgets based on your performance", Icon: Smartphone, tone: "text-[#31597d]" },
 ];
 
 export default function ExamInformation() {
@@ -65,7 +76,7 @@ export default function ExamInformation() {
   const liveExamInfo = { ...examInfo, ...(examSection || {}) };
 
   return (
-    <div>
+    <div className="exam-information-page">
       <PageHeader title="Sankalp Exam Information" crumb="Exam Information" compact />
 
       <section className="relative overflow-hidden bg-[#f8f5ee] pb-10 pt-0 md:pb-16">
@@ -206,6 +217,28 @@ export default function ExamInformation() {
             </div>
           </div>
 
+          <section className="relative mt-6 overflow-hidden rounded-[28px] border border-[#f3e5c5] bg-[#fffdfa] px-4 py-8 shadow-[0_14px_40px_rgba(23,59,95,0.08)] sm:px-6 md:px-8 md:py-10">
+            <div className="pointer-events-none absolute -right-16 -top-16 h-48 w-48 rounded-full bg-gold/10 blur-3xl" />
+            <div className="relative">
+              <div className="mx-auto mb-7 max-w-2xl text-center">
+                <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-gold-dark">Rewards for your effort</p>
+                <h2 className="mt-2 text-2xl font-black text-navy sm:text-3xl">Scholarships and Prizes</h2>
+                <p className="mt-2 text-sm leading-6 text-slate-500">Top performers can earn recognition, scholarships and exciting rewards.</p>
+              </div>
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                {prizeHighlights.map(({ title, description, Icon, tone }) => (
+                  <article key={title} className="group relative flex min-h-[240px] flex-col items-center overflow-hidden rounded-2xl border border-[#f3e5c5] bg-[#fff7e5] px-4 pb-5 pt-5 text-center shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-lg">
+                    <div className="prize-card-wave" aria-hidden="true" />
+                    <div className={`relative z-10 flex h-20 items-center justify-center ${tone}`}><Icon size={64} strokeWidth={1.35} className="transition duration-300 group-hover:scale-110" /></div>
+                    <h3 className="relative z-10 mt-3 text-lg font-bold leading-tight text-navy">{title}</h3>
+                    <p className="relative z-10 mt-3 text-sm leading-5 text-[#426078]">{description}</p>
+                  </article>
+                ))}
+              </div>
+              <div className="mt-7 flex justify-center"><Link to="/register" className="inline-flex items-center gap-2 rounded-xl bg-gold px-5 py-3 text-sm font-bold text-white shadow-md transition hover:-translate-y-0.5 hover:bg-gold-dark">Register for SCORE 2026 <ArrowRight size={16} /></Link></div>
+            </div>
+          </section>
+
           <div className="relative mt-6 rounded-[28px] border border-[#ffe7d1] bg-white p-4 shadow-[0_14px_40px_rgba(11,37,69,0.08)] sm:p-5 md:p-8">
             <div className="mb-5 flex items-end justify-between gap-4 border-b border-slate-200 pb-4">
               <div>
@@ -249,10 +282,10 @@ export default function ExamInformation() {
             <div className="mx-auto max-w-4xl space-y-3">
               {faqs.map((faq, index) => {
                 const isOpen = openFaq === index;
-                return <div key={faq.question} className={`overflow-hidden rounded-2xl border transition-all duration-300 ${isOpen ? "border-gold/60 bg-white shadow-[0_10px_24px_rgba(23,59,95,0.08)]" : "border-[#e8dfcf] bg-white/60"}`}>
-                  <button type="button" onClick={() => setOpenFaq(isOpen ? -1 : index)} className="flex w-full items-center justify-between gap-4 px-4 py-4 text-left sm:px-5" aria-expanded={isOpen}>
-                    <span className="font-bold text-navy">{faq.question}</span>
-                    <ChevronDown size={19} className={`shrink-0 text-gold-dark transition-transform duration-300 ${isOpen ? "rotate-180" : ""}`} />
+                return <div key={faq.question} className={`overflow-hidden rounded-2xl border bg-white transition-all duration-300 ${isOpen ? "border-[#ed5a00] shadow-[0_10px_24px_rgba(237,90,0,0.12)]" : "border-[#e8dfcf] hover:border-[#ed5a00]/50"}`}>
+                  <button type="button" onClick={() => setOpenFaq(isOpen ? -1 : index)} className={`flex w-full items-center justify-between gap-4 px-4 py-4 text-left sm:px-5 ${isOpen ? "!bg-[#ed5a00] !text-white" : "!bg-white !text-navy"}`} aria-expanded={isOpen}>
+                    <span className="font-bold">{faq.question}</span>
+                    <ChevronDown size={19} className={`shrink-0 transition-transform duration-300 ${isOpen ? "rotate-180 text-white" : "text-[#ed5a00]"}`} />
                   </button>
                   <div className={`grid transition-[grid-template-rows] duration-300 ${isOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]"}`}>
                     <div className="overflow-hidden"><p className="border-t border-[#eee5d5] px-4 pb-4 pt-3 text-sm leading-6 text-muted sm:px-5">{faq.answer}</p></div>

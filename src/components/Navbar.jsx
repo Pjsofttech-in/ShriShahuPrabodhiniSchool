@@ -86,7 +86,7 @@ function Dropdown({ label, links }) {
     <div className="relative" ref={ref}>
       <button
         onClick={() => setOpen((o) => !o)}
-        className="flex items-center gap-1 px-3 py-2 text-sm font-semibold tracking-wide text-navy hover:text-gold rounded-md focus-ring dark:text-slate-200 dark:hover:text-gold"
+        className="sankalp-trigger flex items-center gap-1 px-3 py-2 text-sm font-semibold tracking-wide text-navy hover:text-gold rounded-md focus-ring dark:text-slate-200 dark:hover:text-gold"
         aria-expanded={open}
       >
         {label}
@@ -170,7 +170,7 @@ export default function Navbar() {
               <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-red-500 animate-pulse" />
             </Link>
 
-            <button type="button" onClick={() => setDarkMode((value) => !value)} className="flex h-10 w-10 items-center justify-center rounded-full text-navy transition hover:bg-cream hover:text-gold dark:text-slate-200 dark:hover:bg-[#263238] dark:hover:text-gold" title={darkMode ? "Switch to light theme" : "Switch to dark theme"} aria-label={darkMode ? "Switch to light theme" : "Switch to dark theme"}>
+            <button type="button" onClick={() => setDarkMode((value) => !value)} className="theme-toggle flex h-10 w-10 items-center justify-center rounded-full text-navy transition hover:bg-cream hover:text-gold dark:text-slate-200 dark:hover:bg-[#263238] dark:hover:text-gold" title={darkMode ? "Switch to light theme" : "Switch to dark theme"} aria-label={darkMode ? "Switch to light theme" : "Switch to dark theme"}>
               {darkMode ? <Sun size={19} /> : <Moon size={19} />}
             </button>
 
@@ -203,7 +203,7 @@ export default function Navbar() {
                 <button
                   type="button"
                   onClick={() => setMobileDropdownOpen((open) => !open)}
-                  className={`flex items-center justify-center gap-1 rounded-xl px-2 py-2.5 text-xs font-semibold transition ${mobileDropdownOpen ? "bg-gold text-white shadow-md" : "text-navy hover:bg-white dark:text-slate-200 dark:hover:bg-[#263238]"}`}
+                  className={`sankalp-trigger flex items-center justify-center gap-1 rounded-xl px-2 py-2.5 text-xs font-semibold transition ${mobileDropdownOpen ? "bg-gold text-white shadow-md" : "text-navy hover:bg-white dark:text-slate-200 dark:hover:bg-[#263238]"}`}
                   aria-expanded={mobileDropdownOpen}
                 >
                   Sankalp
@@ -246,7 +246,7 @@ export default function Navbar() {
                 <button
                   type="button"
                   onClick={() => setDarkMode((value) => !value)}
-                  className="group flex min-w-0 flex-1 flex-col items-center gap-1 rounded-xl px-1 py-1.5 text-[9px] font-medium text-muted transition hover:bg-white hover:text-gold-dark dark:text-slate-300 dark:hover:bg-[#263238] dark:hover:text-gold"
+                  className="theme-toggle group flex min-w-0 flex-1 flex-col items-center gap-1 rounded-xl px-1 py-1.5 text-[9px] font-medium text-muted transition hover:bg-white hover:text-gold-dark dark:text-slate-300 dark:hover:bg-[#263238] dark:hover:text-gold"
                   title={darkMode ? "Switch to light theme" : "Switch to dark theme"}
                   aria-label={darkMode ? "Switch to light theme" : "Switch to dark theme"}
                 >

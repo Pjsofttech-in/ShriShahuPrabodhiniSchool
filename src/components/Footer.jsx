@@ -56,11 +56,11 @@ export default function Footer() {
 
             <div className="mt-6 flex flex-wrap items-center gap-3">
               {[
-                { href: footerData.facebook, Icon: FaFacebookF, className: "hover:bg-[#1877F2] hover:border-[#1877F2]" },
-                { href: footerData.instagram, Icon: FaInstagram, className: "hover:bg-gradient-to-br hover:from-[#f58529] hover:via-[#dd2a7b] hover:to-[#8134af] hover:border-transparent" },
-                { href: footerData.youtube, Icon: FaYoutube, className: "hover:bg-[#FF0000] hover:border-[#FF0000]" },
-                { href: footerData.twitter, Icon: FaTwitter, className: "hover:bg-[#1DA1F2] hover:border-[#1DA1F2]" },
-                { href: footerData.whatsapp, Icon: FaWhatsapp, className: "hover:bg-[#25D366] hover:border-[#25D366]" },
+                { href: footerData.facebook, Icon: FaFacebookF, className: "text-[#1877F2] hover:bg-[#1877F2] hover:border-[#1877F2]" },
+                { href: footerData.instagram, Icon: FaInstagram, className: "text-[#dd2a7b] hover:bg-gradient-to-br hover:from-[#f58529] hover:via-[#dd2a7b] hover:to-[#8134af] hover:border-transparent" },
+                { href: footerData.youtube, Icon: FaYoutube, className: "text-[#FF0000] hover:bg-[#FF0000] hover:border-[#FF0000]" },
+                { href: footerData.twitter, Icon: FaTwitter, className: "text-[#1DA1F2] hover:bg-[#1DA1F2] hover:border-[#1DA1F2]" },
+                { href: footerData.whatsapp, Icon: FaWhatsapp, className: "text-[#25D366] hover:bg-[#25D366] hover:border-[#25D366]" },
               ].map(({ href, Icon, className }, index) => (
                 <a
                   key={href || `social-link-${index}`}
