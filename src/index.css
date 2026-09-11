@@ -191,6 +191,15 @@ button:disabled { opacity: 0.5; }
   color: inherit !important;
   filter: none;
 }
+.social-icon {
+  transform: translateY(0) rotate(0deg) scale(1);
+  transition: transform 300ms cubic-bezier(.22, 1, .36, 1), box-shadow 300ms ease, background-color 300ms ease;
+}
+.social-icon:hover {
+  transform: translateY(-5px) rotate(8deg) scale(1.1);
+  color: #fff !important;
+  box-shadow: 0 12px 24px rgba(23, 59, 95, .18), 0 0 0 4px rgba(255, 255, 255, .72);
+}
 .course-image-frame { @apply relative aspect-[16/9] overflow-hidden bg-[#f3efe6]; }
 .course-detail-image-frame { @apply min-h-[18rem] bg-[#f3efe6] sm:min-h-[24rem] lg:min-h-[34rem]; }
 

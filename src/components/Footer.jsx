@@ -56,17 +56,17 @@ export default function Footer() {
 
             <div className="mt-6 flex flex-wrap items-center gap-3">
               {[
-                { href: footerData.facebook, Icon: FaFacebookF, className: "text-[#1877F2] hover:bg-[#1877F2] hover:border-[#1877F2]" },
-                { href: footerData.instagram, Icon: FaInstagram, className: "text-[#dd2a7b] hover:bg-gradient-to-br hover:from-[#f58529] hover:via-[#dd2a7b] hover:to-[#8134af] hover:border-transparent" },
-                { href: footerData.youtube, Icon: FaYoutube, className: "text-[#FF0000] hover:bg-[#FF0000] hover:border-[#FF0000]" },
-                { href: footerData.twitter, Icon: FaTwitter, className: "text-[#1DA1F2] hover:bg-[#1DA1F2] hover:border-[#1DA1F2]" },
-                { href: footerData.whatsapp, Icon: FaWhatsapp, className: "text-[#25D366] hover:bg-[#25D366] hover:border-[#25D366]" },
+                { href: footerData.facebook, Icon: FaFacebookF, className: "!text-[#1877F2] hover:bg-[#1877F2] hover:border-[#1877F2]" },
+                { href: footerData.instagram, Icon: FaInstagram, className: "!text-[#dd2a7b] hover:bg-gradient-to-br hover:from-[#f58529] hover:via-[#dd2a7b] hover:to-[#8134af] hover:border-transparent" },
+                { href: footerData.youtube, Icon: FaYoutube, className: "!text-[#FF0000] hover:bg-[#FF0000] hover:border-[#FF0000]" },
+                { href: footerData.twitter, Icon: FaTwitter, className: "!text-[#1DA1F2] hover:bg-[#1DA1F2] hover:border-[#1DA1F2]" },
+                { href: footerData.whatsapp, Icon: FaWhatsapp, className: "!text-[#25D366] hover:bg-[#25D366] hover:border-[#25D366]" },
               ].map(({ href, Icon, className }, index) => (
                 <a
                   key={href || `social-link-${index}`}
                   href={href || "#"}
                   aria-label="Social media"
-                  className={`group flex h-11 w-11 items-center justify-center rounded-full border border-[#d9e1e8] bg-white text-muted shadow-[0_8px_18px_rgba(23,59,95,0.08)] transition-all duration-300 hover:-translate-y-0.5 hover:text-white ${className}`}
+                  className={`social-icon group flex h-11 w-11 items-center justify-center rounded-full border border-[#d9e1e8] bg-white text-muted shadow-[0_8px_18px_rgba(23,59,95,0.08)] transition-all duration-300 hover:text-white ${className}`}
                 >
                   <Icon className="text-base transition-transform duration-300 group-hover:scale-110" />
                 </a>
