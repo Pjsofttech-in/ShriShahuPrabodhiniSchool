@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { ArrowUpRight, BookOpen, GraduationCap, ImageOff, LoaderCircle, Quote, Search, Sparkles, Users } from "lucide-react";
+import { ArrowUpRight, BookOpen, GraduationCap, ImageOff, LoaderCircle, Quote, Search, Sparkles, Users, X } from "lucide-react";
 import PageHeader from "../components/PageHeader.jsx";
 import { fetchMentors } from "../services/backendService.js";
 import { API_BASE_URL } from "../utils/api.js";
@@ -16,6 +16,7 @@ export default function Features() {
   const [mentors, setMentors] = useState([]);
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState("");
+  const [selectedMentor, setSelectedMentor] = useState(null);
 
   useEffect(() => {
     let mounted = true;
@@ -41,7 +42,7 @@ export default function Features() {
   function MentorPanel({ mentor, featured = false, index = 0 }) {
     const image = resolveImageUrl(mentor.image);
 
-    return <article className="content-reveal group grid h-full min-h-[24rem] grid-cols-1 overflow-hidden rounded-[26px] border border-[#eadfce] bg-[#fffaf0] shadow-[0_18px_45px_rgba(23,59,95,0.10)] transition duration-500 hover:-translate-y-2 hover:border-[#e86516]/45 hover:shadow-[0_26px_58px_rgba(237,90,0,0.20)] sm:grid-cols-[0.42fr_0.58fr]" style={{ animationDelay: `${index * 80}ms` }}>
+    return <article className="content-reveal group grid h-full min-h-[24rem] cursor-pointer grid-cols-1 overflow-hidden rounded-[26px] border border-[#eadfce] bg-[#fffaf0] shadow-[0_18px_45px_rgba(23,59,95,0.10)] transition duration-500 hover:-translate-y-2 hover:border-[#e86516]/45 hover:shadow-[0_26px_58px_rgba(237,90,0,0.20)] sm:grid-cols-[0.42fr_0.58fr]" style={{ animationDelay: `${index * 80}ms` }} role="button" tabIndex="0" onClick={() => onOpen(mentor)} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); onOpen(mentor); } }}>
       <div className="relative min-h-[15rem] overflow-hidden bg-[#f3e5d6] sm:min-h-full">
         {image ? <img src={image} alt={mentor.name} onError={(event) => { event.currentTarget.src = fallbackImage; }} className="h-full w-full object-cover object-top transition duration-700 group-hover:scale-105" /> : <div className="flex h-full items-center justify-center text-[#b8752b]"><ImageOff size={46} /></div>}
         <div className="absolute inset-0 bg-gradient-to-t from-[#7d3b20]/55 via-transparent to-transparent transition-opacity duration-500 group-hover:opacity-75" />
@@ -75,11 +76,25 @@ export default function Features() {
             <div className="rounded-[28px] bg-white py-16 text-center text-muted shadow-[0_18px_45px_rgba(23,59,95,0.08)]">No mentors match your search.</div>
           ) : (
             <>
-              <div className="grid items-stretch gap-5 md:grid-cols-2">{filteredMentors.map((mentor, index) => <MentorPanel key={mentor.id} mentor={mentor} index={index} />)}</div>
+              <div className="grid items-stretch gap-5 md:grid-cols-2">{filteredMentors.map((mentor, index) => <MentorPanel key={mentor.id} mentor={mentor} index={index} onOpen={setSelectedMentor} />)}</div>
             </>
           )}
         </div>
       </section>
+      {selectedMentor && <div className="mentor-modal fixed inset-0 z-[70] flex items-center justify-center bg-[#17243a]/70 p-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="mentor-profile-title" onClick={() => setSelectedMentor(null)}>
+        <div className="relative grid max-h-[90svh] w-full max-w-3xl overflow-y-auto rounded-[26px] border border-[#eadfce] bg-[#fffaf0] shadow-[0_24px_80px_rgba(23,59,95,0.28)] sm:grid-cols-[0.8fr_1.2fr]" onClick={(event) => event.stopPropagation()}>
+          <button type="button" onClick={() => setSelectedMentor(null)} aria-label="Close mentor profile" className="absolute right-3 top-3 z-10 flex h-9 w-9 items-center justify-center rounded-full !border-0 !bg-white/90 !p-0 !text-[#18282d] shadow-md hover:!bg-white"><X size={18} /></button>
+          <div className="relative min-h-[16rem] bg-[#f3e5d6] sm:min-h-[22rem]"><img src={resolveImageUrl(selectedMentor.image)} alt={selectedMentor.name} className="h-full w-full object-cover object-top" /><div className="absolute inset-0 bg-gradient-to-t from-[#7d3b20]/60 via-transparent to-transparent" /></div>
+          <div className="flex flex-col justify-center p-6 sm:p-8">
+            <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#e86516]">{selectedMentor.subject || selectedMentor.designation || "Academic guidance"}</p>
+            <h2 id="mentor-profile-title" className="mt-2 font-display text-2xl font-bold leading-tight text-[#18282d] sm:text-3xl">{selectedMentor.name}</h2>
+            {selectedMentor.designation && <p className="mt-1 text-sm font-semibold text-[#607276]">{selectedMentor.designation}</p>}
+            {selectedMentor.description && <p className="mt-5 text-sm leading-7 text-[#526b7e]">{selectedMentor.description}</p>}
+            {(selectedMentor.qualification || selectedMentor.experience) && <div className="mt-6 grid gap-3 border-t border-[#eadfce] pt-5 text-sm text-[#607276] sm:grid-cols-2">{selectedMentor.qualification && <div className="flex items-start gap-2"><BookOpen size={17} className="mt-0.5 shrink-0 text-[#d87838]" />{selectedMentor.qualification}</div>}{selectedMentor.experience && <div className="flex items-start gap-2"><GraduationCap size={17} className="mt-0.5 shrink-0 text-[#d87838]" />{selectedMentor.experience}</div>}</div>}
+            <div className="mt-6 flex items-center gap-2 text-xs font-semibold text-[#607276]"><Users size={16} className="text-[#d87838]" /> Learning guidance</div>
+          </div>
+        </div>
+      </div>}
     </div>
   );
 }
