@@ -419,6 +419,103 @@ button:disabled { opacity: 0.5; }
   background-color: #222844 !important;
 }
 
+.login-stage {
+  isolation: isolate;
+}
+
+.login-page {
+  overflow: hidden;
+}
+
+.login-card {
+  min-height: 0;
+}
+
+@media (max-height: 760px) {
+  .login-card .login-visual { padding-top: 1.5rem; padding-bottom: 1.5rem; }
+  .login-card .login-form { padding-top: 1rem; padding-bottom: 1rem; }
+}
+
+.login-intro h2,
+.login-intro p,
+.login-intro div {
+  position: relative;
+}
+
+.dark .login-stage {
+  background: radial-gradient(circle at top right, rgba(236,72,153,.16), transparent 36%), linear-gradient(135deg, #070817 0%, #10152b 100%) !important;
+}
+
+.dark .login-card {
+  border-color: var(--dark-border) !important;
+  background: var(--dark-surface) !important;
+}
+
+.dark .login-visual {
+  background: linear-gradient(145deg, #17254a 0%, #263451 62%, #8f3b45 155%) !important;
+}
+
+.dark .login-layout {
+  border-color: var(--dark-border) !important;
+  background: rgba(13, 16, 36, .86) !important;
+}
+
+.dark .login-intro {
+  background: linear-gradient(145deg, #17254a 0%, #263451 68%, #8f3b45 155%) !important;
+  background-image: linear-gradient(145deg, #17254a 0%, #263451 68%, #8f3b45 155%) !important;
+}
+
+.dark .login-form {
+  background: var(--dark-surface) !important;
+}
+
+.dark .login-form label,
+.dark .login-form h1 {
+  color: var(--dark-text) !important;
+}
+
+.dark .login-form input {
+  background: var(--dark-surface-raised) !important;
+  border-color: var(--dark-border) !important;
+  color: var(--dark-text) !important;
+}
+
+.dark .login-methods {
+  background: rgba(168,85,247,.12) !important;
+}
+
+.dark .login-form .border-slate-100 {
+  border-color: var(--dark-border) !important;
+}
+
+.login-method {
+  background: transparent !important;
+  border-color: #ed5a00 !important;
+  color: #ed5a00 !important;
+}
+
+.login-method-active {
+  background: #ed5a00 !important;
+  border-color: #ed5a00 !important;
+  color: white !important;
+}
+
+.login-method-inactive:hover:not(:disabled) {
+  background: rgba(237, 90, 0, .08) !important;
+  color: #c94c00 !important;
+}
+
+.dark .login-method {
+  border-color: #f3b93d !important;
+  color: #f3b93d !important;
+}
+
+.dark .login-method-active {
+  background: #ed5a00 !important;
+  border-color: #ed5a00 !important;
+  color: white !important;
+}
+
 @keyframes announcement-scroll {
   from { transform: translateX(0); }
   to { transform: translateX(-50%); }
