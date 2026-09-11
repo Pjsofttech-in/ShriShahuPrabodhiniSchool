@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState, useRef } from "react";
 import { useLocation, useParams, useNavigate } from "react-router-dom";
-import { ArrowRight, BarChart3, Check, CircleHelp, CircleMinus, Clock3, Flag, ListChecks, Send, Timer, Trophy, X } from "lucide-react";
+import { ArrowRight, BarChart3, Check, CircleHelp, CircleMinus, Clock3, Flag, ListChecks, Timer, Trophy, X } from "lucide-react";
 import {
   fetchExams,
   startExamAttempt,
@@ -9,8 +9,7 @@ import {
   saveAttemptAnswer,
   submitExamAttempt,
   fetchStudentResultById,
-  rememberExamAttempt,
-  rememberExamResult,
+  fetchExamAttemptResult,
 } from "../../services/backendService.js";
 import { useAuth } from "../../context/AuthContext.jsx";
 
@@ -42,6 +41,7 @@ export default function ExamPlayer() {
 
   const initialDurationRef = useRef(0);
   const submittingRef = useRef(false);
+  const pendingAnswerSavesRef = useRef(new Set());
 
   function normalizeQuestion(item, index) {
     const question = item?.question && typeof item.question === "object" ? item.question : item;
@@ -162,13 +162,15 @@ export default function ExamPlayer() {
     const question = questions.find((item) => String(item.id) === String(qid));
 
     if (attemptId && question) {
-      saveAttemptAnswer(attemptId, {
+      const savePromise = saveAttemptAnswer(attemptId, {
         questionId: qid,
         selectedAnswer: question.options[optionIndex],
       }).catch((error) => {
         console.warn("Failed to save answer:", error);
         setSubmitError("An answer could not be saved. Please try again.");
       });
+      pendingAnswerSavesRef.current.add(savePromise);
+      savePromise.finally(() => pendingAnswerSavesRef.current.delete(savePromise));
     }
   }
 
@@ -228,7 +230,13 @@ export default function ExamPlayer() {
     clearInterval(timerRef.current);
 
     try {
+      await Promise.allSettled([...pendingAnswerSavesRef.current]);
       let submittedResult = await submitExamAttempt(attemptId);
+      try {
+        submittedResult = await fetchExamAttemptResult(attemptId);
+      } catch (refreshError) {
+        console.warn("Exam was submitted, but the persisted attempt result could not be refreshed.", refreshError);
+      }
       const persistedResultId = submittedResult?.resultId ?? submittedResult?.id ?? submittedResult?.result?.id;
       if (persistedResultId) {
         try {
@@ -237,49 +245,8 @@ export default function ExamPlayer() {
           console.warn("Submitted result was saved, but the persisted result refresh failed.", refreshError);
         }
       }
-      const localSummary = computeResult();
-      const backendScore = submittedResult?.score ?? submittedResult?.obtainedMarks ?? submittedResult?.obtained_marks ?? submittedResult?.marks ?? submittedResult?.totalMarksObtained;
-      const backendMaxScore = submittedResult?.maxScore ?? submittedResult?.max_score ?? submittedResult?.totalMarks ?? submittedResult?.total_marks ?? submittedResult?.maxMarks;
-      const backendTotal = submittedResult?.totalQuestions ?? submittedResult?.total_questions ?? submittedResult?.total;
-      const attemptedCount = questions.filter((question) => answers[question.id] !== undefined && answers[question.id] !== null).length;
-      const reviewedCount = questions.filter((question) => marked[question.id]).length;
-      const questionDetails = questions.map((question, index) => ({
-        questionId: question.id,
-        questionText: question.text,
-        options: question.options,
-        studentAnswer: answers[question.id] !== undefined ? question.options[answers[question.id]] : null,
-        selectedAnswer: answers[question.id] !== undefined ? question.options[answers[question.id]] : null,
-        selectedIndex: answers[question.id] ?? null,
-        correctIndex: question.correctIndex,
-        marks: question.marks,
-        status: answers[question.id] !== undefined ? "ATTEMPTED" : "UNATTEMPTED",
-        markedForReview: Boolean(marked[question.id]),
-        sequence: index + 1,
-      }));
-      const serverDetails = Array.isArray(submittedResult?.details) ? submittedResult.details : [];
-      const mergedDetails = questionDetails.map((localDetail, index) => {
-        const serverDetail = serverDetails.find((detail) => String(detail.questionId ?? detail.question_id ?? detail.id) === String(localDetail.questionId)) ?? serverDetails[index];
-        return serverDetail ? { ...localDetail, ...serverDetail, status: localDetail.status, markedForReview: localDetail.markedForReview } : localDetail;
-      });
-      const resultWithExam = {
-        ...submittedResult,
-        attemptId,
-        examId: id,
-        examName: exam?.name,
-        submittedAt: submittedResult?.submittedAt ?? new Date().toISOString(),
-        score: backendScore ?? localSummary.score,
-        maxScore: backendMaxScore ?? localSummary.maxScore,
-        total: backendTotal ?? localSummary.total,
-        totalQuestions: questions.length,
-        attemptedCount,
-        unattemptedCount: questions.length - attemptedCount,
-        reviewedCount,
-        details: mergedDetails,
-      };
-      rememberExamAttempt(attemptId);
-      rememberExamResult(resultWithExam);
       try { await refreshProfile(); } catch (e) { /* ignore */ }
-      navigate("/student/profile", { state: { tab: "result", submittedAttempt: resultWithExam } });
+      navigate("/student/profile", { state: { tab: "result" } });
     } catch (err) {
       console.warn('Result submission failed:', err);
       setSubmitError(err?.response?.data?.message || err?.message || "Unable to submit this exam.");
@@ -373,7 +340,6 @@ export default function ExamPlayer() {
                     </div>
 
                     <div className="flex flex-wrap items-center gap-2 sm:justify-end">
-                      <button onClick={() => setSubmitConfirmOpen(true)} className="btn-primary flex items-center justify-center rounded-md bg-red-600 px-4 py-2 text-white"><Send size={15} /> Submit Test</button>
                       <button onClick={() => { if (confirm('Are you sure you want to abandon this test? Your answers will not be saved.')) navigate(-1); }} className="rounded-md border px-4 py-2">Cancel</button>
                     </div>
                   </div>

@@ -21,7 +21,6 @@ const tabs = [
 
 export default function StudentDashboard({ defaultTab = "profile" }) {
   const location = useLocation();
-  const submittedAttempt = location.state?.submittedAttempt ?? null;
   const [tab, setTab] = useState(defaultTab);
   const [student, setStudent] = useState(null);
   const [center, setCenter] = useState(null);
@@ -115,13 +114,7 @@ export default function StudentDashboard({ defaultTab = "profile" }) {
           if (!itemId) return true;
           return list.findIndex((candidate) => String(candidate.attemptId ?? candidate.id ?? candidate.resultId ?? candidate.attempt_id) === String(itemId)) === index;
         });
-        if (submittedAttempt?.attemptId) {
-          const submittedKey = String(submittedAttempt.attemptId);
-          const mergedResults = loadedResults.some((item) => String(item.attemptId ?? item.id) === submittedKey)
-            ? loadedResults.map((item) => String(item.attemptId ?? item.id) === submittedKey ? { ...item, ...submittedAttempt } : item)
-            : [submittedAttempt, ...loadedResults];
-          setResults(mergedResults);
-        } else setResults(loadedResults.sort((first, second) => {
+        setResults(loadedResults.sort((first, second) => {
           const firstDate = new Date(first?.submittedAt ?? first?.startedAt ?? first?.createdAt ?? 0).getTime();
           const secondDate = new Date(second?.submittedAt ?? second?.startedAt ?? second?.createdAt ?? 0).getTime();
           return secondDate - firstDate;
@@ -136,7 +129,7 @@ export default function StudentDashboard({ defaultTab = "profile" }) {
     }
 
     loadResults();
-  }, [student, user, submittedAttempt]);
+  }, [student, user]);
 
   if (!student) return <div className="min-h-[60vh] flex items-center justify-center">Loading profile...</div>;
 
