@@ -268,7 +268,7 @@ export default function StudentRegistration() {
       centerId: Number(form.centerId),
       coordinatorId: Number(form.coordinatorId),
       paymentId,
-      paymentStatus: "PAID",
+      paymentStatus: "SUCCESS",
       amount: 100,
     };
 

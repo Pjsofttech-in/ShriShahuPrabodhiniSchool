@@ -25,6 +25,7 @@ import Login from "./pages/Login.jsx";
 import ForgotPassword from "./pages/ForgotPassword.jsx";
 
 import ExamInformation from "./pages/sankalp/ExamInformation.jsx";
+import Ebook from "./pages/sankalp/Ebook.jsx";
 import Syllabus from "./pages/sankalp/Syllabus.jsx";
 import AnswerKey from "./pages/sankalp/AnswerKey.jsx";
 import ResultCheck from "./pages/sankalp/ResultCheck.jsx";
@@ -48,6 +49,7 @@ export default function App() {
             <Route path="/home" element={<Home />} />
 
             <Route path="/sankalp/exam-information" element={<ExamInformation />} />
+            <Route path="/sankalp/ebook" element={<Ebook />} />
             <Route path="/sankalp/syllabus" element={<Syllabus />} />
             <Route path="/sankalp/answer-key" element={<AnswerKey />} />
             <Route path="/sankalp/result-check" element={<ResultCheck />} />

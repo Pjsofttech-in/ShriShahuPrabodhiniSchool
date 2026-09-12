@@ -911,6 +911,7 @@ export async function fetchSyllabus() {
       syllabus?.syllabusTitle ??
       syllabus?.name ??
       `Syllabus ${index + 1}`,
+    description: syllabus?.description ?? syllabus?.details ?? syllabus?.summary ?? "",
     link:
       syllabus?.link ??
       syllabus?.fileLink ??
@@ -957,6 +958,28 @@ export async function fetchStudentById(studentId) {
 
 function normalizeStudent(student) {
   if (!student || typeof student !== "object") return student;
+  const payment = student.payment ?? student.latestPayment ?? student.paymentDetails ?? {};
+  const paymentStatus =
+    student.paymentStatus ??
+    student.payment_status ??
+    payment.paymentStatus ??
+    payment.payment_status ??
+    payment.status ??
+    payment.state ??
+    "";
+  const paymentId =
+    student.paymentId ??
+    student.payment_id ??
+    student.razorpayPaymentId ??
+    payment.paymentId ??
+    payment.payment_id ??
+    payment.razorpayPaymentId ??
+    "";
+  const normalizedPaymentStatus = String(paymentStatus).trim().toUpperCase();
+  const isPaymentDone =
+    student.isPaymentDone === true ||
+    ["PAID", "SUCCESS", "SUCCESSFUL", "COMPLETED", "CAPTURED", "PAYMENT SUCCESSFUL"].includes(normalizedPaymentStatus);
+
   return {
     ...student,
     id: student.id ?? student.studentId,
@@ -991,10 +1014,11 @@ function normalizeStudent(student) {
     active: student.active ?? null,
     createdAt: student.createdAt ?? "",
     updatedAt: student.updatedAt ?? "",
-    isPaymentDone: student.isPaymentDone ?? false,
-    paymentStatus: student.paymentStatus ?? student.payment_status ?? student.payment?.status ?? "",
-    paymentMode: student.paymentMode ?? "",
-    amount: student.amount ?? student.registrationFee ?? student.paymentAmount ?? null,
+    isPaymentDone,
+    paymentStatus,
+    paymentId,
+    paymentMode: student.paymentMode ?? payment.paymentMode ?? payment.mode ?? "",
+    amount: student.amount ?? student.registrationFee ?? student.paymentAmount ?? payment.amount ?? null,
   };
 }
 

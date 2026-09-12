@@ -48,14 +48,13 @@ export default function Features() {
         <div className="absolute inset-0 bg-gradient-to-t from-[#7d3b20]/55 via-transparent to-transparent transition-opacity duration-500 group-hover:opacity-75" />
         <span className="absolute left-4 top-4 inline-flex items-center gap-2 rounded-full border border-[#e7a064]/70 bg-[#fffdf8]/90 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.16em] text-[#e86516] shadow-sm transition duration-300 group-hover:-translate-y-0.5"><Sparkles size={12} /> {featured ? "Featured mentor" : "Mentor profile"}</span>
       </div>
-      <div className="relative flex min-h-full flex-col justify-center p-5 text-[#18282d] sm:p-7">
+      <div className="relative flex min-h-full flex-col justify-start p-5 pb-3 text-[#18282d] sm:p-7 sm:pb-3">
         <Quote className="absolute right-5 top-5 text-[#e9a064]/55 transition duration-500 group-hover:rotate-6 group-hover:scale-110 group-hover:text-[#e86516]/70" size={42} strokeWidth={1.2} />
         <p className="relative text-[10px] font-bold uppercase tracking-[0.18em] text-[#e86516]">{mentor.subject || mentor.designation || "Academic guidance"}</p>
         <h2 className="relative mt-3 font-display text-xl font-bold leading-tight text-[#18282d] sm:text-2xl">{mentor.name}</h2>
-        {mentor.designation && <p className="mt-1 text-sm font-semibold text-[#607276]">{mentor.designation}</p>}
-        {mentor.description && <p className="mt-4 line-clamp-3 max-w-2xl font-display text-base font-bold leading-snug text-[#d2763d] transition-colors duration-300 group-hover:text-[#e86516]">{mentor.description}</p>}
+        {mentor.description && <p className="mt-4 min-h-[7rem] line-clamp-5 max-w-2xl font-display text-lg font-bold leading-8 text-[#d2763d] transition-colors duration-300 group-hover:text-[#e86516]">{mentor.description}</p>}
         {(mentor.qualification || mentor.experience) && <div className="mt-5 grid gap-2 border-t border-[#eadfce] pt-4 text-xs text-[#607276] sm:grid-cols-2">{mentor.qualification && <span className="flex items-start gap-2"><BookOpen size={15} className="mt-0.5 shrink-0 text-[#d87838]" />{mentor.qualification}</span>}{mentor.experience && <span className="flex items-start gap-2"><GraduationCap size={15} className="mt-0.5 shrink-0 text-[#d87838]" />{mentor.experience}</span>}</div>}
-        <div className="mt-5 flex items-center justify-between border-t border-[#eadfce] pt-4"><span className="inline-flex items-center gap-2 text-xs font-semibold text-[#607276]"><Users size={15} className="text-[#d87838]" /> Learning guidance</span><ArrowUpRight size={18} className="text-[#b05b25] transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" /></div>
+        <div className="mt-auto flex justify-end border-t border-[#eadfce] pt-4"><ArrowUpRight aria-label={`View ${mentor.name} profile`} size={18} className="text-[#b05b25] transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" /></div>
       </div>
     </article>;
   }
@@ -91,7 +90,6 @@ export default function Features() {
             {selectedMentor.designation && <p className="mt-1 text-sm font-semibold text-[#607276]">{selectedMentor.designation}</p>}
             {selectedMentor.description && <p className="mt-5 text-sm leading-7 text-[#526b7e]">{selectedMentor.description}</p>}
             {(selectedMentor.qualification || selectedMentor.experience) && <div className="mt-6 grid gap-3 border-t border-[#eadfce] pt-5 text-sm text-[#607276] sm:grid-cols-2">{selectedMentor.qualification && <div className="flex items-start gap-2"><BookOpen size={17} className="mt-0.5 shrink-0 text-[#d87838]" />{selectedMentor.qualification}</div>}{selectedMentor.experience && <div className="flex items-start gap-2"><GraduationCap size={17} className="mt-0.5 shrink-0 text-[#d87838]" />{selectedMentor.experience}</div>}</div>}
-            <div className="mt-6 flex items-center gap-2 text-xs font-semibold text-[#607276]"><Users size={16} className="text-[#d87838]" /> Learning guidance</div>
           </div>
         </div>
       </div>}

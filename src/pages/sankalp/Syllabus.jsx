@@ -70,7 +70,10 @@ export default function Syllabus() {
                       </div>
                       <span className="text-xs font-bold tracking-[0.15em] text-slate-300">{String(index + 1).padStart(2, "0")}</span>
                     </div>
-                    <h2 className="mb-6 text-lg font-bold text-navy">{item.title}</h2>
+                    <div className="mb-6 min-h-[7rem]">
+                      <h2 className="text-lg font-bold leading-snug text-navy">{item.title}</h2>
+                      {item.description && <p className="mt-3 line-clamp-4 text-sm leading-6 text-slate-500">{item.description}</p>}
+                    </div>
                     {item.link ? (
                       <a
                         href={item.link}

@@ -141,8 +141,13 @@ export default function StudentDashboard({ defaultTab = "profile" }) {
     student.payment?.paymentStatus ||
     (student.paymentId || student.payment_id || student.razorpayPaymentId ? "Paid" : "Pending");
   const paymentAmount = student.amount ?? student.registrationFee ?? student.paymentAmount ?? null;
-  const isPaymentSuccessful = Boolean(student.isPaymentDone) || ["paid", "success", "successful", "completed", "payment successful"].includes(String(paymentStatusFromApi).toLowerCase());
-  const paymentStatus = isPaymentSuccessful ? "PAID" : paymentStatusFromApi;
+  const isPaymentSuccessful = Boolean(student.isPaymentDone) || ["paid", "success", "successful", "completed", "captured", "payment successful"].includes(String(paymentStatusFromApi).trim().toLowerCase());
+  const paymentStatus = isPaymentSuccessful ? "SUCCESSFUL" : String(paymentStatusFromApi).toUpperCase();
+  const hiddenProfileKeys = new Set(["password", "confirmPassword", "token", "accessToken", "refreshToken", "payment", "latestPayment", "paymentDetails"]);
+  const additionalDetails = Object.entries(student).filter(([key, value]) => {
+    if (hiddenProfileKeys.has(key) || value == null || value === "" || typeof value === "object") return false;
+    return !["id", "studentId", "name", "studentName", "lastName", "fatherName", "gender", "dateOfBirth", "rollNo", "roll_number", "rollNumber", "email", "mobile", "mobileNo", "phone", "address", "village", "state", "pincode", "pinCode", "zipCode", "studentClass", "class", "className", "medium", "school", "schoolName", "instituteName", "district", "districtName", "districtId", "taluka", "talukaName", "talukaId", "centerId", "examCenterId", "centerName", "coordinatorId", "coordinatorName", "active", "paymentStatus", "payment_status", "isPaymentDone", "paymentId", "payment_id", "razorpayPaymentId", "paymentMode", "amount", "registrationFee", "paymentAmount", "createdAt", "updatedAt"].includes(key);
+  });
   const marks = 70 + (String(rollNo).charCodeAt(String(rollNo).length - 1 || 0) % 30);
   const displayName = [student.studentName || student.name, student.lastName].filter(Boolean).join(" ") || "Student";
   const profileInitials = displayName.split(" ").filter(Boolean).slice(0, 2).map((part) => part[0]).join("").toUpperCase();
@@ -236,6 +241,13 @@ export default function StudentDashboard({ defaultTab = "profile" }) {
               <Row label="Amount" value={student.amount == null ? "—" : `₹${student.amount}`} />
               <Row label="Member since" value={formatDate(student.createdAt)} />
             </ProfileGroup>
+            {additionalDetails.length > 0 && (
+              <ProfileGroup icon={FileText} title="Additional details">
+                {additionalDetails.map(([key, value]) => (
+                  <Row key={key} label={key.replace(/([A-Z])/g, " $1").replace(/^./, (letter) => letter.toUpperCase())} value={String(value)} />
+                ))}
+              </ProfileGroup>
+            )}
           </div>
 
           <div className={`flex items-center gap-3 rounded-2xl border p-4 ${isPaymentSuccessful ? "border-green-200 bg-green-50" : "border-amber-200 bg-amber-50"}`}>

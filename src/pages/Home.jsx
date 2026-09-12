@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import {
   GraduationCap, Target, MapPin, FileCheck2, ArrowRight, ArrowUpRight, CalendarDays, X,
   Quote, MapPinned, ImageOff, BookOpen, Zap, Globe, CheckCircle, Award,
-  BadgeCheck, Medal, Trophy, LoaderCircle, Rocket, Coins, Smartphone, ChevronLeft, ChevronRight, Search, Sparkles, Users,
+  BadgeCheck, Medal, Trophy, LoaderCircle, Coins, ChevronLeft, ChevronRight, Search, Sparkles, Users,
 } from "lucide-react";
 import ImageSlider from "../components/ImageSlider.jsx";
 import CourseCard from "../components/CourseCard.jsx";
@@ -20,10 +20,10 @@ import { API_BASE_URL } from "../utils/api.js";
 const icons = { GraduationCap, Target, MapPin, FileCheck2, BookOpen, Zap, Globe, CheckCircle };
 const awardIcons = [Trophy, Medal, Award, BadgeCheck];
 const prizeHighlights = [
-  { title: "A trip to NASA", description: "Don't miss the chance to explore the wonders of space - win an exciting trip to NASA", Icon: Rocket, tone: "text-[#ff4055]" },
-  { title: "Cash Rewards", description: "Unlock the potential to win cash rewards as you pave the way to a brighter academic future.", Icon: GraduationCap, tone: "text-[#f1b923]" },
-  { title: "Up to 100% Scholarships", description: "Get a chance to win up to 100% scholarships based on your performance", Icon: Coins, tone: "text-[#9d4c0e]" },
-  { title: "Gadgets", description: "Participate in SCORE and stand a chance to earn exciting gadgets based on your performance", Icon: Smartphone, tone: "text-[#31597d]" },
+  { title: "Cash Rewards", description: "Win cash rewards for outstanding performance in the Sankalp Scholarship Exam.", Icon: Coins, tone: "text-[#f1b923]" },
+  { title: "Certificates", description: "Receive certificates that celebrate achievement and academic excellence.", Icon: Award, tone: "text-[#ed5a00]" },
+  { title: "Up to 100% Scholarship", description: "Earn scholarship support for admission to Shri Shahu Prabodhini School, for students from 4th to 10th class.", Icon: GraduationCap, tone: "text-[#9d4c0e]" },
+  { title: "Books", description: "Get valuable books to support learning and strengthen your preparation.", Icon: BookOpen, tone: "text-[#31597d]" },
 ];
 
 const mentorFallbackImage = "https://images.unsplash.com/photo-1523240795612-9a054b0db644?q=80&w=900&auto=format&fit=crop";
@@ -37,14 +37,13 @@ function MentorPanel({ mentor, index = 0, onOpen }) {
       <div className="absolute inset-0 bg-gradient-to-t from-[#7d3b20]/55 via-transparent to-transparent transition-opacity duration-500 group-hover:opacity-75" />
       <span className="absolute left-4 top-4 inline-flex items-center gap-2 rounded-full border border-[#e7a064]/70 bg-[#fffdf8]/90 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.16em] text-[#e86516] shadow-sm transition duration-300 group-hover:-translate-y-0.5"><Sparkles size={12} /> Mentor profile</span>
     </div>
-    <div className="relative flex min-h-full flex-col justify-center p-4 text-[#18282d] sm:p-5">
+    <div className="relative flex min-h-full flex-col justify-start p-4 pb-3 text-[#18282d] sm:p-5 sm:pb-3">
       <Quote className="absolute right-5 top-5 text-[#e9a064]/55 transition duration-500 group-hover:rotate-6 group-hover:scale-110 group-hover:text-[#e86516]/70" size={36} strokeWidth={1.2} />
       <p className="relative text-[10px] font-bold uppercase tracking-[0.18em] text-[#e86516]">{mentor.subject || mentor.designation || "Academic guidance"}</p>
       <h2 className="relative mt-2 font-display text-lg font-bold leading-tight text-[#18282d] sm:text-xl">{mentor.name}</h2>
-      {mentor.designation && <p className="mt-1 text-xs font-semibold text-[#607276]">{mentor.designation}</p>}
-      {mentor.description && <p className="mt-3 line-clamp-2 max-w-2xl font-display text-sm font-bold leading-snug text-[#d2763d] transition-colors duration-300 group-hover:text-[#e86516]">{mentor.description}</p>}
+      {mentor.description && <p className="mt-4 min-h-[5.5rem] line-clamp-4 max-w-2xl font-display text-base font-bold leading-7 text-[#d2763d] transition-colors duration-300 group-hover:text-[#e86516]">{mentor.description}</p>}
       {(mentor.qualification || mentor.experience) && <div className="mt-4 grid gap-2 border-t border-[#eadfce] pt-3 text-[11px] text-[#607276] sm:grid-cols-2">{mentor.qualification && <span className="flex items-start gap-2"><BookOpen size={14} className="mt-0.5 shrink-0 text-[#d87838]" />{mentor.qualification}</span>}{mentor.experience && <span className="flex items-start gap-2"><GraduationCap size={14} className="mt-0.5 shrink-0 text-[#d87838]" />{mentor.experience}</span>}</div>}
-      <div className="mt-4 flex items-center justify-between border-t border-[#eadfce] pt-3"><span className="inline-flex items-center gap-2 text-xs font-semibold text-[#607276]"><Users size={14} className="text-[#d87838]" /> Learning guidance</span><button type="button" onClick={() => onOpen(mentor)} aria-label={`View full profile of ${mentor.name}`} className="mentor-profile-action !m-0 !border-0 !bg-transparent !p-0 !text-[#b05b25] transition-transform hover:!bg-transparent hover:!text-[#e86516] group-hover:-translate-y-0.5 group-hover:translate-x-0.5"><ArrowUpRight size={17} /></button></div>
+      <div className="mt-auto flex justify-end border-t border-[#eadfce] pt-3"><button type="button" onClick={() => onOpen(mentor)} className="mentor-profile-action btn-outline rounded-md !px-3 !py-2 text-xs" aria-label={`View full profile of ${mentor.name}`}>View profile <ArrowUpRight size={16} /></button></div>
     </div>
   </article>;
 }
@@ -237,7 +236,7 @@ export default function Home() {
                   <div className="flex items-center gap-3 rounded-2xl border border-white/80 bg-white/70 px-4 py-3 text-sm font-semibold text-navy shadow-sm"><CalendarDays size={17} className="text-gold-dark" /> Last date: {examInfo.registrationDeadline}</div>
                 </div>
                 <div className="mt-8 flex flex-wrap gap-3">
-                  <Link to="/register" className="btn-primary">Registration <ArrowRight size={16} /></Link>
+                  <Link to="/register" className="btn-outline">Registration <ArrowRight size={16} /></Link>
                   <Link to="/sankalp/exam-information" className="inline-flex items-center gap-2 rounded-md border-2 border-navy/15 px-6 py-3 font-bold text-navy transition hover:border-navy hover:bg-navy hover:text-white">Exam Details <ArrowRight size={16} /></Link>
                 </div>
               </div>
@@ -279,8 +278,8 @@ export default function Home() {
         <div className="container-app relative">
           <div className="mb-7 flex items-center gap-3"><span className="h-px w-8 bg-[#e86516]" /><p className="text-xs font-bold uppercase tracking-[0.2em] text-[#b65318]">Guidance for every step</p><span className="h-px flex-1 bg-[#ddd8cb]" /></div>
           <div className="mb-8 flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between"><div><p className="text-xs font-bold uppercase tracking-[0.2em] text-[#b8752b]">People behind progress</p><h2 className="mt-2 font-display text-3xl font-bold text-[#e86516] sm:text-4xl">Meet your mentors.</h2></div><div className="relative w-full sm:max-w-xs"><Search size={17} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[#879795]" /><input type="search" value={mentorQuery} onChange={(event) => setMentorQuery(event.target.value)} placeholder="Search mentors" aria-label="Search mentors" className="w-full rounded-full border border-[#d7dfda] bg-white py-3 pl-11 pr-4 text-sm text-[#18282d] shadow-sm outline-none transition focus:border-[#d87838] focus:ring-2 focus:ring-[#d87838]/15" /></div></div>
-          {mentors.length === 0 ? <div className="rounded-[28px] bg-white py-16 text-center text-muted shadow-[0_18px_45px_rgba(23,59,95,0.08)]">No mentors are available right now.</div> : filteredMentors.length === 0 ? <div className="rounded-[28px] bg-white py-16 text-center text-muted shadow-[0_18px_45px_rgba(23,59,95,0.08)]">No mentors match your search.</div> : <div className="grid items-stretch gap-5 md:grid-cols-2">{filteredMentors.map((mentor, index) => <MentorPanel key={mentor.id} mentor={mentor} index={index} onOpen={setSelectedMentor} />)}</div>}
-          <div className="mt-8 flex justify-center"><Link to="/features" className="btn-primary rounded-full px-6 py-3">View more mentors <ArrowRight size={16} /></Link></div>
+          {mentors.length === 0 ? <div className="rounded-[28px] bg-white py-16 text-center text-muted shadow-[0_18px_45px_rgba(23,59,95,0.08)]">No mentors are available right now.</div> : filteredMentors.length === 0 ? <div className="rounded-[28px] bg-white py-16 text-center text-muted shadow-[0_18px_45px_rgba(23,59,95,0.08)]">No mentors match your search.</div> : <div className="grid items-stretch gap-5 md:grid-cols-2">{filteredMentors.slice(0, 2).map((mentor, index) => <MentorPanel key={mentor.id} mentor={mentor} index={index} onOpen={setSelectedMentor} />)}</div>}
+          <div className="mt-8 flex justify-center"><Link to="/features" className="btn-outline rounded-full px-6 py-3">View more mentors <ArrowRight size={16} /></Link></div>
         </div>
 
       {selectedMentor && <div className="mentor-modal fixed inset-0 z-[70] flex items-center justify-center bg-[#17243a]/70 p-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="mentor-profile-title" onClick={() => setSelectedMentor(null)}>
@@ -729,7 +728,7 @@ function ContactMiniForm() {
         <textarea id="home-contact-description" name="description" value={form.description} onChange={updateField} required rows={4} className="input-field" placeholder="How can we help?" />
       </div>
       {error && <p className="text-sm font-semibold text-maroon" role="alert">{error}</p>}
-      <button type="submit" disabled={submitting} className="btn-primary w-full justify-center disabled:cursor-not-allowed disabled:opacity-60">{submitting ? "Sending..." : "Send Message"}</button>
+      <button type="submit" disabled={submitting} className="btn-outline w-full justify-center disabled:cursor-not-allowed disabled:opacity-60">{submitting ? "Sending..." : "Send Message"}</button>
     </form>
   );
 }

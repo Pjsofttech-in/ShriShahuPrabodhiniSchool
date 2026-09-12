@@ -6,12 +6,12 @@ import {
   ChevronDown,
   FileCheck2,
   FileText,
+  BookOpen,
   GraduationCap,
   LayoutGrid,
   NotebookPen,
-  Rocket,
   Coins,
-  Smartphone,
+  Award,
   ScrollText,
 } from "lucide-react";
 import PageHeader from "../../components/PageHeader.jsx";
@@ -44,10 +44,10 @@ const examFaqs = [
 ];
 
 const prizeHighlights = [
-  { title: "A trip to NASA", description: "Don't miss the chance to explore the wonders of space - win an exciting trip to NASA", Icon: Rocket, tone: "text-[#ff4055]" },
-  { title: "Cash Rewards", description: "Unlock the potential to win cash rewards as you pave the way to a brighter academic future.", Icon: GraduationCap, tone: "text-[#f1b923]" },
-  { title: "Up to 100% Scholarships", description: "Get a chance to win up to 100% scholarships based on your performance", Icon: Coins, tone: "text-[#9d4c0e]" },
-  { title: "Gadgets", description: "Participate in SCORE and stand a chance to earn exciting gadgets based on your performance", Icon: Smartphone, tone: "text-[#31597d]" },
+  { title: "Cash Rewards", description: "Win cash rewards for outstanding performance in the Sankalp Scholarship Exam.", Icon: Coins, tone: "text-[#f1b923]" },
+  { title: "Certificates", description: "Receive certificates that celebrate achievement and academic excellence.", Icon: Award, tone: "text-[#ed5a00]" },
+  { title: "Up to 100% Scholarship", description: "Earn scholarship support for admission to Shri Shahu Prabodhini School, for students from 4th to 10th class.", Icon: GraduationCap, tone: "text-[#9d4c0e]" },
+  { title: "Books", description: "Get valuable books to support learning and strengthen your preparation.", Icon: BookOpen, tone: "text-[#31597d]" },
 ];
 
 export default function ExamInformation() {
@@ -235,7 +235,7 @@ export default function ExamInformation() {
                   </article>
                 ))}
               </div>
-              <div className="mt-7 flex justify-center"><Link to="/register" className="inline-flex items-center gap-2 rounded-xl bg-gold px-5 py-3 text-sm font-bold text-white shadow-md transition hover:-translate-y-0.5 hover:bg-gold-dark">Register for SCORE 2026 <ArrowRight size={16} /></Link></div>
+              <div className="mt-7 flex justify-center"><Link to="/register" className="inline-flex items-center gap-2 rounded-xl bg-gold px-5 py-3 text-sm font-bold text-white shadow-md transition hover:-translate-y-0.5 hover:bg-gold-dark">Register for SANKALP 2026 <ArrowRight size={16} /></Link></div>
             </div>
           </section>
 
@@ -260,7 +260,10 @@ export default function ExamInformation() {
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 {syllabus.map((item) => (
                   <div key={item.id} className="flex items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-slate-50/70 px-4 py-4">
-                    <span className="font-bold text-navy">{item.title}</span>
+                    <div className="min-w-0">
+                      <p className="font-bold text-navy">{item.title}</p>
+                      {item.description && <p className="mt-1 line-clamp-2 text-xs leading-5 text-slate-500">{item.description}</p>}
+                    </div>
                     {item.link ? (
                       <a href={item.link} target="_blank" rel="noreferrer" className="shrink-0 text-gold-dark hover:text-gold" aria-label={`Open ${item.title}`}>
                         <ArrowUpRight size={18} />
