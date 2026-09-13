@@ -363,7 +363,7 @@ export async function fetchSlideBars() {
 }
 
 export async function fetchFAQs() {
-  const response = await api.get("/faqs");
+  const response = await api.get("https://shrishahuprabodhini.in/faqs");
   return normalizeList(response.data).map((faq, index) => ({
     id: faq?.id ?? index + 1,
     question: faq?.question ?? faq?.faqQuestion ?? faq?.title ?? faq?.questionText ?? "",
@@ -375,7 +375,7 @@ export async function fetchFAQs() {
 }
 
 export async function fetchExamSection() {
-  const response = await api.get("/exam-section");
+  const response = await api.get("https://shrishahuprabodhini.in/exam-section");
   const section = response?.data?.data ?? response?.data?.result ?? response?.data ?? null;
   if (!section || typeof section !== "object") return null;
 

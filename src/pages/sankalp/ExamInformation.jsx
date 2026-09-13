@@ -15,7 +15,6 @@ import {
   ScrollText,
 } from "lucide-react";
 import PageHeader from "../../components/PageHeader.jsx";
-import { examInfo } from "../../data/siteData.js";
 import { fetchExamSection, fetchFAQs, fetchSyllabus } from "../../services/backendService.js";
 import logo from "../../asset/logo.png";
 
@@ -36,13 +35,6 @@ const registrationSteps = [
   { number: "04", title: "Attempt Your Test", description: "Take your test in the selected slot." },
 ];
 
-const examFaqs = [
-  { question: "Who can apply for the Sankalp Scholarship Exam?", answer: `Students from classes ${examInfo.eligibleClasses} can apply for the examination.` },
-  { question: "What is the examination fee?", answer: `The registration fee is ₹${examInfo.fee}. Complete registration online to confirm your participation.` },
-  { question: "When is the examination scheduled?", answer: `The examination is scheduled for ${examInfo.examDate}. Please complete registration before ${examInfo.registrationDeadline}.` },
-  { question: "What do top performers receive?", answer: "Top performers can receive scholarships, certificates and recognition based on their examination performance." },
-];
-
 const prizeHighlights = [
   { title: "Cash Rewards", description: "Win cash rewards for outstanding performance in the Sankalp Scholarship Exam.", Icon: Coins, tone: "text-[#f1b923]" },
   { title: "Certificates", description: "Receive certificates that celebrate achievement and academic excellence.", Icon: Award, tone: "text-[#ed5a00]" },
@@ -54,7 +46,7 @@ export default function ExamInformation() {
   const [syllabus, setSyllabus] = useState([]);
   const [syllabusLoading, setSyllabusLoading] = useState(true);
   const [examSection, setExamSection] = useState(null);
-  const [faqs, setFaqs] = useState(examFaqs);
+  const [faqs, setFaqs] = useState([]);
   const [openFaq, setOpenFaq] = useState(0);
 
   useEffect(() => {
@@ -63,8 +55,8 @@ export default function ExamInformation() {
     Promise.allSettled([fetchSyllabus(), fetchExamSection(), fetchFAQs()]).then(([syllabusResult, sectionResult, faqResult]) => {
       if (!mounted) return;
       if (syllabusResult.status === "fulfilled") setSyllabus(syllabusResult.value);
-      if (sectionResult.status === "fulfilled" && sectionResult.value) setExamSection(sectionResult.value);
-      if (faqResult.status === "fulfilled" && faqResult.value.length) setFaqs(faqResult.value);
+      if (sectionResult.status === "fulfilled") setExamSection(sectionResult.value);
+      if (faqResult.status === "fulfilled") setFaqs(faqResult.value);
       setSyllabusLoading(false);
     });
 
@@ -73,7 +65,7 @@ export default function ExamInformation() {
     };
   }, []);
 
-  const liveExamInfo = { ...examInfo, ...(examSection || {}) };
+  const liveExamInfo = examSection || {};
 
   return (
     <div className="exam-information-page">
@@ -145,7 +137,7 @@ export default function ExamInformation() {
                 <div>
                   <p className="mb-1 text-[10px] font-bold uppercase tracking-[0.2em] text-gold-dark">Scholarship examination</p>
                   <h2 className="text-xl font-black leading-tight text-navy sm:text-2xl md:text-4xl">
-                  {liveExamInfo.name}
+                  {liveExamInfo.name || "Exam Information"}
                   </h2>
                 </div>
               </div>
@@ -159,7 +151,7 @@ export default function ExamInformation() {
             <div className="grid gap-8 lg:grid-cols-[1.4fr_0.8fr] lg:items-start">
               <div>
                 <p className="mb-5 text-sm leading-6 text-slate-600 md:mb-6 md:text-base md:leading-7">
-                  {liveExamInfo.description || "The Sankalp Scholarship Exam is conducted every academic year to identify and reward talented students across Maharashtra. The exam evaluates conceptual clarity in Mathematics, Science, Language and General Knowledge appropriate to each class level, and top scorers are awarded scholarships, certificates and felicitation at the annual ceremony."}
+                  {liveExamInfo.description || "No exam information is available right now."}
                 </p>
 
                 <div className="overflow-hidden rounded-2xl border border-slate-200 bg-slate-50/80">
@@ -283,7 +275,9 @@ export default function ExamInformation() {
               <h2 className="mt-2 font-display text-2xl font-bold text-navy md:text-3xl">Frequently Asked Questions</h2>
             </div>
             <div className="mx-auto max-w-4xl space-y-3">
-              {faqs.map((faq, index) => {
+              {faqs.length === 0 ? (
+                <p className="rounded-2xl border border-dashed border-[#e8dfcf] px-5 py-8 text-center text-sm text-slate-500">No FAQs are available right now.</p>
+              ) : faqs.map((faq, index) => {
                 const isOpen = openFaq === index;
                 return <div key={faq.question} className={`overflow-hidden rounded-2xl border bg-white transition-all duration-300 ${isOpen ? "border-[#ed5a00] shadow-[0_10px_24px_rgba(237,90,0,0.12)]" : "border-[#e8dfcf] hover:border-[#ed5a00]/50"}`}>
                   <button type="button" onClick={() => setOpenFaq(isOpen ? -1 : index)} className={`flex w-full items-center justify-between gap-4 px-4 py-4 text-left sm:px-5 ${isOpen ? "!bg-[#ed5a00] !text-white" : "!bg-white !text-navy"}`} aria-expanded={isOpen}>
