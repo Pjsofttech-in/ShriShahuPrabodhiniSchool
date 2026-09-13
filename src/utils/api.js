@@ -121,6 +121,10 @@ function isEbookEndpoint(url = "") {
   return url.includes("/vmMaterial") || url.includes("/vmCategory") || url.includes("/vmSubCategory");
 }
 
+function isTestSeriesCategoryEndpoint(url = "") {
+  return url.includes("/api/api/categories");
+}
+
 api.interceptors.request.use(async (config) => {
   if (typeof config.url === "string") {
     const api2Path = config.url.match(/^\/(?:api\/)*api2(?=\/|$)/i);
@@ -135,7 +139,7 @@ api.interceptors.request.use(async (config) => {
 
   const token = getAuthToken();
   const isPublic = isPublicRequest(config);
-  const isAdminEndpoint = isEbookEndpoint(config.url) || config.url?.includes("/createContactForm");
+  const isAdminEndpoint = isEbookEndpoint(config.url) || isTestSeriesCategoryEndpoint(config.url) || config.url?.includes("/createContactForm");
   
   let tokenToUse = token;
   

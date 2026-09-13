@@ -88,10 +88,10 @@ export default function ExamInformation() {
             <div className="pointer-events-none absolute bottom-[-5rem] right-32 h-44 w-44 rounded-full bg-gold/20 blur-2xl" />
             <div className="relative grid items-center gap-7 md:grid-cols-[1fr_auto]">
               <div className="max-w-2xl">
-                <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-gold/40 bg-white/10 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.2em] text-gold-light">Sankalp 2026 · Registrations open</div>
+                <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-gold/40 bg-white/10 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.2em] text-white">Sankalp 2026 · Registrations open</div>
                 <h2 className="font-display text-3xl font-bold leading-tight sm:text-4xl md:text-5xl">A stronger start to a <span className="text-gold-light">brighter future.</span></h2>
                 <p className="mt-4 max-w-xl text-sm leading-6 text-white/75 md:text-base">Discover your academic potential through a thoughtfully designed scholarship examination built for ambitious young learners.</p>
-                <Link to="/register" className="mt-6 inline-flex items-center gap-2 rounded-xl bg-gold px-5 py-3 text-sm font-bold text-navy shadow-[0_10px_24px_rgba(243,185,61,0.25)] transition hover:-translate-y-1 hover:bg-gold-light">Start Registration <ArrowRight size={16} /></Link>
+                <Link to="/register" className="mt-6 inline-flex items-center gap-2 rounded-xl bg-gold px-5 py-3 text-sm font-bold text-white shadow-[0_10px_24px_rgba(243,185,61,0.25)] transition hover:-translate-y-1 hover:bg-gold-light">Start Registration <ArrowRight size={16} /></Link>
               </div>
               <div className="hidden h-36 w-36 items-center justify-center rounded-[28px] border border-white/20 bg-white/10 p-3 shadow-inner sm:flex md:h-44 md:w-44">
                 <img src={logo} alt="Sankalp Scholarship Exam" className="h-full w-full rounded-2xl object-contain" />

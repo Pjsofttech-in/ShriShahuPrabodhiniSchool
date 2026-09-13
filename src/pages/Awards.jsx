@@ -44,7 +44,7 @@ export default function Awards() {
           {!loading && !error && latestAward && selectedYear === "All" && <div className="mb-8 overflow-hidden rounded-[28px] border border-gold/35 bg-white shadow-[0_14px_34px_rgba(23,59,95,0.10)] lg:grid lg:grid-cols-[0.9fr_1.1fr]">
             <div className="relative flex min-h-[15rem] items-center justify-center overflow-hidden bg-[linear-gradient(135deg,#f9f2df,#fffdfa)] p-5">
               {latestAward.image ? <img src={latestAward.image.match(/^(https?:|data:|blob:)/i) ? latestAward.image : `${API_BASE_URL.replace(/\/+$/, "")}/${latestAward.image.replace(/^\/+/, "")}`} alt={latestAward.title} className="h-full max-h-[18rem] w-full object-contain transition duration-700 hover:scale-105" /> : <Trophy size={90} className="text-gold" />}
-              <span className="absolute left-4 top-4 rounded-full bg-gold px-3 py-1.5 text-xs font-bold text-navy shadow-md"><CalendarDays size={14} className="mr-1 inline" /> Latest recognition</span>
+              <span className="absolute left-4 top-4 rounded-full bg-gold px-3 py-1.5 text-xs font-bold text-white shadow-md"><CalendarDays size={14} className="mr-1 inline text-white" /> Latest recognition</span>
             </div>
             <div className="flex flex-col justify-center p-6 sm:p-8">
               <p className="text-xs font-bold uppercase tracking-[0.2em] text-gold-dark">Featured achievement · {latestAward.year || "Recent"}</p>

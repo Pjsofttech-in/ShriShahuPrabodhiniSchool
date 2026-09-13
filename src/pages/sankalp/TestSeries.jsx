@@ -212,16 +212,16 @@ export default function TestSeries() {
 
                     <div className="mt-auto border-t border-[#fed7aa] bg-white px-3 py-3">
                       <div className="flex items-center justify-between gap-3">
-                        <button type="button" onClick={() => toggleFeatures(item.id)} className="flex items-center gap-2 text-sm font-semibold text-[#334e68] transition hover:text-[#e86516]" aria-expanded={showFeatures}>
+                        <button type="button" onClick={() => toggleFeatures(item.id)} className="flex items-center gap-2 !border-transparent !bg-transparent text-sm font-semibold !text-[#e86516] transition hover:!border-transparent hover:!bg-transparent hover:!text-[#b65318]" aria-expanded={showFeatures}>
                           <span>Features</span>
-                          <ChevronDown size={15} className={`text-slate-500 transition-transform ${showFeatures ? "rotate-180" : ""}`} />
+                          <ChevronDown size={15} className={`text-[#e86516] transition-transform ${showFeatures ? "rotate-180" : ""}`} />
                         </button>
                         <span className="rounded-full bg-gradient-to-r from-[#ff8c1a] to-[#ff6a00] px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.08em] text-white shadow-sm">
                           {price}
                         </span>
                       </div>
 
-                      {showFeatures && <div className="mt-3 space-y-2 border-t border-[#ffead8] pt-3 text-[11px] text-[#70402b]">{features.map((feature) => <div key={feature} className="flex items-center gap-2"><span className="h-1.5 w-1.5 rounded-full bg-[#f97316]" /><span className="truncate">{feature}</span></div>)}</div>}
+                      {showFeatures && <div className="mt-3 space-y-2 border-t border-[#ffead8] bg-transparent pt-3 text-[11px] text-[#e86516]">{features.map((feature) => <div key={feature} className="flex items-center gap-2"><span className="h-1.5 w-1.5 rounded-full bg-[#f97316]" /><span className="truncate">{feature}</span></div>)}</div>}
 
                       <Link
                         to={`/sankalp/test-series/${item.id}`}

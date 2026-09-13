@@ -602,21 +602,12 @@ export async function fetchTestSeries() {
 
 export async function fetchTestSeriesCategories() {
   const categories = await requestFirstAvailable([
-    "/api/api/test-series/categories",
-    "/api/api/test-series/category",
-    "/api/api/test-series/category/all",
-    "/api/testSeries/category",
-    "/api/testSeries/categories",
-    "/api/testseries/categories",
-    "/api/testseries/category",
-    "/api/categories/test-series",
-    "/api/api/test-series/categories",
-    "/api/categories",
+    "https://shrishahuprabodhini.in/api/api/categories",
   ], "test series categories");
 
   return categories.map((category, index) => ({
-    id: category?.id ?? category?.categoryId ?? index + 1,
-    name: category?.categoryName ?? category?.name ?? category?.title ?? `Category ${index + 1}`,
+    id: category?.id ?? category?._id ?? category?.categoryId ?? index + 1,
+    name: category?.categoryName ?? category?.name ?? category?.title ?? category?.category ?? category?.label ?? `Category ${index + 1}`,
   })).filter((category) => category.name);
 }
 
