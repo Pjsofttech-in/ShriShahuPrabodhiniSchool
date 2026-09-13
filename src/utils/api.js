@@ -8,6 +8,7 @@ const ADMIN_CREDENTIALS = {
   username: import.meta.env.VITE_ADMIN_USERNAME || "",
   password: import.meta.env.VITE_ADMIN_PASSWORD || "",
 };
+const STATIC_ADMIN_TOKEN = import.meta.env.VITE_ADMIN_TOKEN || "";
 
 // Token caching
 let cachedAdminToken = "";
@@ -101,7 +102,7 @@ const api = axios.create({
 function getAuthToken() {
   const sessionToken = sessionStorage.getItem("ssp_token");
   const localToken = localStorage.getItem("ssp_token");
-  const token = sessionToken || localToken;
+  const token = sessionToken || localToken || STATIC_ADMIN_TOKEN;
   return token ? token.replace(/^Bearer\s+/i, "").trim() : "";
 }
 

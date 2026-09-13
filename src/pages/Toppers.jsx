@@ -144,7 +144,7 @@ export default function Toppers() {
                         {Number(rank) === 1 ? <Crown size={14} className="text-gold-dark" /> : <Medal size={14} className="text-gold-dark" />}
                         Rank #{rank}
                       </div>
-                      {isFeatured && <div className="absolute bottom-3 left-3 inline-flex items-center gap-1.5 rounded-full bg-gold px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.14em] text-navy shadow-lg"><Sparkles size={13} /> Featured achiever</div>}
+                      {isFeatured && <div className="absolute bottom-3 left-3 inline-flex items-center gap-1.5 rounded-full bg-gold px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.14em] text-white shadow-lg"><Sparkles size={13} /> Featured achiever</div>}
                     </div>
 
                     <div className="border-t border-[#edf0f3] px-4 pb-5 pt-4 text-center">

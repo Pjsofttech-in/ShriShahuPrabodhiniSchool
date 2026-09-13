@@ -423,7 +423,7 @@ export default function Home() {
             <div className="absolute right-3 top-3 inline-flex items-center gap-1.5 rounded-full border border-white/80 bg-white/90 px-3 py-1.5 text-xs font-bold text-navy shadow-lg backdrop-blur-sm">
               <Trophy size={14} className="text-gold-dark" /> Rank #{rank}
             </div>
-            <span className="absolute bottom-3 left-3 rounded-full bg-gold px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-navy">Top achiever</span>
+                  <span className="absolute bottom-3 left-3 rounded-full bg-gold px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-white">Top achiever</span>
           </div>
 
           <div className="px-4 pb-5 pt-4">
