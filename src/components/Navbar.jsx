@@ -133,11 +133,11 @@ export default function Navbar() {
   return (
     <header className="fixed inset-x-0 top-0 z-50 shadow-[0_10px_30px_rgba(23,59,95,0.10)]">
       {/* Top strip */}
-      <div className="hidden overflow-hidden border-b border-[#d87838]/40 bg-[linear-gradient(90deg,#f6a23a_0%,#ed6a16_48%,#f3bd63_100%)] text-xs text-[#18282d] shadow-[0_4px_14px_rgba(232,101,22,0.16)] md:block">
+      <div className="hidden overflow-hidden border-b border-[#d87838]/40 bg-[linear-gradient(90deg,#f6a23a_0%,#ed6a16_48%,#f3bd63_100%)] text-xs text-white shadow-[0_4px_14px_rgba(232,101,22,0.16)] md:block">
         <div className="container-app overflow-hidden py-1.5">
-          <div className="announcement-track flex w-max items-center gap-16 whitespace-nowrap hover:[animation-play-state:paused]">
-            <span className="flex items-center gap-2 font-semibold"><Phone size={12} className="text-[#18282d]" /> 020-24451234 <span className="text-[#18282d]/45">|</span> info@ssprabodhini.org <span className="text-[#18282d]/45">|</span> Sankalp Scholarship Exam 2026 Registrations Open</span>
-            <span className="flex items-center gap-2 font-semibold" aria-hidden="true"><Phone size={12} className="text-[#18282d]" /> 020-24451234 <span className="text-[#18282d]/45">|</span> info@ssprabodhini.org <span className="text-[#18282d]/45">|</span> Sankalp Scholarship Exam 2026 Registrations Open</span>
+          <div className="announcement-track flex w-max items-center gap-16 whitespace-nowrap text-white hover:[animation-play-state:paused]">
+            <span className="flex items-center gap-2 font-semibold text-white"><Phone size={12} className="text-white" /> 020-24451234 <span className="text-white/60">|</span> info@ssprabodhini.org <span className="text-white/60">|</span> Sankalp Scholarship Exam 2026 Registrations Open</span>
+            <span className="flex items-center gap-2 font-semibold text-white" aria-hidden="true"><Phone size={12} className="text-white" /> 020-24451234 <span className="text-white/60">|</span> info@ssprabodhini.org <span className="text-white/60">|</span> Sankalp Scholarship Exam 2026 Registrations Open</span>
           </div>
         </div>
       </div>

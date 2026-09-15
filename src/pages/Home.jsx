@@ -608,12 +608,14 @@ export default function Home() {
       <section className="relative overflow-hidden bg-[#f4f7fa] py-14 md:py-20">
         <div className="pointer-events-none absolute -left-24 top-10 h-72 w-72 rounded-full bg-gold/15 blur-3xl" />
         <div className="pointer-events-none absolute -right-24 bottom-0 h-80 w-80 rounded-full bg-[#dce9f3] blur-3xl" />
-        <div className="container-app relative grid items-start gap-8 md:grid-cols-2 md:gap-10">
-          <div>
+        <div className="container-app relative grid items-stretch gap-8 md:grid-cols-2 md:gap-10">
+          <div className="flex h-full flex-col">
             <h2 className="mb-8 text-center font-display text-3xl font-bold leading-tight text-[#ed5a00] md:text-4xl">Get In Touch</h2>
-            <ContactMiniForm />
+            <div className="h-full flex-1">
+              <ContactMiniForm />
+            </div>
           </div>
-          <div className="h-fit self-start overflow-hidden rounded-[26px] border border-[#dfe7ed] bg-white shadow-[0_18px_42px_rgba(23,59,95,0.13)]">
+          <div className="flex h-full min-h-[510px] flex-col overflow-hidden rounded-[26px] border border-[#dfe7ed] bg-white shadow-[0_18px_42px_rgba(23,59,95,0.13)]">
             <div className="flex items-start justify-between gap-4 bg-navy px-5 py-5 text-white sm:px-6">
               <div>
                 <p className="text-xs font-bold uppercase tracking-[0.18em] text-gold">Find Us</p>
@@ -694,8 +696,9 @@ function ContactMiniForm() {
     );
   }
   return (
-    <form onSubmit={submit} className="card space-y-4 p-6">
-      <div className="grid sm:grid-cols-2 gap-4">
+    <form onSubmit={submit} className="card flex h-full flex-col justify-between space-y-4 p-6">
+      <div className="space-y-4">
+        <div className="grid sm:grid-cols-2 gap-4">
         <div>
           <label className="label-field" htmlFor="home-contact-name">Full Name</label>
           <input id="home-contact-name" name="name" value={form.name} onChange={updateField} required className="input-field" placeholder="Your name" />
@@ -728,7 +731,8 @@ function ContactMiniForm() {
         <textarea id="home-contact-description" name="description" value={form.description} onChange={updateField} required rows={4} className="input-field" placeholder="How can we help?" />
       </div>
       {error && <p className="text-sm font-semibold text-maroon" role="alert">{error}</p>}
-      <button type="submit" disabled={submitting} className="btn-outline w-full justify-center disabled:cursor-not-allowed disabled:opacity-60">{submitting ? "Sending..." : "Send Message"}</button>
+      <button type="submit" disabled={submitting} className="btn-outline mt-2 w-full justify-center disabled:cursor-not-allowed disabled:opacity-60">{submitting ? "Sending..." : "Send Message"}</button>
+      </div>
     </form>
   );
 }
