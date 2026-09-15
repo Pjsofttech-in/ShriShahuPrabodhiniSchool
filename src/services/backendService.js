@@ -363,7 +363,7 @@ export async function fetchSlideBars() {
 }
 
 export async function fetchFAQs() {
-  const response = await api.get("https://shrishahuprabodhini.in/faqs");
+  const response = await api.get("https://shrishahuprabodhini.in/api/api2/faqs");
   return normalizeList(response.data).map((faq, index) => ({
     id: faq?.id ?? index + 1,
     question: faq?.question ?? faq?.faqQuestion ?? faq?.title ?? faq?.questionText ?? "",
@@ -375,17 +375,17 @@ export async function fetchFAQs() {
 }
 
 export async function fetchExamSection() {
-  const response = await api.get("https://shrishahuprabodhini.in/exam-section");
+  const response = await api.get("https://shrishahuprabodhini.in/api/api2/exam-section");
   const section = response?.data?.data ?? response?.data?.result ?? response?.data ?? null;
   if (!section || typeof section !== "object") return null;
 
   return {
     ...section,
-    name: section.name ?? section.examName ?? section.title ?? "",
+    name: section.name ?? section.examName ?? section.examTitle ?? section.title ?? "",
     description: section.description ?? section.examDescription ?? section.content ?? "",
     eligibleClasses: section.eligibleClasses ?? section.classes ?? section.eligibleClass ?? "",
     examDate: section.examDate ?? section.date ?? "",
-    registrationDeadline: section.registrationDeadline ?? section.registrationLastDate ?? section.lastDate ?? "",
+    registrationDeadline: section.registrationDeadline ?? section.registrationLastDate ?? section.applicationClosingDate ?? section.lastDate ?? "",
     fee: section.fee ?? section.registrationFee ?? section.amount ?? null,
     pattern: section.pattern ?? section.examPattern ?? section.examStructure ?? "",
     centers: section.centers ?? section.centerCount ?? section.availableCenters ?? "",
