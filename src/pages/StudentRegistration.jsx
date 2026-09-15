@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { CheckCircle2, Copy, Eye, EyeOff, IndianRupee } from "lucide-react";
+import { CheckCircle2, Copy, Eye, EyeOff } from "lucide-react";
 import { payWithRazorpay } from "../utils/razorpay.js";
 import {
   createRazorpayOrder,
@@ -244,7 +244,7 @@ export default function StudentRegistration() {
     loadDistricts();
   }, []);
 
-  async function saveToBackend(paymentId) {
+  async function saveToBackend(paymentId = null) {
     const payload = {
       studentName: form.name,
       fatherName: form.fatherName,
@@ -267,9 +267,9 @@ export default function StudentRegistration() {
       talukaId: Number(form.talukaId),
       centerId: Number(form.centerId),
       coordinatorId: Number(form.coordinatorId),
-      paymentId,
-      paymentStatus: "SUCCESS",
-      amount: 100,
+      paymentId: paymentId || null,
+      paymentStatus: paymentId ? "SUCCESS" : "NOT_REQUIRED",
+      amount: paymentId ? 100 : 0,
     };
 
     return await registerStudent(payload);
@@ -277,13 +277,7 @@ export default function StudentRegistration() {
 
   async function handleSubmit(e) {
     e?.preventDefault();
-
-    if (paymentCompleted) {
-      await handleRegister(e);
-      return;
-    }
-
-    await handlePayment(e);
+    await handleRegister(e);
   }
 
   async function handlePayment(e) {
@@ -300,7 +294,7 @@ export default function StudentRegistration() {
     if (!form.password) return setError("Please enter a password.");
     if (form.password.length < 6) return setError("Password must be at least 6 characters long.");
     if (form.password !== form.confirmPassword) return setError("Password and Confirm Password do not match.");
-    if (!acceptedTerms) return setError("Please agree to the Terms and Conditions before paying.");
+    if (!acceptedTerms) return setError("Please agree to the Terms and Conditions before registering.");
 
     try {
       setStep("paying");
@@ -381,10 +375,8 @@ export default function StudentRegistration() {
     e?.preventDefault();
     setError("");
 
-    if (!paymentCompleted || !paymentDetails?.paymentId) {
-      return setError("Please complete the payment first.");
-    }
-
+    if (!form.name.trim()) return setError("Please enter the student's name.");
+    if (!/^[0-9]{10}$/.test(form.mobile.trim())) return setError("Please enter a valid 10-digit mobile number.");
     if (!form.districtId) return setError("Please select a District.");
     if (!form.talukaId) return setError("Please select a Taluka.");
     if (!form.schoolName.trim()) return setError("Please enter your School Name.");
@@ -393,10 +385,11 @@ export default function StudentRegistration() {
     if (!form.password) return setError("Please enter a password.");
     if (form.password.length < 6) return setError("Password must be at least 6 characters long.");
     if (form.password !== form.confirmPassword) return setError("Password and Confirm Password do not match.");
+    if (!acceptedTerms) return setError("Please agree to the Terms and Conditions before registering.");
 
     try {
       setStep("saving");
-      const saved = await saveToBackend(paymentDetails.paymentId);
+      const saved = await saveToBackend(paymentDetails?.paymentId || null);
       setRegistered(saved);
       setStep("success");
       setPaymentCompleted(false);
@@ -406,7 +399,7 @@ export default function StudentRegistration() {
       setError(
         error?.response?.data?.message ||
           error?.message ||
-          `Payment succeeded but registration failed. Payment ID: ${paymentDetails.paymentId}`
+          "Registration failed. Please try again."
       );
       setStep("form");
     }
@@ -424,8 +417,8 @@ export default function StudentRegistration() {
               <CredRow label="Student Name" value={registered.name || registered.studentName} />
               <CredRow label="Roll Number" value={registered.rollNo} mono />
               <CredRow label="Login Password" value={registered.password} mono />
-              <CredRow label="Payment ID" value={registered.paymentId} mono small />
-              <CredRow label="Amount Paid" value={`₹${registered.amount}`} />
+              {registered.paymentId && <CredRow label="Payment ID" value={registered.paymentId} mono small />}
+              <CredRow label="Amount Paid" value={registered.amount ? `₹${registered.amount}` : "No payment required"} />
             </div>
             <Link to="/login" className="btn-primary w-full justify-center mt-8">Proceed to Student Login</Link>
           </div>
@@ -572,8 +565,8 @@ export default function StudentRegistration() {
 
           <div className="pt-2 flex flex-col items-center gap-3">
             <div className="bg-cream rounded-lg px-6 py-3 flex items-center gap-2 border border-gold/30">
-              <span className="text-sm text-muted">Registration Fee:</span>
-              <span className="font-display font-bold text-navy text-lg flex items-center"><IndianRupee size={16} /> 100</span>
+              <span className="text-sm text-muted">Registration:</span>
+              <span className="font-display font-bold text-green-700 text-lg">Free</span>
             </div>
             <label className="flex items-start gap-2 text-xs text-muted max-w-xl">
               <input
@@ -583,7 +576,7 @@ export default function StudentRegistration() {
                 className="mt-0.5 accent-gold"
               />
               <span>
-                I agree to the <Link to="/terms-and-conditions" className="text-navy font-semibold hover:text-gold">Terms and Conditions</Link> and understand that the ₹100 registration fee is processed through Razorpay.
+                I agree to the <Link to="/terms-and-conditions" className="text-navy font-semibold hover:text-gold">Terms and Conditions</Link> and understand that payment is optional.
               </span>
             </label>
             <div className="flex w-full flex-col gap-3 sm:w-[26rem] sm:flex-row">
@@ -597,9 +590,8 @@ export default function StudentRegistration() {
               </button>
 
               <button
-                type="button"
-                onClick={handleRegister}
-                disabled={step === "saving" || !paymentCompleted}
+                type="submit"
+                disabled={step === "saving" || step === "paying"}
                 className="btn-primary justify-center disabled:opacity-60 flex-1 bg-green-600 hover:bg-green-700"
               >
                 {step === "saving" ? "Saving Registration..." : "Register"}
