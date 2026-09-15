@@ -1,8 +1,9 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { ChevronDown, ImageOff, LoaderCircle, Share2, Sparkles } from "lucide-react";
+import { ChevronDown, ImageOff, LoaderCircle, Share2, Sparkles, Trophy } from "lucide-react";
 import PageHeader from "../../components/PageHeader.jsx";
-import { fetchTestSeries, fetchTestSeriesCategories } from "../../services/backendService.js";
+import LeaderboardModal from "../../components/LeaderboardModal.jsx";
+import { fetchTestSeries, fetchTestSeriesCategories, fetchTestSeriesLeaderboard } from "../../services/backendService.js";
 import { API_BASE_URL } from "../../utils/api.js";
 
 function imageUrl(image) {
@@ -87,6 +88,7 @@ export default function TestSeries() {
   const [error, setError] = useState("");
   const [activeFilter, setActiveFilter] = useState("All");
   const [expandedFeatures, setExpandedFeatures] = useState(() => new Set());
+  const [leaderboardSeries, setLeaderboardSeries] = useState(null);
 
   useEffect(() => {
     Promise.all([fetchTestSeries(), fetchTestSeriesCategories()])
@@ -229,6 +231,9 @@ export default function TestSeries() {
                       >
                         View Test Papers
                       </Link>
+                      <button type="button" onClick={() => setLeaderboardSeries(item)} className="mt-2 inline-flex w-full items-center justify-center gap-2 rounded-lg border border-[#f3bd63] bg-white px-3 py-2 text-xs font-bold uppercase tracking-[0.05em] text-[#e86516] transition hover:bg-[#fff0df]">
+                        <Trophy size={14} /> Leaderboard
+                      </button>
                     </div>
                   </article>
                 );
@@ -237,6 +242,13 @@ export default function TestSeries() {
           )}
         </div>
       </section>
+      <LeaderboardModal
+        open={Boolean(leaderboardSeries)}
+        title={`${leaderboardSeries?.title || "Test Series"} Leaderboard`}
+        subtitle="Students ranked across every exam in this test series"
+        fetchRows={() => fetchTestSeriesLeaderboard(leaderboardSeries?.id)}
+        onClose={() => setLeaderboardSeries(null)}
+      />
     </div>
   );
 }

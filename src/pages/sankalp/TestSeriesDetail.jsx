@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from "react";
 import { Link, useParams, useNavigate, useLocation } from "react-router-dom";
-import { ArrowDownToLine, LoaderCircle } from "lucide-react";
+import { ArrowDownToLine, LoaderCircle, Trophy } from "lucide-react";
 import PageHeader from "../../components/PageHeader.jsx";
-import { fetchExams, fetchTestSeriesById } from "../../services/backendService.js";
+import LeaderboardModal from "../../components/LeaderboardModal.jsx";
+import { fetchExams, fetchExamLeaderboard, fetchTestSeriesById, fetchTestSeriesLeaderboard } from "../../services/backendService.js";
 import { API_BASE_URL } from "../../utils/api.js";
 import { useAuth } from "../../context/AuthContext.jsx";
 
@@ -35,6 +36,7 @@ export default function TestSeriesDetail() {
   const [series, setSeries] = useState(null);
   const [papers, setPapers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [leaderboardTarget, setLeaderboardTarget] = useState(null);
 
   useEffect(() => {
     Promise.all([fetchTestSeriesById(id), fetchExams()])
@@ -121,7 +123,10 @@ export default function TestSeriesDetail() {
                 {!series.featureOne && !series.featureTwo && !series.featureThree && <><li>Latest test papers</li><li>Detailed solutions</li><li>Performance tracking</li></>}
               </ul>
               <div className="mt-3 flex items-center gap-3"><span className="font-bold text-green-700">{series.sellingPrice != null ? `Rs ${series.sellingPrice}` : series.price != null ? `Rs ${series.price}` : "FREE"}</span>{series.mrp && <span className="text-sm text-muted line-through">Rs {series.mrp}</span>}</div>
-              {isFreeSeries ? <p className="mt-4 inline-flex w-fit rounded-full bg-[#fff0df] px-4 py-2 text-sm font-bold text-[#b65318]">Free access - choose a paper below to start.</p> : <button type="button" onClick={() => handleBuySeries()} className="btn-primary mt-4 !bg-[#e86516] !shadow-[0_8px_18px_rgba(232,101,22,0.22)] hover:!bg-[#c84c0b]">BUY TEST SERIES</button>}
+              <div className="mt-4 flex flex-wrap items-center gap-2">
+                {isFreeSeries ? <p className="inline-flex w-fit rounded-full bg-[#fff0df] px-4 py-2 text-sm font-bold text-[#b65318]">Free access - choose a paper below to start.</p> : <button type="button" onClick={() => handleBuySeries()} className="btn-primary !bg-[#e86516] !shadow-[0_8px_18px_rgba(232,101,22,0.22)] hover:!bg-[#c84c0b]">BUY TEST SERIES</button>}
+                <button type="button" onClick={() => setLeaderboardTarget({ type: "series", id, title: series.title })} className="inline-flex items-center gap-2 rounded-lg border border-[#f3bd63] bg-white px-4 py-2 text-sm font-bold text-[#e86516] hover:bg-[#fff0df]"><Trophy size={16} /> Series leaderboard</button>
+              </div>
             </div>
             <div className="aspect-[1.8] overflow-hidden rounded-xl shadow-lg"><ExamImage src={series.image} alt={series.title} /></div>
           </div>
@@ -149,7 +154,7 @@ export default function TestSeriesDetail() {
                 <div className="mt-2 flex gap-2">
                   <button type="button" disabled className="flex items-center justify-center rounded-md border border-[#f3bd63] bg-white px-3 py-2 text-[#e86516] disabled:opacity-50" aria-label="Download test paper"><ArrowDownToLine size={18} /></button>
                   <Link to="/register" className="flex-1 rounded-md border border-slate-200 bg-white px-2 py-2 text-center text-xs text-muted">My Result</Link>
-                  <Link to="/register" className="flex-1 rounded-md border border-slate-200 bg-white px-2 py-2 text-center text-xs text-muted">All Result</Link>
+                  <button type="button" onClick={() => setLeaderboardTarget({ type: "exam", id: paper.id, title: `${paper.name} Leaderboard` })} className="inline-flex flex-1 items-center justify-center gap-1 rounded-md border border-[#f3bd63] bg-white px-2 py-2 text-xs font-semibold text-[#e86516] hover:bg-[#fff0df]"><Trophy size={13} /> Leaderboard</button>
                 </div>
               </div>
             </article>
@@ -157,6 +162,13 @@ export default function TestSeriesDetail() {
           </div>
         </div>
       </section>
+      <LeaderboardModal
+        open={Boolean(leaderboardTarget)}
+        title={leaderboardTarget?.title || "Leaderboard"}
+        subtitle={leaderboardTarget?.type === "series" ? "Live ranking across this test series" : "Live ranking for this exam paper"}
+        fetchRows={() => leaderboardTarget?.type === "series" ? fetchTestSeriesLeaderboard(leaderboardTarget.id) : fetchExamLeaderboard(leaderboardTarget.id)}
+        onClose={() => setLeaderboardTarget(null)}
+      />
     </div>
   );
 }

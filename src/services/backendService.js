@@ -1,4 +1,4 @@
-import api from "../utils/api.js";
+import api, { API_BASE_URL } from "../utils/api.js";
 
 const DYNAMIC_PROFILE_URL =
   import.meta.env.VITE_DYNAMIC_PROFILE_URL || window.location.hostname;
@@ -102,6 +102,9 @@ async function requestFirstAvailable(endpoints, label) {
       if (items.length > 0) return items;
     } catch (error) {
       lastError = error;
+      if (error?.response?.status === 401 || error?.response?.status === 403) {
+        throw error;
+      }
     }
   }
 
@@ -602,7 +605,13 @@ export async function fetchTestSeries() {
 
 export async function fetchTestSeriesCategories() {
   const categories = await requestFirstAvailable([
+    "/api/categories",
+    "/api/test-series/categories",
+    "/api/testSeries/categories",
+    "/api/testseries/categories",
+    "/api/api/categories",
     "https://shrishahuprabodhini.in/api/api/categories",
+    "https://shrishahuprabodhini.in/api/categories",
   ], "test series categories");
 
   return categories.map((category, index) => ({
@@ -697,6 +706,34 @@ export async function fetchTestSeriesById(id) {
     features: normalizeTestFeatures(series),
     exams: filteredExams,
   };
+}
+
+function normalizeLeaderboardRows(payload) {
+  return normalizeList(payload).map((row, index) => ({
+    rank: row?.rank ?? index + 1,
+    studentId: row?.studentId ?? row?.student_id ?? row?.student?.id ?? "-",
+    studentName: row?.studentName ?? row?.student_name ?? row?.student?.name ?? row?.student?.fullName ?? "Student",
+    obtainedMarks: row?.obtainedMarks ?? row?.obtained_marks ?? row?.score ?? 0,
+    totalMarks: row?.totalMarks ?? row?.total_marks ?? row?.maxMarks ?? 0,
+    percentage: row?.percentage ?? row?.percent ?? 0,
+    timeTakenSeconds: row?.timeTakenSeconds ?? row?.time_taken_seconds ?? row?.durationSeconds ?? row?.duration ?? null,
+    correctQuestions: row?.correctQuestions ?? row?.correct_questions ?? 0,
+    incorrectQuestions: row?.incorrectQuestions ?? row?.incorrect_questions ?? 0,
+    solvedQuestions: row?.solvedQuestions ?? row?.solved_questions ?? 0,
+    unsolvedQuestions: row?.unsolvedQuestions ?? row?.unsolved_questions ?? 0,
+    startedAt: row?.startedAt ?? row?.started_at ?? row?.startTime ?? row?.start_time ?? row?.attempt?.startedAt ?? null,
+    submittedAt: row?.submittedAt ?? row?.submitted_at ?? row?.submitTime ?? row?.submit_time ?? row?.attempt?.submittedAt ?? null,
+  }));
+}
+
+export async function fetchExamLeaderboard(examId) {
+  const response = await api.get(`/api/leaderboard/exam/${encodeURIComponent(examId)}`);
+  return normalizeLeaderboardRows(response.data);
+}
+
+export async function fetchTestSeriesLeaderboard(testSeriesId) {
+  const response = await api.get(`/api/leaderboard/test-series/${encodeURIComponent(testSeriesId)}`);
+  return normalizeLeaderboardRows(response.data);
 }
 
 export async function fetchEbookMaterials() {
@@ -942,7 +979,7 @@ export async function fetchAnswerKeys() {
 }
 
 export async function fetchStudentById(studentId) {
-  const response = await api.get(`/api/students/${encodeURIComponent(studentId)}`);
+  const response = await api.get(`${API_BASE_URL}/api/api/students/${encodeURIComponent(studentId)}`);
   const payload = response.data;
   return normalizeStudent(payload?.data ?? payload?.student ?? payload?.user ?? payload);
 }
@@ -967,9 +1004,13 @@ function normalizeStudent(student) {
     payment.razorpayPaymentId ??
     "";
   const normalizedPaymentStatus = String(paymentStatus).trim().toUpperCase();
-  const isPaymentDone =
-    student.isPaymentDone === true ||
+  const paymentDone =
+    [student.paymentDone, student.isPaymentDone, student.payment_done, payment.paymentDone, payment.isPaymentDone].some((value) =>
+      value === true || value === 1 || String(value).toLowerCase() === "true" || String(value) === "1"
+    ) ||
     ["PAID", "SUCCESS", "SUCCESSFUL", "COMPLETED", "CAPTURED", "PAYMENT SUCCESSFUL"].includes(normalizedPaymentStatus);
+  const isPaymentDone =
+    paymentDone;
 
   return {
     ...student,
@@ -1006,7 +1047,8 @@ function normalizeStudent(student) {
     createdAt: student.createdAt ?? "",
     updatedAt: student.updatedAt ?? "",
     isPaymentDone,
-    paymentStatus,
+    paymentStatus: paymentStatus || (paymentDone ? "PAID" : ""),
+    paymentDone,
     paymentId,
     paymentMode: student.paymentMode ?? payment.paymentMode ?? payment.mode ?? "",
     amount: student.amount ?? student.registrationFee ?? student.paymentAmount ?? payment.amount ?? null,
@@ -1036,10 +1078,15 @@ export async function fetchStudentByEmail(email) {
 }
 
 async function fetchAllStudentsForLookup() {
-  const response = await api.get("/api/students");
-  const payload = response.data;
-  const students = Array.isArray(payload) ? payload : payload?.data || payload?.content || payload?.items || payload?.students || [];
-  return (Array.isArray(students) ? students : [students]).filter(Boolean).map(normalizeStudent);
+  try {
+    const response = await api.post("/api/students/filter", {}, {
+      params: { page: 0, size: 1000, sort: "studentName,asc" },
+    });
+    return normalizeList(response.data).filter(Boolean).map(normalizeStudent);
+  } catch (filterError) {
+    const response = await api.get("/api/students");
+    return normalizeList(response.data).filter(Boolean).map(normalizeStudent);
+  }
 }
 
 export async function registerStudent(payload) {
@@ -1049,6 +1096,27 @@ export async function registerStudent(payload) {
 
 export async function loginUser(role, credentials) {
   const roleEndpoint = `/api/auth/${role}/login`;
+
+  function includeHeaderToken(response) {
+    const payload = response?.data;
+    const headerToken =
+      response?.headers?.authorization ||
+      response?.headers?.Authorization ||
+      response?.headers?.get?.("authorization");
+
+    if (!headerToken || !payload || typeof payload !== "object") {
+      return payload;
+    }
+
+    if (payload.token || payload.accessToken || payload.access_token || payload.jwt) {
+      return payload;
+    }
+
+    return {
+      ...payload,
+      token: headerToken,
+    };
+  }
   
   try {
     console.log("=== LOGIN ATTEMPT ===");
@@ -1062,7 +1130,7 @@ export async function loginUser(role, credentials) {
     console.log("Full Response:", response);
     console.log("Response Data:", response.data);
     
-    return response.data;
+    return includeHeaderToken(response);
   } catch (error) {
     console.log("=== LOGIN FAILED ===");
     console.log("Status:", error?.response?.status);
@@ -1086,7 +1154,7 @@ export async function loginUser(role, credentials) {
         
         const response = await api.post("/api/auth/login", genericPayload);
         console.log("Generic endpoint success:", response.data);
-        return response.data;
+        return includeHeaderToken(response);
       } catch (fallbackError) {
         console.error("Generic endpoint also failed:", fallbackError?.response?.data);
         throw fallbackError;
@@ -1120,7 +1188,7 @@ export async function resetStudentPassword(identifier, newPassword) {
 }
 
 export async function getMyProfile() {
-  const response = await api.get("/api/auth/me");
+  const response = await api.get(`${API_BASE_URL}/api/api/auth/me`);
   const payload = response.data;
   return payload?.data ?? payload?.student ?? payload?.user ?? payload;
 }

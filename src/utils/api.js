@@ -3,91 +3,136 @@
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "http://localhost:8080").replace(/\/+$/g, "");
 const API_REQUEST_BASE_URL = API_BASE_URL;
 
-// Admin credentials for fetching live token
 const ADMIN_CREDENTIALS = {
   username: import.meta.env.VITE_ADMIN_USERNAME || "",
   password: import.meta.env.VITE_ADMIN_PASSWORD || "",
 };
-const STATIC_ADMIN_TOKEN = import.meta.env.VITE_ADMIN_TOKEN || "";
+const STATIC_ADMIN_TOKEN = import.meta.env.VITE_PUBLIC_API_TOKEN || import.meta.env.VITE_ADMIN_TOKEN || "";
 
-// Token caching
 let cachedAdminToken = "";
 let adminTokenExpiresAt = 0;
 let tokenFetchPromise = null;
 
-// Extract expiration from JWT token
+function normalizeToken(rawToken) {
+  if (!rawToken) return "";
+  const token = String(rawToken).trim();
+  return token.replace(/^Bearer\s+/i, "").trim();
+}
+
 function getTokenExpiration(token) {
   try {
-    const parts = token.split('.');
+    const value = normalizeToken(token);
+    if (!value) return Number.MAX_SAFE_INTEGER;
+
+    const parts = value.split(".");
     if (parts.length !== 3) return Number.MAX_SAFE_INTEGER;
+
     const payload = JSON.parse(atob(parts[1]));
     return payload.exp ? payload.exp * 1000 : Number.MAX_SAFE_INTEGER;
-  } catch (e) {
+  } catch (error) {
     return Number.MAX_SAFE_INTEGER;
   }
 }
 
-// Check if cached token is still valid (with 60s buffer)
 function isTokenValid(token, expiresAt) {
-  return token && Date.now() < (expiresAt - 60000);
+  return !!token && Date.now() < (expiresAt - 60000);
 }
 
-// Fetch fresh admin token from live backend
+function extractTokenFromResponse(response) {
+  if (!response) return "";
+
+  const data = response?.data ?? {};
+  const headerToken =
+    response?.headers?.authorization ||
+    response?.headers?.Authorization ||
+    response?.headers?.get?.("authorization");
+
+  const candidates = [
+    data?.token,
+    data?.accessToken,
+    data?.access_token,
+    data?.jwt,
+    data?.data?.token,
+    data?.data?.accessToken,
+    data?.data?.access_token,
+    data?.result?.token,
+    data?.result?.accessToken,
+    data?.result?.access_token,
+    data?.auth?.token,
+    data?.auth?.accessToken,
+    headerToken,
+  ];
+
+  const token = candidates.find((value) => typeof value === "string" && value.trim());
+  return normalizeToken(token || "");
+}
+
 async function fetchFreshAdminToken() {
-  // Prevent multiple simultaneous requests
   if (tokenFetchPromise) {
     return tokenFetchPromise;
   }
 
   tokenFetchPromise = (async () => {
-    try {
-      if (!ADMIN_CREDENTIALS.username || !ADMIN_CREDENTIALS.password) {
-        throw new Error("Live admin credentials are not configured.");
-      }
+    const loginEndpoints = [
+      `${API_BASE_URL}/api/auth/admin/login`,
+      `${API_BASE_URL}/api/api/auth/admin/login`,
+      `${API_BASE_URL}/api/admin/login`,
+      `${API_BASE_URL}/api/api/admin/login`,
+    ];
 
-      const response = await axios.post(`${API_BASE_URL}/api/api/auth/admin/login`, ADMIN_CREDENTIALS, {
-        timeout: 10000
-      });
-      
-      const token = response?.data?.token ||
-        response?.data?.accessToken ||
-        response?.data?.access_token ||
-        response?.data?.jwt ||
-        response?.data?.data?.token ||
-        response?.data?.data?.accessToken ||
-        response?.data?.data?.access_token ||
-        response?.data?.result?.token ||
-        response?.data?.result?.accessToken ||
-        response?.headers?.authorization ||
-        response?.headers?.get?.("authorization");
-      
-      if (token) {
-        cachedAdminToken = String(token).replace(/^Bearer\s+/i, "").trim();
-        adminTokenExpiresAt = getTokenExpiration(cachedAdminToken);
-        return cachedAdminToken;
-      } else {
-        throw new Error("No token in backend response");
+    let lastError = null;
+
+    for (const endpoint of loginEndpoints) {
+      try {
+        if (!ADMIN_CREDENTIALS.username || !ADMIN_CREDENTIALS.password) {
+          throw new Error("Live admin credentials are not configured.");
+        }
+
+        const response = await axios.post(endpoint, ADMIN_CREDENTIALS, { timeout: 10000 });
+        const token = extractTokenFromResponse(response);
+
+        if (token) {
+          cachedAdminToken = token;
+          adminTokenExpiresAt = getTokenExpiration(token);
+          setAdminToken(token);
+          return token;
+        }
+
+        throw new Error("No token returned from backend login response.");
+      } catch (error) {
+        lastError = error;
+        console.warn(`Admin token fetch failed at ${endpoint}:`, error?.message || error);
       }
-    } catch (error) {
-      console.error("❌ Failed to fetch admin token:", {
-        status: error?.response?.status,
-        message: error?.message
-      });
-      
-      throw error;
-    } finally {
-      tokenFetchPromise = null;
     }
+
+    const staticToken = normalizeToken(STATIC_ADMIN_TOKEN);
+    if (staticToken) {
+      cachedAdminToken = staticToken;
+      adminTokenExpiresAt = getTokenExpiration(staticToken);
+      setAdminToken(staticToken);
+      return staticToken;
+    }
+
+    throw lastError || new Error("Live admin credentials are not configured and no static token is available.");
   })();
 
-  return tokenFetchPromise;
+  try {
+    return await tokenFetchPromise;
+  } finally {
+    tokenFetchPromise = null;
+  }
 }
 
-// Get admin token - returns cached if valid, otherwise fetches fresh
 async function getAdminToken() {
+  const storedToken = getStoredToken("admin_token");
+  if (storedToken && isTokenValid(storedToken, getTokenExpiration(storedToken))) {
+    return storedToken;
+  }
+
   if (isTokenValid(cachedAdminToken, adminTokenExpiresAt)) {
     return cachedAdminToken;
   }
+
   return fetchFreshAdminToken();
 }
 
@@ -100,17 +145,25 @@ const api = axios.create({
 });
 
 function getAuthToken() {
-  const sessionToken = sessionStorage.getItem("ssp_token");
-  const localToken = localStorage.getItem("ssp_token");
-  const token = sessionToken || localToken || STATIC_ADMIN_TOKEN;
-  return token ? token.replace(/^Bearer\s+/i, "").trim() : "";
+  return getStoredToken("ssp_token");
+}
+
+function getStoredToken(...storageKeys) {
+
+  for (const key of storageKeys) {
+    const value = sessionStorage.getItem(key) || localStorage.getItem(key) || "";
+    const token = normalizeToken(value);
+
+    if (token) return token;
+  }
+
+  return "";
 }
 
 function isPublicRequest(config) {
   const method = (config.method || "get").toLowerCase();
   const url = config.url || "";
 
-  // Login must remain unauthenticated
   if (method === "post" && url.includes("/auth/") && url.includes("/login")) {
     return true;
   }
@@ -123,13 +176,18 @@ function isEbookEndpoint(url = "") {
 }
 
 function isTestSeriesCategoryEndpoint(url = "") {
-  return url.includes("/api/api/categories");
+  return url.includes("/api/api/categories") || url.includes("/api/categories");
+}
+
+function isLeaderboardEndpoint(url = "") {
+  return url.includes("/api/api/leaderboard/") || url.includes("/api/leaderboard/");
 }
 
 api.interceptors.request.use(async (config) => {
   if (typeof config.url === "string") {
     const api2Path = config.url.match(/^\/(?:api\/)*api2(?=\/|$)/i);
     const apiPath = config.url.match(/^\/(?:api\/)+(?<resource>.+)$/i);
+
     if (api2Path) {
       const resource = config.url.slice(api2Path[0].length).replace(/^\/+/, "");
       config.url = `/api/api2${resource ? `/${resource}` : ""}`;
@@ -140,18 +198,23 @@ api.interceptors.request.use(async (config) => {
 
   const token = getAuthToken();
   const isPublic = isPublicRequest(config);
-  const isAdminEndpoint = isEbookEndpoint(config.url) || isTestSeriesCategoryEndpoint(config.url) || config.url?.includes("/createContactForm");
-  
+  const isAdminEndpoint =
+    isEbookEndpoint(config.url) ||
+    isTestSeriesCategoryEndpoint(config.url) ||
+    isLeaderboardEndpoint(config.url) ||
+    config.url?.includes("/createContactForm");
+
   let tokenToUse = token;
-  
-  if (isAdminEndpoint && !token) {
+  const tokenIsMissingOrExpired = !tokenToUse || !isTokenValid(tokenToUse, getTokenExpiration(tokenToUse));
+
+  if (isAdminEndpoint && tokenIsMissingOrExpired) {
     try {
       tokenToUse = await getAdminToken();
     } catch (error) {
-      console.error("Could not fetch live admin token:", error.message);
+      console.error("Could not fetch live admin token:", error?.message || error);
     }
   }
-  
+
   try {
     if (isPublic) {
       delete config.headers?.Authorization;
@@ -159,42 +222,71 @@ api.interceptors.request.use(async (config) => {
       config.headers = config.headers || {};
       config.headers.Authorization = `Bearer ${tokenToUse}`;
     }
-  } catch (err) {
-    console.error('❌ Failed to attach auth header', err);
+  } catch (error) {
+    console.error("❌ Failed to attach auth header", error);
   }
-  
+
   return config;
 });
 
 api.interceptors.response.use(
-  (response) => {
-    console.log("📥 RESPONSE RECEIVED", {
-      status: response.status,
-      url: response.config.url,
-      dataKeys: Object.keys(response.data || {}),
-      fullData: response.data,
-    });
-    return response;
-  },
-  (error) => {
+  (response) => response,
+  async (error) => {
     console.error("❌ RESPONSE ERROR", {
       status: error?.response?.status,
       statusText: error?.response?.statusText,
       url: error?.config?.url,
       method: error?.config?.method,
       errorData: error?.response?.data,
-      errorHeaders: error?.response?.headers,
     });
+    const config = error?.config;
+    const isProtected = isTestSeriesCategoryEndpoint(config?.url) || isLeaderboardEndpoint(config?.url) || isEbookEndpoint(config?.url);
+
+    if (error?.response?.status === 401 && isProtected && !config?._adminTokenRetried) {
+      config._adminTokenRetried = true;
+      sessionStorage.removeItem("admin_token");
+      localStorage.removeItem("admin_token");
+      cachedAdminToken = "";
+      adminTokenExpiresAt = 0;
+
+      try {
+        const freshToken = await fetchFreshAdminToken();
+        config.headers = config.headers || {};
+        config.headers.Authorization = `Bearer ${freshToken}`;
+        return api.request(config);
+      } catch (refreshError) {
+        console.error("Admin token refresh failed after 401:", refreshError?.message || refreshError);
+      }
+    }
+
     return Promise.reject(error);
   }
 );
 
 export function setAuthToken(token) {
-  if (token) {
-    sessionStorage.setItem("ssp_token", String(token).replace(/^Bearer\s+/i, "").trim());
-  } else {
-    sessionStorage.removeItem("ssp_token");
+  const normalized = normalizeToken(token);
+
+  if (normalized) {
+    sessionStorage.setItem("ssp_token", normalized);
+    localStorage.setItem("ssp_token", normalized);
+    return;
   }
+
+  sessionStorage.removeItem("ssp_token");
+  localStorage.removeItem("ssp_token");
+}
+
+function setAdminToken(token) {
+  const normalized = normalizeToken(token);
+
+  if (normalized) {
+    sessionStorage.setItem("admin_token", normalized);
+    localStorage.setItem("admin_token", normalized);
+    return;
+  }
+
+  sessionStorage.removeItem("admin_token");
+  localStorage.removeItem("admin_token");
 }
 
 export { API_BASE_URL };

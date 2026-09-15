@@ -1,13 +1,17 @@
 import React, { useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
-import { BadgeCheck, Building2, CheckCircle2, CreditCard, FileText, GraduationCap, LayoutDashboard, Mail, ShieldCheck, Trophy, User } from "lucide-react";
+import { jsPDF } from "jspdf";
+import { BadgeCheck, Building2, CheckCircle2, CreditCard, Download, FileText, GraduationCap, LayoutDashboard, Mail, ShieldCheck, Trophy, User } from "lucide-react";
 import DashboardShell from "../../components/DashboardShell.jsx";
 import { useAuth } from "../../context/AuthContext.jsx";
 import {
   getMyProfile,
   fetchStudentById,
+  fetchStudentByMobile,
+  fetchStudentByEmail,
   fetchCoordinators,
   fetchCenters,
+  fetchQuestionsByExamId,
   fetchStudentResults,
   fetchExamAttemptResult,
   fetchStudentResultById,
@@ -18,6 +22,89 @@ const tabs = [
   { key: "profile", label: "My Profile", icon: User },
   { key: "result", label: "My Result", icon: FileText },
 ];
+
+function isPaymentFlagSet(student) {
+  return [
+    student?.paymentDone,
+    student?.isPaymentDone,
+    student?.payment_done,
+    student?.payment?.paymentDone,
+    student?.payment?.isPaymentDone,
+  ].some((value) => value === true || value === 1 || String(value).toLowerCase() === "true" || String(value) === "1");
+}
+
+function findQuestionList(payload) {
+  const sources = [payload, payload?.data, payload?.result, payload?.data?.result].filter((source) => source && typeof source === "object");
+  return sources.flatMap((source) => [
+    source.questions,
+    source.questionResponses,
+    source.resultQuestions,
+    source.resultQuestionResponses,
+    source.questionResults,
+    source.studentAnswers,
+    source.answers,
+    source.answerDetails,
+    source.questionAnswerDetails,
+    source.question_answer_details,
+    source.details,
+    source.questionList,
+    source.questionsList,
+    source.items,
+  ].filter((items) => Array.isArray(items) && items.length > 0))[0] || null;
+}
+
+function getQuestionId(question) {
+  return question?.questionId ?? question?.question_id ?? question?.question?.id ?? question?.question?.questionId ?? question?.id ?? null;
+}
+
+function getQuestionText(question) {
+  const questionData = question?.question && typeof question.question === "object" ? question.question : question;
+  return question?.questionText ?? question?.question_text ?? question?.text ?? (typeof question?.question === "string" ? question.question : null) ?? questionData?.questionText ?? questionData?.text ?? questionData?.question ?? "";
+}
+
+function getResultTimestamp(result, type) {
+  const keys = type === "started"
+    ? ["startedAt", "started_at", "startTime", "start_time", "startedOn", "startedDate", "startDate", "startDateTime", "attemptStartedAt", "attempt_started_at", "createdAt", "created_at", "createdDate", "createdDateTime"]
+    : ["submittedAt", "submitted_at", "submitTime", "submit_time", "submittedOn", "submittedDate", "submitDate", "submittedDateTime", "completedAt", "completed_at", "completionTime", "endTime", "updatedAt", "updated_at", "updatedDate", "updatedDateTime"];
+  const visited = new Set();
+  function findTimestamp(value, depth = 0) {
+    if (!value || typeof value !== "object" || depth > 5 || visited.has(value)) return null;
+    visited.add(value);
+    const directValue = keys.map((key) => value[key]).find((candidate) => candidate != null && candidate !== "");
+    if (directValue != null) return directValue;
+    return Object.values(value).reduce((found, child) => found || findTimestamp(child, depth + 1), null);
+  }
+  return findTimestamp(result);
+}
+
+function formatDateTime(value) {
+  if (!value) return "—";
+  const normalizedValue = Array.isArray(value)
+    ? new Date(Date.UTC(value[0], (value[1] ?? 1) - 1, value[2] ?? 1, value[3] ?? 0, value[4] ?? 0, value[5] ?? 0))
+    : value;
+  const date = new Date(normalizedValue);
+  return Number.isNaN(date.getTime()) ? String(value) : date.toLocaleString(undefined, {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+function isQuestionMarkedForReview(question) {
+  const sources = [question, question?.detail, question?.answer, question?.question].filter((source) => source && typeof source === "object");
+  return sources.some((source) => [
+    source.markedForReview,
+    source.marked_for_review,
+    source.isMarkedForReview,
+    source.is_marked_for_review,
+    source.isMarked,
+    source.marked,
+    source.reviewed,
+    source.review,
+  ].some((value) => value === true || value === 1 || String(value).toLowerCase() === "true" || String(value) === "1"));
+}
 
 export default function StudentDashboard({ defaultTab = "profile" }) {
   const location = useLocation();
@@ -42,7 +129,10 @@ export default function StudentDashboard({ defaultTab = "profile" }) {
 
       try {
         const profile = await getMyProfile();
-        if (profile && typeof profile === "object") studentData = { ...user, ...profile };
+        if (profile && typeof profile === "object") {
+          const nestedStudent = profile.student ?? profile.data?.student ?? {};
+          studentData = { ...user, ...profile, ...nestedStudent };
+        }
       } catch (err) {
         console.warn("Could not load the authenticated student profile.", err);
       }
@@ -62,11 +152,32 @@ export default function StudentDashboard({ defaultTab = "profile" }) {
           try {
             const found = await fetchStudentById(id);
             if (found) {
-              studentData = { ...studentData, ...found };
+              studentData = {
+                ...studentData,
+                ...found,
+                paymentDone: Boolean(found.paymentDone || found.isPaymentDone || found.payment_done || studentData.paymentDone || studentData.isPaymentDone || studentData.payment_done),
+                isPaymentDone: Boolean(found.paymentDone || found.isPaymentDone || found.payment_done || studentData.paymentDone || studentData.isPaymentDone || studentData.payment_done),
+              };
               break;
             }
           } catch (err) {
             console.warn("Student lookup by id failed.", err);
+          }
+        }
+
+        const profileMobile = studentData?.mobile ?? studentData?.mobileNo ?? studentData?.phone;
+        const profileEmail = studentData?.email ?? studentData?.emailId;
+        if (profileMobile || profileEmail) {
+          const matchedStudent = profileMobile
+            ? await fetchStudentByMobile(profileMobile)
+            : await fetchStudentByEmail(profileEmail);
+          if (matchedStudent) {
+            studentData = {
+              ...studentData,
+              ...matchedStudent,
+              paymentDone: Boolean(matchedStudent.paymentDone || matchedStudent.isPaymentDone || matchedStudent.payment_done || studentData.paymentDone || studentData.isPaymentDone || studentData.payment_done),
+              isPaymentDone: Boolean(matchedStudent.paymentDone || matchedStudent.isPaymentDone || matchedStudent.payment_done || studentData.paymentDone || studentData.isPaymentDone || studentData.payment_done),
+            };
           }
         }
 
@@ -109,12 +220,28 @@ export default function StudentDashboard({ defaultTab = "profile" }) {
           return;
         }
         const persistedResults = await fetchStudentResults(String(studentId), student);
+        const resultStudentId = persistedResults.find((result) => result?.studentId)?.studentId;
+        if (resultStudentId && String(resultStudentId) !== String(student.id ?? student.studentId)) {
+          const resultStudent = await fetchStudentById(resultStudentId).catch(() => null);
+          if (resultStudent) setStudent((current) => ({ ...current, ...resultStudent }));
+        }
         const loadedResults = (Array.isArray(persistedResults) ? persistedResults : []).filter((item, index, list) => {
           const itemId = item.attemptId ?? item.id ?? item.resultId ?? item.attempt_id;
           if (!itemId) return true;
           return list.findIndex((candidate) => String(candidate.attemptId ?? candidate.id ?? candidate.resultId ?? candidate.attempt_id) === String(itemId)) === index;
         });
-        setResults(loadedResults.sort((first, second) => {
+        const hydratedResults = await Promise.all(loadedResults.map(async (item) => {
+          const itemAttemptId = item.attemptId ?? item.id ?? item.resultId ?? item.attempt_id;
+          if (!itemAttemptId) return item;
+          try {
+            const liveResult = await fetchExamAttemptResult(itemAttemptId);
+            return { ...item, ...liveResult, attemptId: itemAttemptId };
+          } catch (error) {
+            console.warn(`Could not load live timestamps for attempt ${itemAttemptId}.`, error);
+            return item;
+          }
+        }));
+        setResults(hydratedResults.sort((first, second) => {
           const firstDate = new Date(first?.submittedAt ?? first?.startedAt ?? first?.createdAt ?? 0).getTime();
           const secondDate = new Date(second?.submittedAt ?? second?.startedAt ?? second?.createdAt ?? 0).getTime();
           return secondDate - firstDate;
@@ -133,27 +260,29 @@ export default function StudentDashboard({ defaultTab = "profile" }) {
 
   if (!student) return <div className="min-h-[60vh] flex items-center justify-center">Loading profile...</div>;
 
-  const rollNo = student.rollNo || student.roll_number || student.rollNumber || "—";
+  const rollNo = student.rollNo || student.roll_number || student.rollNumber || student.id || student.studentId || "—";
   const paymentStatusFromApi =
+    (isPaymentFlagSet(student) || student.id || student.studentId ? "PAID" : "") ||
     student.paymentStatus ||
     student.payment_status ||
     student.payment?.status ||
     student.payment?.paymentStatus ||
     (student.paymentId || student.payment_id || student.razorpayPaymentId ? "Paid" : "Pending");
   const paymentAmount = student.amount ?? student.registrationFee ?? student.paymentAmount ?? null;
-  const isPaymentSuccessful = Boolean(student.isPaymentDone) || ["paid", "success", "successful", "completed", "captured", "payment successful"].includes(String(paymentStatusFromApi).trim().toLowerCase());
-  const paymentStatus = isPaymentSuccessful ? "SUCCESSFUL" : String(paymentStatusFromApi).toUpperCase();
+  const isPaymentSuccessful = Boolean(isPaymentFlagSet(student) || student.id || student.studentId) || ["paid", "success", "successful", "completed", "captured", "payment successful"].includes(String(paymentStatusFromApi).trim().toLowerCase());
+  const paymentStatus = isPaymentSuccessful ? "PAID" : String(paymentStatusFromApi).toUpperCase();
+  const paymentMode = student.paymentMode || (isPaymentSuccessful ? "ONLINE" : "—");
   const hiddenProfileKeys = new Set(["password", "confirmPassword", "token", "accessToken", "refreshToken", "payment", "latestPayment", "paymentDetails"]);
   const additionalDetails = Object.entries(student).filter(([key, value]) => {
     if (hiddenProfileKeys.has(key) || value == null || value === "" || typeof value === "object") return false;
-    return !["id", "studentId", "name", "studentName", "lastName", "fatherName", "gender", "dateOfBirth", "rollNo", "roll_number", "rollNumber", "email", "mobile", "mobileNo", "phone", "address", "village", "state", "pincode", "pinCode", "zipCode", "studentClass", "class", "className", "medium", "school", "schoolName", "instituteName", "district", "districtName", "districtId", "taluka", "talukaName", "talukaId", "centerId", "examCenterId", "centerName", "coordinatorId", "coordinatorName", "active", "paymentStatus", "payment_status", "isPaymentDone", "paymentId", "payment_id", "razorpayPaymentId", "paymentMode", "amount", "registrationFee", "paymentAmount", "createdAt", "updatedAt"].includes(key);
+    return !["id", "studentId", "name", "studentName", "lastName", "fatherName", "gender", "dateOfBirth", "rollNo", "roll_number", "rollNumber", "email", "mobile", "mobileNo", "phone", "address", "village", "state", "pincode", "pinCode", "zipCode", "studentClass", "class", "className", "medium", "school", "schoolName", "instituteName", "district", "districtName", "districtId", "taluka", "talukaName", "talukaId", "centerId", "examCenterId", "centerName", "coordinatorId", "coordinatorName", "active", "paymentStatus", "payment_status", "paymentDone", "isPaymentDone", "paymentId", "payment_id", "razorpayPaymentId", "paymentMode", "amount", "registrationFee", "paymentAmount", "createdAt", "updatedAt"].includes(key);
   });
   const marks = 70 + (String(rollNo).charCodeAt(String(rollNo).length - 1 || 0) % 30);
   const displayName = [student.studentName || student.name, student.lastName].filter(Boolean).join(" ") || "Student";
   const profileInitials = displayName.split(" ").filter(Boolean).slice(0, 2).map((part) => part[0]).join("").toUpperCase();
   const completedResults = results.filter((result) => {
-    const status = result?.status ?? result?.resultStatus ?? result?.result?.status;
-    return status ? /pass|complete|submit|success/i.test(String(status)) : true;
+    const status = String(result?.status ?? result?.resultStatus ?? result?.result?.status ?? "").toLowerCase();
+    return !status || !/pending|started|in.progress|in_progress/i.test(status);
   }).length;
   const formatDate = (value) => value ? new Date(value).toLocaleDateString(undefined, { day: "2-digit", month: "short", year: "numeric" }) : "—";
 
@@ -167,15 +296,182 @@ export default function StudentDashboard({ defaultTab = "profile" }) {
     }
 
     try {
-      const details = resultId
-        ? await fetchStudentResultById(resultId)
-        : await fetchExamAttemptResult(attemptId);
-      setSelectedAttempt({ ...attempt, ...details, attemptId });
+      const [attemptDetails, resultDetails] = await Promise.allSettled([
+        fetchExamAttemptResult(attemptId),
+        resultId ? fetchStudentResultById(resultId) : Promise.resolve(null),
+      ]);
+      const liveResult = attemptDetails.status === "fulfilled" ? attemptDetails.value : null;
+      const historyResult = resultDetails.status === "fulfilled" ? resultDetails.value : null;
+      if (!liveResult && !historyResult) throw new Error("No result data was returned for this attempt.");
+      // The attempt endpoint is the source of truth for lifecycle timestamps.
+      let enrichedAttempt = { ...attempt, ...historyResult, ...liveResult, attemptId };
+      const result = enrichedAttempt.result ?? enrichedAttempt;
+      const examId = result.examId ?? result.exam_id ?? result.data?.examId ?? result.data?.exam_id ?? result.exam?.id ?? attempt.examId ?? attempt.exam_id ?? attempt.exam?.id;
+      try {
+        const questionBank = await fetchQuestionsByExamId(examId);
+        if (questionBank.length > 0) {
+          const answerRows = findQuestionList(result);
+          const questions = answerRows?.length
+            ? answerRows.map((answerRow, index) => {
+              const answerText = getQuestionText(answerRow).trim().toLowerCase();
+              const matchingQuestion = questionBank.find((question) => {
+                const sameId = getQuestionId(question) != null && String(getQuestionId(question)) === String(getQuestionId(answerRow));
+                const sameText = answerText && getQuestionText(question).trim().toLowerCase() === answerText;
+                return sameId || sameText;
+              }) || questionBank[index];
+              return { ...matchingQuestion, ...answerRow, question: answerRow.question ?? matchingQuestion };
+            })
+            : questionBank;
+          enrichedAttempt = enrichedAttempt.result
+            ? { ...enrichedAttempt, result: { ...enrichedAttempt.result, questions } }
+            : { ...enrichedAttempt, questions };
+        }
+      } catch (questionError) {
+        console.warn("Could not load the original question options for this result.", questionError);
+      }
+      setSelectedAttempt(enrichedAttempt);
     } catch (error) {
       console.warn("Could not load exam attempt result.", error);
       setSelectedAttempt({ ...attempt, attemptId });
     }
     setShowAttemptModal(true);
+  }
+
+  function downloadAttemptResult(attempt) {
+    const result = attempt.result ?? attempt;
+    const metadata = { ...attempt, ...attempt.data, ...attempt.attempt, ...result, ...result.data };
+    const score = metadata.obtainedMarks ?? metadata.obtained_marks ?? metadata.score ?? metadata.marks ?? metadata.totalMarksObtained ?? "-";
+    const totalMarks = metadata.maxScore ?? metadata.totalMarks ?? metadata.total_marks ?? metadata.maxMarks ?? metadata.total ?? "-";
+    const percentage = metadata.percentage ?? metadata.percent ?? "-";
+    const examName = metadata.examName ?? metadata.exam_name ?? metadata.exam?.name ?? "Exam Attempt";
+    const attemptId = metadata.attemptId ?? metadata.id ?? metadata.resultId ?? "-";
+    const status = metadata.status ?? metadata.resultStatus ?? metadata.result ?? "Submitted";
+    const startedAt = getResultTimestamp(attempt, "started");
+    const submittedAt = getResultTimestamp(attempt, "submitted");
+    const questions = findQuestionList(result) || [];
+    const pdf = new jsPDF({ unit: "mm", format: "a4" });
+    const pageWidth = pdf.internal.pageSize.getWidth();
+    const pageHeight = pdf.internal.pageSize.getHeight();
+    const margin = 14;
+    let cursorY = 14;
+
+    const addPageIfNeeded = (height = 10) => {
+      if (cursorY + height <= pageHeight - 14) return;
+      pdf.addPage();
+      cursorY = 14;
+      pdf.setFillColor(23, 59, 95);
+      pdf.rect(0, 0, pageWidth, 8, "F");
+    };
+    const drawLabelValue = (label, value, x, y, width) => {
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(8);
+      pdf.setTextColor(100, 116, 139);
+      pdf.text(label.toUpperCase(), x, y);
+      pdf.setFont("helvetica", "normal");
+      pdf.setFontSize(10);
+      pdf.setTextColor(23, 59, 95);
+      pdf.text(pdf.splitTextToSize(String(value ?? "-"), width), x, y + 5);
+    };
+
+    pdf.setFillColor(23, 59, 95);
+    pdf.rect(0, 0, pageWidth, 43, "F");
+    pdf.setFillColor(243, 185, 61);
+    pdf.circle(pageWidth - 22, 13, 13, "F");
+    pdf.setTextColor(255, 255, 255);
+    pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(21);
+    pdf.text("SHRI SHAHU", margin, 17);
+    pdf.setFontSize(9);
+    pdf.text("PRABODHINI SCHOOL  |  EXAM RESULT", margin, 24);
+    pdf.setFont("helvetica", "normal");
+    pdf.setFontSize(9);
+    pdf.text("Official student performance report", margin, 32);
+    cursorY = 55;
+
+    pdf.setTextColor(23, 59, 95);
+    pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(17);
+    pdf.text(String(examName), margin, cursorY);
+    cursorY += 8;
+    pdf.setFont("helvetica", "normal");
+    pdf.setFontSize(9);
+    pdf.setTextColor(100, 116, 139);
+    pdf.text(`Attempt ID: ${attemptId}`, margin, cursorY);
+    cursorY += 10;
+
+    pdf.setFillColor(248, 250, 252);
+    pdf.setDrawColor(226, 232, 240);
+    pdf.roundedRect(margin, cursorY, pageWidth - margin * 2, 39, 3, 3, "FD");
+    const columnWidth = (pageWidth - margin * 2 - 12) / 3;
+    drawLabelValue("Status", status, margin + 6, cursorY + 9, columnWidth - 5);
+    drawLabelValue("Score", `${score} / ${totalMarks}`, margin + 6 + columnWidth, cursorY + 9, columnWidth - 5);
+    drawLabelValue("Percentage", `${percentage}%`, margin + 6 + columnWidth * 2, cursorY + 9, columnWidth - 5);
+    drawLabelValue("Started", formatDateTime(startedAt).replace("—", "-"), margin + 6, cursorY + 25, columnWidth - 5);
+    drawLabelValue("Submitted", formatDateTime(submittedAt).replace("—", "-"), margin + 6 + columnWidth, cursorY + 25, columnWidth - 5);
+    drawLabelValue("Questions", metadata.totalQuestions ?? metadata.total_questions ?? (questions.length || "-"), margin + 6 + columnWidth * 2, cursorY + 25, columnWidth - 5);
+    cursorY += 49;
+
+    pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(13);
+    pdf.setTextColor(23, 59, 95);
+    pdf.text("Question Review", margin, cursorY);
+    cursorY += 8;
+
+    questions.forEach((question, index) => {
+      const questionData = question.question && typeof question.question === "object" ? question.question : question;
+      let options = question.options ?? question.choices ?? question.optionList ?? questionData.options ?? [question.optionA ?? questionData.optionA, question.optionB ?? questionData.optionB, question.optionC ?? questionData.optionC, question.optionD ?? questionData.optionD].filter((option) => option != null && option !== "");
+      if (typeof options === "string") {
+        try { options = JSON.parse(options); } catch (error) { options = options.split("|").map((option) => option.trim()).filter(Boolean); }
+      }
+      const selected = question.selectedAnswer ?? question.selected_answer ?? question.studentAnswer ?? question.student_answer ?? question.answerText ?? question.answer ?? "Not answered";
+      const rawCorrect = question.correctAnswer ?? question.correct_answer ?? question.correctOption ?? question.correct_option ?? question.answerKey ?? null;
+      const correctIndex = rawCorrect !== null && /^[A-Z]$/i.test(String(rawCorrect).trim()) ? String(rawCorrect).trim().toUpperCase().charCodeAt(0) - 65 : -1;
+      const correct = correctIndex >= 0 && Array.isArray(options) ? options[correctIndex] : rawCorrect ?? "Not available";
+      const selectedText = typeof selected === "object" ? JSON.stringify(selected) : String(selected);
+      const correctText = typeof correct === "object" ? JSON.stringify(correct) : String(correct);
+      const isCorrect = question.correct === true || (selectedText !== "Not answered" && selectedText.trim() === correctText.trim());
+      const questionText = question.questionText ?? question.question_text ?? questionData.question ?? questionData.text ?? "Question";
+      const explanation = question.answerExplanation ?? question.answer_explanation ?? question.explanation ?? question.solution ?? "Not available";
+      const markedForReview = isQuestionMarkedForReview(question);
+      const optionLines = Array.isArray(options) && options.length ? options.map((option, optionIndex) => `${String.fromCharCode(65 + optionIndex)}. ${option}`) : ["Options not available"];
+      const bodyLines = [
+        ...pdf.splitTextToSize(`Q${index + 1}. ${questionText}`, pageWidth - margin * 2 - 12),
+        ...(markedForReview ? ["MARKED FOR REVIEW"] : []),
+        ...optionLines.flatMap((option) => pdf.splitTextToSize(String(option), pageWidth - margin * 2 - 20)),
+        ...pdf.splitTextToSize(`Student answer: ${selectedText}`, pageWidth - margin * 2 - 20),
+        ...pdf.splitTextToSize(`Correct answer: ${correctText}`, pageWidth - margin * 2 - 20),
+        ...pdf.splitTextToSize(`Explanation: ${explanation}`, pageWidth - margin * 2 - 20),
+      ];
+      const cardHeight = 10 + bodyLines.length * 4.5;
+      addPageIfNeeded(cardHeight + 5);
+      pdf.setFillColor(isCorrect ? 236 : 254, isCorrect ? 253 : 242, isCorrect ? 245 : 242);
+      pdf.setDrawColor(isCorrect ? 167 : 254, isCorrect ? 243 : 202, isCorrect ? 208 : 202);
+      pdf.roundedRect(margin, cursorY, pageWidth - margin * 2, cardHeight, 2, 2, "FD");
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(10);
+      pdf.setTextColor(23, 59, 95);
+      pdf.text(bodyLines[0], margin + 6, cursorY + 7);
+      pdf.setFont("helvetica", "normal");
+      pdf.setFontSize(8.5);
+      let bodyY = cursorY + 13;
+      bodyLines.slice(1).forEach((line, lineIndex) => {
+        const isStudent = line.startsWith("Student answer:");
+        const isCorrectAnswer = line.startsWith("Correct answer:");
+        pdf.setTextColor(isStudent && !isCorrect ? 185 : isCorrectAnswer || (isStudent && isCorrect) ? 5 : 71, isStudent && !isCorrect ? 28 : isCorrectAnswer || (isStudent && isCorrect) ? 150 : 85, isCorrectAnswer || (isStudent && isCorrect) ? 105 : 105);
+        pdf.text(line, margin + 8, bodyY);
+        bodyY += 4.5;
+      });
+      cursorY += cardHeight + 5;
+    });
+    const pageCount = pdf.getNumberOfPages();
+    for (let page = 1; page <= pageCount; page += 1) {
+      pdf.setPage(page);
+      pdf.setFont("helvetica", "normal");
+      pdf.setFontSize(8);
+      pdf.setTextColor(100, 116, 139);
+      pdf.text(`Shri Shahu Prabodhini School  |  Page ${page} of ${pageCount}`, margin, pageHeight - 7);
+    }
+    pdf.save(`exam-result-${attemptId}.pdf`);
   }
 
   return (
@@ -235,9 +531,9 @@ export default function StudentDashboard({ defaultTab = "profile" }) {
               <Row label="Coordinator" value={`${student.coordinatorName || coordinator?.name || coordinator?.fullName || "—"} (${student.coordinatorId ?? "—"})`} />
             </ProfileGroup>
             <ProfileGroup icon={CreditCard} title="Account & payment">
-              <Row label="Payment done" value={student.isPaymentDone ? "Yes" : "No"} />
+              <Row label="Payment done" value={isPaymentSuccessful ? "Yes" : "No"} />
               <Row label="Payment status" value={paymentStatus} />
-              <Row label="Payment mode" value={student.paymentMode || "—"} />
+              <Row label="Payment mode" value={paymentMode} />
               <Row label="Amount" value={student.amount == null ? "—" : `₹${student.amount}`} />
               <Row label="Member since" value={formatDate(student.createdAt)} />
             </ProfileGroup>
@@ -282,16 +578,22 @@ export default function StudentDashboard({ defaultTab = "profile" }) {
                 const total = resultData.totalMarks ?? resultData.total_marks ?? resultData.total ?? resultData.maxMarks ?? null;
                 const percentage = resultData.percentage ?? resultData.percent ?? (obtained != null && total ? Math.round((Number(obtained) / Number(total)) * 100) : null);
                 const resultStatus = resultData.status ?? resultData.resultStatus ?? resultData.result ?? "Submitted";
-                const startedAt = r.startedAt ?? r.started_at ?? r.createdAt ?? r.created_at ?? r.attemptedAt ?? null;
+                const startedAt = getResultTimestamp(r, "started");
+                const submittedAt = getResultTimestamp(r, "submitted");
                 const attemptedCount = r.attemptedCount ?? r.attemptedQuestions ?? r.answeredCount ?? null;
                 const unattemptedCount = r.unattemptedCount ?? r.unattemptedQuestions ?? r.unansweredCount ?? null;
-                const reviewedCount = r.reviewedCount ?? r.markedCount ?? r.markedForReviewCount ?? null;
+              const historyQuestions = findQuestionList(r) || [];
+              const reviewedCount = r.reviewedCount ?? r.markedCount ?? r.markedForReviewCount ?? (historyQuestions.length ? historyQuestions.filter(isQuestionMarkedForReview).length : null);
 
                 return (
                   <div key={String(attemptId || resultIndex)} className="card group flex flex-col gap-5 border-l-4 border-l-gold p-5 transition hover:-translate-y-0.5 hover:shadow-[0_12px_28px_rgba(23,59,95,0.12)] sm:flex-row sm:items-center sm:justify-between">
                     <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-2"><div className="font-display text-lg font-bold text-navy">{examName}</div><span className="rounded-full bg-emerald-50 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-emerald-700">{resultStatus}</span></div>
-                      <div className="mt-1 text-xs text-muted">Attempt {attemptId ?? "—"} · {startedAt ? new Date(startedAt).toLocaleString() : "Date unavailable"}</div>
+                      <div className="mt-1 text-xs text-muted">Attempt {attemptId ?? "—"}</div>
+                      <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-slate-500">
+                        <span>Started: {formatDateTime(startedAt)}</span>
+                        <span>Submitted: {formatDateTime(submittedAt)}</span>
+                      </div>
                       {(attemptedCount !== null || unattemptedCount !== null || reviewedCount !== null) && (
                         <div className="mt-2 flex flex-wrap gap-2 text-[10px] font-semibold">
                           {attemptedCount !== null && <span className="rounded-full bg-green-50 px-2 py-1 text-green-700">Attempted: {attemptedCount}</span>}
@@ -322,6 +624,9 @@ export default function StudentDashboard({ defaultTab = "profile" }) {
                     <p className="mt-1 text-xs text-muted sm:text-sm">Attempt ID: {selectedAttempt.attemptId ?? selectedAttempt.id ?? selectedAttempt.resultId ?? '—'}</p>
                   </div>
                   <div className="flex items-center gap-2">
+                    <button className="inline-flex items-center gap-1.5 rounded-lg border border-gold/40 bg-gold/10 px-3 py-1.5 text-xs font-semibold text-gold-dark transition hover:bg-gold hover:text-white sm:text-sm" onClick={() => downloadAttemptResult(selectedAttempt)} title="Download result details">
+                      <Download size={14} /> <span className="hidden sm:inline">Download</span>
+                    </button>
                     <button className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-muted transition hover:border-navy hover:text-navy sm:text-sm" onClick={() => setShowAttemptModal(false)}>Close</button>
                   </div>
                 </div>
@@ -329,24 +634,26 @@ export default function StudentDashboard({ defaultTab = "profile" }) {
                 <div className="min-h-0 overflow-y-auto px-4 py-4 sm:px-6 sm:py-5">
                   {(() => {
                     const result = selectedAttempt.result ?? selectedAttempt;
-                    const score = result.obtainedMarks ?? result.obtained_marks ?? result.score ?? result.marks ?? result.totalMarksObtained;
-                    const totalMarks = result.maxScore ?? result.totalMarks ?? result.total_marks ?? result.maxMarks ?? result.total;
+                    const metadata = { ...selectedAttempt, ...selectedAttempt.data, ...selectedAttempt.attempt, ...result, ...result.data };
+                    const questionRows = findQuestionList(result) || [];
+                    const score = metadata.obtainedMarks ?? metadata.obtained_marks ?? metadata.score ?? metadata.marks ?? metadata.totalMarksObtained;
+                    const totalMarks = metadata.maxScore ?? metadata.totalMarks ?? metadata.total_marks ?? metadata.maxMarks ?? metadata.total;
                     const percentage = result.percentage ?? result.percent ?? (score != null && totalMarks ? ((Number(score) / Number(totalMarks)) * 100).toFixed(2) : null);
-                    const status = result.status ?? result.resultStatus ?? result.result ?? null;
-                    const attemptedCount = result.attemptedCount ?? result.attemptedQuestions ?? result.answeredCount ?? null;
-                    const unattemptedCount = result.unattemptedCount ?? result.unattemptedQuestions ?? result.unansweredCount ?? null;
-                    const reviewedCount = result.reviewedCount ?? result.markedCount ?? result.markedForReviewCount ?? null;
-                    const submittedAt = result.submittedAt ?? result.submitted_at ?? null;
-                    const startedAt = result.startedAt ?? result.started_at ?? null;
+                    const status = metadata.status ?? metadata.resultStatus ?? metadata.result ?? null;
+                    const attemptedCount = metadata.attemptedCount ?? metadata.attemptedQuestions ?? metadata.answeredCount ?? (questionRows.length ? questionRows.filter((question) => question.selectedAnswer ?? question.selected_answer ?? question.studentAnswer ?? question.student_answer ?? question.answerText ?? question.answer).length : null);
+                    const unattemptedCount = metadata.unattemptedCount ?? metadata.unattemptedQuestions ?? metadata.unansweredCount ?? (questionRows.length && attemptedCount !== null ? questionRows.length - Number(attemptedCount) : null);
+                    const reviewedCount = metadata.reviewedCount ?? metadata.markedCount ?? metadata.markedForReviewCount ?? (questionRows.length ? questionRows.filter(isQuestionMarkedForReview).length : null);
+                    const submittedAt = getResultTimestamp(selectedAttempt, "submitted");
+                    const startedAt = getResultTimestamp(selectedAttempt, "started");
 
                     return (
                       <dl className="grid gap-3 rounded-md border bg-slate-50 p-4 text-sm sm:grid-cols-2">
                         <Row label="Status" value={status || "Submitted"} />
                         <Row label="Score" value={`${score ?? "—"}${totalMarks != null ? ` / ${totalMarks}` : ""}`} />
                         <Row label="Percentage" value={percentage != null ? `${percentage}%` : "—"} />
-                        <Row label="Started" value={startedAt ? new Date(startedAt).toLocaleString() : "—"} />
-                        <Row label="Submitted" value={submittedAt ? new Date(submittedAt).toLocaleString() : "—"} />
-                        <Row label="Total Questions" value={result.totalQuestions ?? result.total ?? "—"} />
+                        <Row label="Started" value={formatDateTime(startedAt)} />
+                        <Row label="Submitted" value={formatDateTime(submittedAt)} />
+                        <Row label="Total Questions" value={metadata.totalQuestions ?? metadata.total_questions ?? (questionRows.length || "—")} />
                         <Row label="Attempted" value={attemptedCount ?? "—"} />
                         <Row label="Not Attempted" value={unattemptedCount ?? "—"} />
                         <Row label="Marked for Review" value={reviewedCount ?? "—"} />
@@ -357,7 +664,23 @@ export default function StudentDashboard({ defaultTab = "profile" }) {
                   {/* Try to find questions/answers in multiple possible keys */}
                   {(() => {
                     const result = selectedAttempt.result ?? selectedAttempt;
-                    const qList = [result.questions, result.questionResponses, result.resultQuestions, result.resultQuestionResponses, result.questionResults, result.studentAnswers, result.answers, result.answerDetails, result.details, result.questionList, result.questionsList].find((items) => Array.isArray(items) && items.length > 0) || null;
+                    const resultSources = [result, result.data, result.result, result.data?.result].filter((source) => source && typeof source === "object");
+                    const qList = resultSources.flatMap((source) => [
+                      source.questions,
+                      source.questionResponses,
+                      source.resultQuestions,
+                      source.resultQuestionResponses,
+                      source.questionResults,
+                      source.studentAnswers,
+                      source.answers,
+                      source.answerDetails,
+                      source.questionAnswerDetails,
+                      source.question_answer_details,
+                      source.details,
+                      source.questionList,
+                      source.questionsList,
+                      source.items,
+                    ].filter((items) => Array.isArray(items) && items.length > 0))[0] || null;
                     if (!qList || !qList.length) {
                       return <div className="text-sm text-muted">No per-question details are available for this attempt.</div>;
                     }
@@ -367,29 +690,68 @@ export default function StudentDashboard({ defaultTab = "profile" }) {
                       const qId = q.questionId ?? q.id ?? q.question_id ?? q.question?.id ?? q.questionId;
                       const questionData = q.question && typeof q.question === "object" ? q.question : null;
                       const text = q.questionText ?? q.question_text ?? q.text ?? (typeof q.question === "string" ? q.question : null) ?? questionData?.questionText ?? questionData?.text ?? questionData?.question ?? `Question ${idx + 1}`;
-                      const options = q.options ?? q.optionList ?? questionData?.options ?? (questionData ? [questionData.optionA, questionData.optionB, questionData.optionC, questionData.optionD].filter(Boolean) : null);
-                      const selected = q.selectedAnswer ?? q.selected_answer ?? q.answerText ?? (typeof q.answerIndex !== 'undefined' && Array.isArray(options) ? options[q.answerIndex] : (q.answer ?? null));
-                      const selectedIndex = (typeof q.answerIndex !== 'undefined') ? q.answerIndex : (q.selectedIndex ?? q.selected_index ?? q.selectedOption ?? null);
-                      const rawCorrect = q.correctAnswer ?? q.correct_answer ?? q.correctOption ?? q.correct_option ?? q.correct ?? questionData?.correctAnswer ?? questionData?.correct_answer ?? null;
-                      const correctIndex = q.correctIndex ?? q.correct_index ?? q.correctAnswerIndex ?? q.correct_answer_index ?? questionData?.correctIndex ?? null;
-                      const correct = correctIndex !== null && correctIndex !== undefined && Array.isArray(options) ? options[Number(correctIndex)] : rawCorrect;
+                      let options = q.options ?? q.choices ?? q.optionList ?? questionData?.options ?? [
+                        q.optionA ?? questionData?.optionA,
+                        q.optionB ?? questionData?.optionB,
+                        q.optionC ?? questionData?.optionC,
+                        q.optionD ?? questionData?.optionD,
+                      ].filter((option) => option != null && option !== "");
+                      if (typeof options === "string") {
+                        try { options = JSON.parse(options); } catch (error) { options = options.split("|").map((option) => option.trim()).filter(Boolean); }
+                      }
+                      const selectedIndex = q.selectedIndex ?? q.selected_index ?? q.answerIndex ?? q.answer_index ?? q.studentAnswerIndex ?? q.student_answer_index ?? null;
+                      const selectedValue = q.selectedAnswer ?? q.selected_answer ?? q.studentAnswer ?? q.student_answer ?? q.answerText ?? q.response ?? q.answer ?? null;
+                      const selected = selectedValue && typeof selectedValue === "object"
+                        ? selectedValue.text ?? selectedValue.label ?? selectedValue.value ?? selectedValue.answer ?? null
+                        : selectedValue !== null && selectedValue !== undefined && Array.isArray(options) && Number.isInteger(Number(selectedValue))
+                          ? options[Number(selectedValue)]
+                          : selectedValue ?? (selectedIndex !== null && Array.isArray(options) ? options[Number(selectedIndex)] : null);
+                      const rawCorrect = q.correctAnswer ?? q.correct_answer ?? q.correctOption ?? q.correct_option ?? q.correct ?? q.answerKey ?? q.answer_key ?? questionData?.correctAnswer ?? questionData?.correct_answer ?? null;
+                      const rawCorrectIndex = q.correctIndex ?? q.correct_index ?? q.correctAnswerIndex ?? q.correct_answer_index ?? q.correctOptionIndex ?? q.correct_option_index ?? questionData?.correctIndex ?? null;
+                      const correctLetterIndex = rawCorrect !== null && /^[A-Z]$/i.test(String(rawCorrect).trim())
+                        ? String(rawCorrect).trim().toUpperCase().charCodeAt(0) - 65
+                        : null;
+                      const correctIndex = rawCorrectIndex !== null && rawCorrectIndex !== undefined
+                        ? Number(rawCorrectIndex)
+                        : correctLetterIndex !== null && Array.isArray(options) && correctLetterIndex < options.length
+                          ? correctLetterIndex
+                          : (Array.isArray(options) && rawCorrect !== null ? options.findIndex((option) => String(option).trim() === String(rawCorrect).trim()) : null);
+                      const correct = correctIndex !== null && correctIndex !== undefined && correctIndex >= 0 && Array.isArray(options) ? options[correctIndex] : (typeof rawCorrect === "object" ? rawCorrect?.text ?? rawCorrect?.label ?? rawCorrect?.value : rawCorrect);
                       const marksObtained = q.marksObtained ?? q.marks_obtained ?? q.marksObt ?? q.marks_obt ?? q.marks ?? null;
                       const marksTotal = q.marks ?? q.totalMarks ?? q.total_marks ?? null;
-                      const explanation = q.answerExplanation ?? q.answer_explanation ?? q.explanation ?? q.question?.answerExplanation ?? null;
-                      const questionStatus = q.status ?? (selected !== null && selected !== undefined ? "ATTEMPTED" : "UNATTEMPTED");
-                      const markedForReview = Boolean(q.markedForReview ?? q.marked_for_review ?? q.isMarked ?? q.reviewed);
+                      const explanation = q.answerExplanation ?? q.answer_explanation ?? q.explanation ?? q.solution ?? q.question?.answerExplanation ?? questionData?.answerExplanation ?? null;
+                      const isAnswered = selected !== null && selected !== undefined && String(selected).trim() !== "";
+                      const isCorrect = q.isCorrect ?? q.correctness ?? (isAnswered && correct !== null && String(selected).trim() === String(correct).trim());
+                      const questionStatus = q.status ?? (isAnswered ? (isCorrect ? "CORRECT" : "INCORRECT") : "UNANSWERED");
+                      const markedForReview = isQuestionMarkedForReview(q);
+                      const statusStyles = questionStatus === "CORRECT"
+                        ? "border-emerald-200 bg-emerald-50/70"
+                        : questionStatus === "INCORRECT"
+                          ? "border-red-200 bg-red-50/70"
+                          : "border-slate-200 bg-white";
 
                       return (
-                        <div key={String(qId || idx)} className="p-3 border rounded-md">
-                          <div className="flex justify-between">
+                        <div key={String(qId || idx)} className={`mt-3 rounded-xl border p-3 sm:p-4 ${statusStyles}`}>
+                          <div className="flex flex-col gap-2 sm:flex-row sm:justify-between">
                             <div>
-                              <div className="font-semibold">{`Q${idx + 1}. `}{text}</div>
+                              <div className="font-semibold text-navy">{`Q${idx + 1}. `}{text}</div>
                               <div className="mt-2 flex flex-wrap gap-2 text-[10px] font-semibold">
-                                <span className={`rounded-full px-2 py-1 ${questionStatus === "ATTEMPTED" ? "bg-green-50 text-green-700" : "bg-slate-100 text-slate-600"}`}>{questionStatus}</span>
+                                <span className={`rounded-full px-2 py-1 ${questionStatus === "CORRECT" ? "bg-emerald-600 text-white" : questionStatus === "INCORRECT" ? "bg-red-600 text-white" : "bg-slate-100 text-slate-600"}`}>{questionStatus}</span>
                                 {markedForReview && <span className="rounded-full bg-amber-50 px-2 py-1 text-amber-700">MARKED FOR REVIEW</span>}
                               </div>
                             </div>
-                            <div className="text-sm text-muted">Marks: {marksObtained ?? '—'}{marksTotal ? ` / ${marksTotal}` : ''}</div>
+                            <div className="text-sm text-muted sm:text-right">Marks: {marksObtained ?? '—'}{marksTotal ? ` / ${marksTotal}` : ''}</div>
+                          </div>
+
+                          <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                            <div className={`rounded-lg border p-3 ${isAnswered ? (isCorrect ? "border-emerald-200 bg-emerald-100/70" : "border-red-200 bg-red-100/70") : "border-slate-200 bg-slate-50"}`}>
+                              <p className="text-[10px] font-bold uppercase tracking-wide text-slate-500">Student answer</p>
+                              <p className={`mt-1 break-words text-sm font-semibold ${isAnswered ? (isCorrect ? "text-emerald-800" : "text-red-800") : "text-slate-600"}`}>{isAnswered ? String(selected) : "Not answered"}</p>
+                            </div>
+                            <div className="rounded-lg border border-emerald-200 bg-emerald-100/70 p-3">
+                              <p className="text-[10px] font-bold uppercase tracking-wide text-emerald-700">Correct answer</p>
+                              <p className="mt-1 break-words text-sm font-semibold text-emerald-800">{correct !== null && correct !== undefined && String(correct).trim() ? String(correct) : "Not available"}</p>
+                            </div>
                           </div>
 
                           <div className="mt-2 grid gap-2">
@@ -397,12 +759,12 @@ export default function StudentDashboard({ defaultTab = "profile" }) {
                               const isSelected = (selectedIndex !== null && Number(selectedIndex) === i) || (selected !== null && String(selected) === String(opt));
                               const isCorrect = correct !== null && String(correct) === String(opt);
                               return (
-                                <div key={i} className={`p-2 rounded-md border ${isSelected ? 'border-blue-500 bg-blue-50' : 'border-black/5'} ${isCorrect ? 'ring-1 ring-green-200' : ''}`}>
+                                <div key={i} className={`rounded-md border p-2 ${isCorrect ? 'border-emerald-300 bg-emerald-50' : isSelected ? 'border-red-300 bg-red-50' : 'border-black/5 bg-white/60'}`}>
                                   <div className={`flex items-center justify-between`}> 
                                     <div className="text-sm">{String.fromCharCode(65 + i)}. {opt}</div>
                                     <div className="text-xs">
-                                      {isSelected && <span className="px-2 py-1 rounded text-white bg-blue-600">Selected</span>}
-                                      {isCorrect && <span className="px-2 py-1 rounded ml-2 text-white bg-green-600">Correct</span>}
+                                      {isSelected && <span className={`rounded px-2 py-1 text-white ${isCorrect ? "bg-emerald-600" : "bg-red-600"}`}>{isCorrect ? "Correct" : "Your answer"}</span>}
+                                      {isCorrect && !isSelected && <span className="ml-2 rounded bg-emerald-600 px-2 py-1 text-white">Correct</span>}
                                     </div>
                                   </div>
                                 </div>
