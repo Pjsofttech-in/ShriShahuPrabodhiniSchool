@@ -482,10 +482,6 @@ export default function StudentRegistration() {
           </div>
 
           <div className="pt-2 flex flex-col items-center gap-3">
-            <div className="bg-cream rounded-lg px-6 py-3 flex items-center gap-2 border border-gold/30">
-              <span className="text-sm text-muted">Registration:</span>
-              <span className="font-display font-bold text-green-700 text-lg">Free</span>
-            </div>
             <label className="flex items-start gap-2 text-xs text-muted max-w-xl">
               <input
                 type="checkbox"

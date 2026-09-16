@@ -24,7 +24,7 @@ export default function FloatingActions() {
         <button
           type="button"
           onClick={scrollToTop}
-          className="group flex h-12 w-12 items-center justify-center rounded-full bg-navy text-white shadow-[0_8px_22px_rgba(38,50,56,0.28)] transition-all duration-300 hover:-translate-y-1 hover:bg-gold focus-ring"
+          className="group flex h-12 w-12 items-center justify-center rounded-full bg-[#d87838] text-white shadow-[0_8px_22px_rgba(216,120,56,0.32)] transition-all duration-300 hover:-translate-y-1 hover:bg-[#b8752b] focus-ring"
           aria-label="Scroll to top"
           title="Scroll to top"
         >

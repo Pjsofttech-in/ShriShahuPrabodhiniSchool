@@ -180,7 +180,6 @@ export default function TestSeries() {
             <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
               {filteredSeries.map((item) => {
                 const safeTitle = item.title || "Test Series";
-                const badge = item.subject || "Test Series";
                 const price = priceLabel(item);
                 const isFree = Number(item.sellingPrice ?? item.price ?? 0) === 0;
                 const isPaid = isFree || hasPaidStudentFees(user) || hasPaidForTestSeries(item.id);
@@ -209,13 +208,7 @@ export default function TestSeries() {
                       </div>
 
                       <div className="p-3">
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="min-w-0 flex-1">
-                            <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#b65318]">{badge}</p>
-                            <h2 className="mt-1 line-clamp-2 text-[1rem] font-black leading-[1.25] text-[#e86516]">{safeTitle}</h2>
-                          </div>
-                          <span className="shrink-0 rounded-full bg-[#f6a23a] px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.06em] text-white shadow-sm">{badge}</span>
-                        </div>
+                        <h2 className="line-clamp-2 text-[1rem] font-black leading-[1.25] text-[#e86516]">{safeTitle}</h2>
                       </div>
                     </div>
 
@@ -233,7 +226,10 @@ export default function TestSeries() {
 
                       {showFeatures && <div className="mt-3 space-y-2 border-t border-[#ffead8] bg-transparent pt-3 text-[11px] text-[#e86516]">{features.map((feature) => <div key={feature} className="flex items-center gap-2"><span className="h-1.5 w-1.5 rounded-full bg-[#f97316]" /><span className="truncate">{feature}</span></div>)}</div>}
 
-                      {isPaid ? <Link to={`/sankalp/test-series/${item.id}`} className="mt-3 flex w-full items-center justify-center rounded-lg bg-gradient-to-r from-[#ff8c1a] to-[#ed4b00] px-3 py-2.5 text-xs font-bold uppercase tracking-[0.05em] text-white shadow-[0_8px_16px_rgba(237,90,0,0.25)] transition hover:-translate-y-0.5 hover:brightness-110 hover:shadow-[0_12px_22px_rgba(237,90,0,0.32)]">Solve Test Series</Link> : <button type="button" onClick={() => navigate("/login", { state: { next: `/student/profile`, testSeries: item } })} className="mt-3 flex w-full items-center justify-center rounded-lg bg-gradient-to-r from-[#ff8c1a] to-[#ed4b00] px-3 py-2.5 text-xs font-bold uppercase tracking-[0.05em] text-white shadow-[0_8px_16px_rgba(237,90,0,0.25)] transition hover:-translate-y-0.5 hover:brightness-110 hover:shadow-[0_12px_22px_rgba(237,90,0,0.32)]">Buy Test Series</button>}
+                      <div className="mt-3 flex gap-2">
+                        {isPaid ? <Link to={`/sankalp/test-series/${item.id}`} className="flex min-w-0 flex-1 items-center justify-center rounded-lg bg-gradient-to-r from-[#ff8c1a] to-[#ed4b00] px-2 py-2.5 text-[10px] font-bold uppercase tracking-[0.04em] text-white shadow-[0_8px_16px_rgba(237,90,0,0.25)] transition hover:-translate-y-0.5 hover:brightness-110">Solve Test Series</Link> : <button type="button" onClick={() => navigate("/login", { state: { next: `/student/profile`, testSeries: item } })} className="flex min-w-0 flex-1 items-center justify-center rounded-lg bg-gradient-to-r from-[#ff8c1a] to-[#ed4b00] px-2 py-2.5 text-[10px] font-bold uppercase tracking-[0.04em] text-white shadow-[0_8px_16px_rgba(237,90,0,0.25)] transition hover:-translate-y-0.5 hover:brightness-110">Buy Test Series</button>}
+                        <Link to={`/sankalp/test-series/${item.id}`} className="flex min-w-0 flex-1 items-center justify-center rounded-lg border border-[#f3bd63] bg-white px-2 py-2.5 text-[10px] font-bold uppercase tracking-[0.04em] text-[#e86516] transition hover:bg-[#fff0df]">View Test Papers</Link>
+                      </div>
                       <button type="button" onClick={() => setLeaderboardSeries(item)} className="mt-2 inline-flex w-full items-center justify-center gap-2 rounded-lg border border-[#f3bd63] bg-white px-3 py-2 text-xs font-bold uppercase tracking-[0.05em] text-[#e86516] transition hover:bg-[#fff0df]">
                         <Trophy size={14} /> Leaderboard
                       </button>
