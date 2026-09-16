@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { jsPDF } from "jspdf";
-import { BadgeCheck, Building2, CheckCircle2, CreditCard, Download, FileText, GraduationCap, LayoutDashboard, Mail, ShieldCheck, Trophy, User } from "lucide-react";
+import { BadgeCheck, BookOpen, Building2, CheckCircle2, CreditCard, Download, FileText, GraduationCap, LayoutDashboard, Mail, ShieldCheck, Trophy, User } from "lucide-react";
 import DashboardShell from "../../components/DashboardShell.jsx";
 import { useAuth } from "../../context/AuthContext.jsx";
 import {
@@ -15,11 +15,20 @@ import {
   fetchStudentResults,
   fetchExamAttemptResult,
   fetchStudentResultById,
+  fetchTestSeries,
+  fetchEbookMaterials,
+  createRazorpayOrder,
+  verifyRazorpayPayment,
 } from "../../services/backendService.js";
+import { payWithRazorpay } from "../../utils/razorpay.js";
+import { API_BASE_URL } from "../../utils/api.js";
+import { getTestSeriesPayments, hasPaidForTestSeries, hasPaidStudentFees, saveTestSeriesPayment } from "../../utils/testSeriesAccess.js";
 
 const tabs = [
   { key: "overview", label: "Overview", icon: LayoutDashboard },
   { key: "profile", label: "My Profile", icon: User },
+  { key: "solve", label: "Solve Test Series", icon: Trophy },
+  { key: "ebooks", label: "Ebooks", icon: BookOpen },
   { key: "result", label: "My Result", icon: FileText },
 ];
 
@@ -31,6 +40,46 @@ function isPaymentFlagSet(student) {
     student?.payment?.paymentDone,
     student?.payment?.isPaymentDone,
   ].some((value) => value === true || value === 1 || String(value).toLowerCase() === "true" || String(value) === "1");
+}
+
+function getDisplayedPaymentAmount(student) {
+  const amountKeys = new Set(["amount", "amountPaid", "paidAmount", "paymentAmount", "registrationFee", "totalAmount", "totalPaid", "amount_paid", "paid_amount", "payment_amount", "amountInPaise", "amount_paid_paise", "paidAmountInPaise"]);
+  const visited = new Set();
+  function findAmount(value, depth = 0) {
+    if (!value || typeof value !== "object" || depth > 6 || visited.has(value)) return null;
+    visited.add(value);
+    for (const [key, nestedValue] of Object.entries(value)) {
+      if (amountKeys.has(key) && nestedValue !== null && nestedValue !== "" && Number.isFinite(Number(nestedValue))) return key.toLowerCase().includes("paise") ? Number(nestedValue) / 100 : nestedValue;
+    }
+    for (const nestedValue of Object.values(value)) {
+      const found = findAmount(nestedValue, depth + 1);
+      if (found !== null) return found;
+    }
+    return null;
+  }
+  const rawAmount = findAmount(student);
+  if (rawAmount == null || rawAmount === "") return null;
+  const amount = Number(rawAmount);
+  if (!Number.isFinite(amount)) return rawAmount;
+  return amount > 100000 ? amount / 100 : amount;
+}
+
+function normaliseStudentEbook(item) {
+  const subcategory = item?.vmSubcategory ?? item?.subcategory ?? {};
+  const category = item?.category ?? subcategory?.vmCategory ?? {};
+  const value = (keys, fallback = "") => keys.map((key) => item?.[key]).find((entry) => entry !== undefined && entry !== null && entry !== "") ?? fallback;
+  const status = String(value(["status"], "free")).toLowerCase();
+  return {
+    id: item?.id,
+    title: value(["chapterName", "materialName", "title"], "Untitled material"),
+    materialType: value(["materialtype", "materialType", "materialTypeName"], "Ebook"),
+    categoryName: value(["categoryName"], category?.categoryName ?? category?.name ?? ""),
+    thumbnail: value(["thumbnailFile", "thumbnail", "image", "imageUrl"], ""),
+    pdfFile: value(["pdfFile", "fileUrl", "pdf", "pdfPath", "filePath", "file", "downloadUrl", "url"], ""),
+    status,
+    mrp: Number(item?.mrp ?? 0),
+    price: Number(item?.price ?? 0),
+  };
 }
 
 function findQuestionList(payload) {
@@ -108,6 +157,7 @@ function isQuestionMarkedForReview(question) {
 
 export default function StudentDashboard({ defaultTab = "profile" }) {
   const location = useLocation();
+  const navigate = useNavigate();
   const [tab, setTab] = useState(defaultTab);
   const [student, setStudent] = useState(null);
   const [center, setCenter] = useState(null);
@@ -118,6 +168,11 @@ export default function StudentDashboard({ defaultTab = "profile" }) {
   const [resultsError, setResultsError] = useState("");
   const [selectedAttempt, setSelectedAttempt] = useState(null);
   const [showAttemptModal, setShowAttemptModal] = useState(false);
+  const [testSeries, setTestSeries] = useState([]);
+  const [ebooks, setEbooks] = useState([]);
+  const [paymentTarget, setPaymentTarget] = useState(null);
+  const [paymentError, setPaymentError] = useState("");
+  const [paymentSuccess, setPaymentSuccess] = useState(null);
 
   useEffect(() => {
     setTab(location.state?.tab ?? defaultTab);
@@ -207,6 +262,11 @@ export default function StudentDashboard({ defaultTab = "profile" }) {
     }
   }, [user]);
 
+  useEffect(() => {
+    fetchTestSeries().then(setTestSeries).catch(() => setTestSeries([]));
+    fetchEbookMaterials().then((items) => setEbooks(items.map(normaliseStudentEbook).filter((item) => item.id != null))).catch(() => setEbooks([]));
+  }, []);
+
   // Load student results/attempts
   useEffect(() => {
     async function loadResults() {
@@ -262,16 +322,19 @@ export default function StudentDashboard({ defaultTab = "profile" }) {
 
   const rollNo = student.rollNo || student.roll_number || student.rollNumber || student.id || student.studentId || "—";
   const paymentStatusFromApi =
-    (isPaymentFlagSet(student) || student.id || student.studentId ? "PAID" : "") ||
+    (isPaymentFlagSet(student) ? "PAID" : "") ||
     student.paymentStatus ||
     student.payment_status ||
     student.payment?.status ||
     student.payment?.paymentStatus ||
     (student.paymentId || student.payment_id || student.razorpayPaymentId ? "Paid" : "Pending");
-  const paymentAmount = student.amount ?? student.registrationFee ?? student.paymentAmount ?? null;
-  const isPaymentSuccessful = Boolean(isPaymentFlagSet(student) || student.id || student.studentId) || ["paid", "success", "successful", "completed", "captured", "payment successful"].includes(String(paymentStatusFromApi).trim().toLowerCase());
+  const paymentAmount = getDisplayedPaymentAmount(student);
+  const isPaymentSuccessful = Boolean(isPaymentFlagSet(student)) || ["paid", "success", "successful", "completed", "captured", "payment successful"].includes(String(paymentStatusFromApi).trim().toLowerCase());
   const paymentStatus = isPaymentSuccessful ? "PAID" : String(paymentStatusFromApi).toUpperCase();
   const paymentMode = student.paymentMode || (isPaymentSuccessful ? "ONLINE" : "—");
+  const selectedSeries = location.state?.purchaseSeries || location.state?.testSeries || null;
+  const selectedSeriesPaid = selectedSeries ? (isPaymentSuccessful || hasPaidStudentFees(student) || hasPaidForTestSeries(selectedSeries.id)) : false;
+  const paymentRecords = getTestSeriesPayments();
   const hiddenProfileKeys = new Set(["password", "confirmPassword", "token", "accessToken", "refreshToken", "payment", "latestPayment", "paymentDetails"]);
   const additionalDetails = Object.entries(student).filter(([key, value]) => {
     if (hiddenProfileKeys.has(key) || value == null || value === "" || typeof value === "object") return false;
@@ -474,6 +537,61 @@ export default function StudentDashboard({ defaultTab = "profile" }) {
     pdf.save(`exam-result-${attemptId}.pdf`);
   }
 
+  async function handleSeriesPayment(series) {
+    const amount = Number(series.sellingPrice ?? series.price ?? 0);
+    if (!amount || !student) return;
+    setPaymentError("");
+    setPaymentTarget(series);
+
+    try {
+      const metadata = { testSeriesId: series.id, testSeriesTitle: series.title, amount };
+      const order = await createRazorpayOrder(amount, student.mobile, metadata);
+      if (!order?.id || !String(order.id).startsWith("order_")) throw new Error("Invalid Razorpay order received from the server.");
+
+      payWithRazorpay({
+        amount,
+        amountInPaise: Number(order.amount),
+        currency: order.currency || "INR",
+        name: student.studentName || student.name,
+        email: student.email,
+        contact: student.mobile,
+        orderId: order.id,
+        description: `${series.title} Test Series`,
+        onSuccess: async ({ paymentId, orderId, signature }) => {
+          try {
+            const verification = await verifyRazorpayPayment({ orderId: orderId || order.id, paymentId, signature, ...metadata });
+            const verified = verification === "Payment Successful" || verification?.success === true || verification?.verified === true || verification?.message === "Payment verified";
+            if (!verified) throw new Error("Payment verification failed.");
+            const record = saveTestSeriesPayment(series.id, { ...metadata, paymentId, orderId: orderId || order.id, signature, status: "PAID" });
+            setPaymentTarget(null);
+            setPaymentSuccess(record);
+          } catch (error) {
+            setPaymentError(error?.response?.data?.message || error?.message || "Payment verification failed. Please try again.");
+            setPaymentTarget(null);
+          }
+        },
+        onFailure: (message) => {
+          setPaymentError(message || "Payment was not completed. Please try again.");
+          setPaymentTarget(null);
+        },
+      });
+    } catch (error) {
+      setPaymentError(error?.response?.data?.message || error?.message || "Unable to create payment order. Please try again.");
+      setPaymentTarget(null);
+    }
+  }
+
+  function openSeries(series) {
+    navigate(`/sankalp/test-series/${series.id}`);
+  }
+
+  function ebookMediaUrl(value) {
+    if (!value) return "";
+    if (/^(https?:|data:|blob:)/i.test(String(value))) return value;
+    const origin = API_BASE_URL.replace(/\/api(?:\/.*)?$/i, "").replace(/\/+$/g, "");
+    return `${origin}/${String(value).replace(/^\/+/, "")}`;
+  }
+
   return (
     <DashboardShell title="Student" roleLabel="Student" tabs={tabs} activeTab={tab} onTabChange={setTab}>
       {tab === "overview" && (
@@ -481,6 +599,46 @@ export default function StudentDashboard({ defaultTab = "profile" }) {
           <div className="card p-6 text-center"><p className="font-mono font-bold text-navy text-lg">{rollNo}</p><p className="text-xs text-muted mt-1">Roll Number</p></div>
           <div className="card p-6 text-center"><p className="font-display font-bold text-navy text-lg">{student.class || student.studentClass || "—"}</p><p className="text-xs text-muted mt-1">Class</p></div>
           <div className="card p-6 text-center"><p className="font-display font-bold text-navy text-lg">{paymentStatus}</p><p className="text-xs text-muted mt-1">Payment Status</p></div>
+        </div>
+      )}
+      {tab === "solve" && (
+        <div className="space-y-5">
+          <div>
+            <p className="eyebrow text-gold-dark">Student practice</p>
+            <h2 className="mt-1 text-2xl font-bold text-navy">Solve Test Series</h2>
+            <p className="mt-1 text-sm text-muted">Free series are ready to solve. Paid series appear here after successful payment.</p>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+            {testSeries.map((series) => {
+              const isFree = Number(series.sellingPrice ?? series.price ?? 0) === 0;
+              const paid = isPaymentSuccessful || hasPaidStudentFees(student) || hasPaidForTestSeries(series.id);
+              return (
+                <article key={series.id} className="card flex flex-col gap-3 p-5">
+                  <div className="flex items-start justify-between gap-3"><h3 className="font-display text-lg font-bold text-navy">{series.title}</h3><span className={`rounded-full px-2 py-1 text-[10px] font-bold uppercase ${isFree || paid ? "bg-green-50 text-green-700" : "bg-amber-50 text-amber-700"}`}>{isFree ? "Free" : paid ? "Paid" : "Fee pending"}</span></div>
+                  <p className="text-sm text-muted">{isFree ? "Open access" : `₹${Number(series.sellingPrice ?? series.price).toLocaleString("en-IN")}`}</p>
+                  <button type="button" onClick={() => isFree || paid ? openSeries(series) : handleSeriesPayment(series)} className="btn-primary mt-auto w-full justify-center">{isFree || paid ? "Solve Test Series" : "Buy Test Series"}</button>
+                </article>
+              );
+            })}
+          </div>
+        </div>
+      )}
+      {tab === "ebooks" && (
+        <div className="space-y-5">
+          <section className="overflow-hidden rounded-2xl bg-[linear-gradient(120deg,#173b5f_0%,#205b78_55%,#e86516_145%)] p-6 text-white shadow-[0_16px_35px_rgba(23,59,95,0.18)] sm:p-8">
+            <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#f8d77e]">Student library</p>
+            <h2 className="mt-2 font-display text-2xl font-bold sm:text-3xl">Your Ebooks</h2>
+            <p className="mt-2 max-w-xl text-sm text-white/75">Browse study material, previews and learning resources from the complete ebook library.</p>
+          </section>
+          {ebooks.length === 0 ? <div className="card p-10 text-center text-muted">No ebooks are available right now.</div> : <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">{ebooks.map((ebook) => {
+            const isFree = ebook.status === "free" || ebook.price <= 0;
+            const hasAccess = isFree || hasPaidStudentFees(student) || isPaymentSuccessful;
+            const image = ebookMediaUrl(ebook.thumbnail);
+            return <article key={ebook.id} className="group overflow-hidden rounded-2xl border border-[#f3d1ae] bg-white shadow-[0_10px_25px_rgba(23,59,95,0.08)] transition hover:-translate-y-1 hover:shadow-[0_16px_30px_rgba(232,101,22,0.16)]">
+              <div className="aspect-[1.7] overflow-hidden bg-[#fff0df]">{image ? <img src={image} alt={ebook.title} className="h-full w-full object-cover transition duration-500 group-hover:scale-105" /> : <div className="flex h-full items-center justify-center text-[#e86516]"><BookOpen size={38} /></div>}</div>
+              <div className="p-4"><div className="flex items-start justify-between gap-3"><div><p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#a65a2b]">{ebook.materialType}</p><h3 className="mt-1 line-clamp-2 font-display text-lg font-bold text-[#d9570b]">{ebook.title}</h3></div><span className={`rounded-full px-2 py-1 text-[10px] font-bold uppercase ${isFree || hasAccess ? "bg-green-50 text-green-700" : "bg-[#fff0df] text-[#d9570b]"}`}>{isFree ? "Free" : hasAccess ? "Paid" : `₹${ebook.price}`}</span></div><p className="mt-2 text-xs text-muted">{ebook.categoryName || "Study material"}</p><a href={hasAccess ? (ebookMediaUrl(ebook.pdfFile) || "/sankalp/ebook") : undefined} target={ebook.pdfFile ? "_blank" : undefined} rel="noreferrer" className={`mt-4 flex w-full items-center justify-center rounded-lg px-3 py-2.5 text-sm font-bold ${hasAccess ? "bg-[#e86516] text-white hover:bg-[#c84c0b]" : "pointer-events-none bg-slate-100 text-slate-400"}`}>{hasAccess ? "View Ebook" : "Buy Ebook"}</a></div>
+            </article>;
+          })}</div>}
         </div>
       )}
       {tab === "profile" && (
@@ -534,7 +692,7 @@ export default function StudentDashboard({ defaultTab = "profile" }) {
               <Row label="Payment done" value={isPaymentSuccessful ? "Yes" : "No"} />
               <Row label="Payment status" value={paymentStatus} />
               <Row label="Payment mode" value={paymentMode} />
-              <Row label="Amount" value={student.amount == null ? "—" : `₹${student.amount}`} />
+              <Row label="Amount" value={paymentAmount == null ? "—" : `₹${Number(paymentAmount).toLocaleString("en-IN")}`} />
               <Row label="Member since" value={formatDate(student.createdAt)} />
             </ProfileGroup>
             {additionalDetails.length > 0 && (
@@ -546,9 +704,50 @@ export default function StudentDashboard({ defaultTab = "profile" }) {
             )}
           </div>
 
+          {selectedSeries && !selectedSeriesPaid && (
+            <section className="rounded-2xl border border-amber-200 bg-amber-50 p-5">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div><p className="text-xs font-bold uppercase tracking-[0.16em] text-amber-700">Fees pending</p><h3 className="mt-1 text-lg font-bold text-navy">{selectedSeries.title}</h3><p className="mt-1 text-sm text-muted">Pay ₹{Number(selectedSeries.sellingPrice ?? selectedSeries.price ?? 0).toLocaleString("en-IN")} to unlock every paper in this series.</p></div>
+                <button type="button" onClick={() => handleSeriesPayment(selectedSeries)} disabled={Boolean(paymentTarget)} className="btn-primary shrink-0 justify-center disabled:opacity-60">{paymentTarget ? "Processing..." : "Pay Fees"}</button>
+              </div>
+              {paymentError && <p className="mt-3 text-sm font-semibold text-red-600">{paymentError}</p>}
+            </section>
+          )}
+
+          {selectedSeries && selectedSeriesPaid && (
+            <section className="rounded-2xl border border-green-200 bg-green-50 p-5">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div><p className="text-xs font-bold uppercase tracking-[0.16em] text-green-700">Fees paid</p><h3 className="mt-1 text-lg font-bold text-navy">{selectedSeries.title}</h3><p className="mt-1 text-sm text-muted">You have access to all papers in this test series.</p></div>
+                <button type="button" onClick={() => openSeries(selectedSeries)} className="btn-primary shrink-0 justify-center bg-green-600 hover:bg-green-700">Solve Test Series</button>
+              </div>
+            </section>
+          )}
+
+          {Object.keys(paymentRecords).length > 0 && (
+            <ProfileGroup icon={CreditCard} title="Test-series payment account">
+              {Object.values(paymentRecords).map((payment) => (
+                <div key={payment.testSeriesId} className="flex flex-col gap-1 border-b border-slate-100 py-3 last:border-0 sm:flex-row sm:items-center sm:justify-between">
+                  <div><p className="font-semibold text-navy">{payment.testSeriesTitle}</p><p className="text-xs text-muted">Payment ID: {payment.paymentId || "—"} · Order ID: {payment.orderId || "—"}</p></div>
+                  <div className="text-left sm:text-right"><p className="font-bold text-green-700">₹{Number(payment.amount || 0).toLocaleString("en-IN")} · PAID</p><p className="text-xs text-muted">{formatDate(payment.paidAt)}</p></div>
+                </div>
+              ))}
+            </ProfileGroup>
+          )}
+
           <div className={`flex items-center gap-3 rounded-2xl border p-4 ${isPaymentSuccessful ? "border-green-200 bg-green-50" : "border-amber-200 bg-amber-50"}`}>
             <CheckCircle2 className={isPaymentSuccessful ? "shrink-0 text-green-600" : "shrink-0 text-amber-600"} size={26} />
             <div><p className={`font-semibold ${isPaymentSuccessful ? "text-green-700" : "text-amber-700"}`}>{isPaymentSuccessful ? "Payment verified" : "Payment pending"}</p><p className="text-sm text-muted">Last updated {formatDate(student.updatedAt)}</p></div>
+          </div>
+        </div>
+      )}
+      {paymentSuccess && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-navy-dark/60 p-4" role="dialog" aria-modal="true">
+          <div className="w-full max-w-md rounded-2xl bg-white p-7 text-center shadow-2xl">
+            <CheckCircle2 className="mx-auto text-green-600" size={52} />
+            <h2 className="mt-3 text-2xl font-bold text-navy">Payment Successful</h2>
+            <p className="mt-2 text-sm text-muted">{paymentSuccess.testSeriesTitle} is now available in Solve Test Series.</p>
+            <p className="mt-3 text-xs text-slate-500">Payment ID: {paymentSuccess.paymentId || "—"}</p>
+            <button type="button" onClick={() => setPaymentSuccess(null)} className="btn-primary mt-6 w-full justify-center">Continue</button>
           </div>
         </div>
       )}
@@ -576,6 +775,7 @@ export default function StudentDashboard({ defaultTab = "profile" }) {
                 const resultData = r.result ?? r;
                 const obtained = resultData.obtainedMarks ?? resultData.obtained_marks ?? resultData.marks ?? resultData.score ?? resultData.obtained ?? null;
                 const total = resultData.totalMarks ?? resultData.total_marks ?? resultData.total ?? resultData.maxMarks ?? null;
+                const resultAmount = resultData.amount ?? resultData.amountPaid ?? resultData.paidAmount ?? resultData.paymentAmount ?? paymentAmount;
                 const percentage = resultData.percentage ?? resultData.percent ?? (obtained != null && total ? Math.round((Number(obtained) / Number(total)) * 100) : null);
                 const resultStatus = resultData.status ?? resultData.resultStatus ?? resultData.result ?? "Submitted";
                 const startedAt = getResultTimestamp(r, "started");
@@ -593,6 +793,7 @@ export default function StudentDashboard({ defaultTab = "profile" }) {
                       <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-slate-500">
                         <span>Started: {formatDateTime(startedAt)}</span>
                         <span>Submitted: {formatDateTime(submittedAt)}</span>
+                        <span>Amount paid: {resultAmount == null ? "—" : `₹${Number(resultAmount).toLocaleString("en-IN")}`}</span>
                       </div>
                       {(attemptedCount !== null || unattemptedCount !== null || reviewedCount !== null) && (
                         <div className="mt-2 flex flex-wrap gap-2 text-[10px] font-semibold">
@@ -639,6 +840,7 @@ export default function StudentDashboard({ defaultTab = "profile" }) {
                     const score = metadata.obtainedMarks ?? metadata.obtained_marks ?? metadata.score ?? metadata.marks ?? metadata.totalMarksObtained;
                     const totalMarks = metadata.maxScore ?? metadata.totalMarks ?? metadata.total_marks ?? metadata.maxMarks ?? metadata.total;
                     const percentage = result.percentage ?? result.percent ?? (score != null && totalMarks ? ((Number(score) / Number(totalMarks)) * 100).toFixed(2) : null);
+                    const resultAmount = metadata.amount ?? metadata.amountPaid ?? metadata.paidAmount ?? metadata.paymentAmount ?? paymentAmount;
                     const status = metadata.status ?? metadata.resultStatus ?? metadata.result ?? null;
                     const attemptedCount = metadata.attemptedCount ?? metadata.attemptedQuestions ?? metadata.answeredCount ?? (questionRows.length ? questionRows.filter((question) => question.selectedAnswer ?? question.selected_answer ?? question.studentAnswer ?? question.student_answer ?? question.answerText ?? question.answer).length : null);
                     const unattemptedCount = metadata.unattemptedCount ?? metadata.unattemptedQuestions ?? metadata.unansweredCount ?? (questionRows.length && attemptedCount !== null ? questionRows.length - Number(attemptedCount) : null);
@@ -651,6 +853,7 @@ export default function StudentDashboard({ defaultTab = "profile" }) {
                         <Row label="Status" value={status || "Submitted"} />
                         <Row label="Score" value={`${score ?? "—"}${totalMarks != null ? ` / ${totalMarks}` : ""}`} />
                         <Row label="Percentage" value={percentage != null ? `${percentage}%` : "—"} />
+                        <Row label="Amount paid" value={resultAmount == null ? "—" : `₹${Number(resultAmount).toLocaleString("en-IN")}`} />
                         <Row label="Started" value={formatDateTime(startedAt)} />
                         <Row label="Submitted" value={formatDateTime(submittedAt)} />
                         <Row label="Total Questions" value={metadata.totalQuestions ?? metadata.total_questions ?? (questionRows.length || "—")} />

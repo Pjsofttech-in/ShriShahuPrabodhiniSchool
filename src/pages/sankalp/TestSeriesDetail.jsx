@@ -6,6 +6,7 @@ import LeaderboardModal from "../../components/LeaderboardModal.jsx";
 import { fetchExams, fetchExamLeaderboard, fetchTestSeriesById, fetchTestSeriesLeaderboard } from "../../services/backendService.js";
 import { API_BASE_URL } from "../../utils/api.js";
 import { useAuth } from "../../context/AuthContext.jsx";
+import { hasPaidForTestSeries, hasPaidStudentFees } from "../../utils/testSeriesAccess.js";
 
 function imageUrl(image) {
   if (!image) return "";
@@ -59,27 +60,19 @@ export default function TestSeriesDetail() {
   }
 
   function handleBuySeries() {
-    // If user not signed in, ask them to login (show register option on login page).
     if (!user) {
-      redirectToLogin(`/sankalp/test-series/${id}`);
+      navigate("/login", { state: { next: "/student/profile", testSeries: series } });
       return;
     }
 
-    // If user appears to have paid (local sample uses paymentStatus), go to first paper or start page
     const firstPaper = papers && papers.length ? papers[0] : null;
-    const paid = (user.paymentStatus && String(user.paymentStatus).toLowerCase() === 'paid') || user.amount > 0;
+    const paid = hasPaidStudentFees(user) || hasPaidForTestSeries(series.id);
     if (paid && firstPaper) {
-      navigate(`/exam/${firstPaper.id}`, { state: { exam: firstPaper } });
+      navigate(`/exam/${firstPaper.id}/start`, { state: { exam: firstPaper } });
       return;
     }
 
-    // Otherwise, take user to registration/payment flow
-    // If user is logged in, show the Start screen for the first paper instead of forcing register
-    if (user && firstPaper) {
-      navigate(`/exam/${firstPaper.id}/start`, { state: { exam: firstPaper } });
-    } else {
-      navigate('/register');
-    }
+    navigate("/student/profile", { state: { tab: "profile", purchaseSeries: series } });
   }
 
   function handleStartPaper(paper) {
@@ -89,14 +82,13 @@ export default function TestSeriesDetail() {
     }
 
     if (!user) {
-      redirectToLogin(`/exam/${paper.id}`);
+      navigate("/login", { state: { next: "/student/profile", testSeries: series } });
       return;
     }
 
-    const paid = (user.paymentStatus && String(user.paymentStatus).toLowerCase() === 'paid') || user.amount > 0;
+    const paid = hasPaidStudentFees(user) || hasPaidForTestSeries(series.id);
     if (!paid) {
-      // If student hasn't paid yet, instead of forcing registration, show the Start screen
-      navigate(`/exam/${paper.id}/start`, { state: { exam: paper } });
+      navigate("/student/profile", { state: { tab: "profile", purchaseSeries: series } });
       return;
     }
 
@@ -108,6 +100,7 @@ export default function TestSeriesDetail() {
   if (!series) return <div><PageHeader title="Test Series" /><p className="py-24 text-center text-muted">Test series not found.</p></div>;
 
   const isFreeSeries = Number(series.sellingPrice ?? series.price ?? 0) === 0;
+  const hasAccess = isFreeSeries || hasPaidStudentFees(user) || hasPaidForTestSeries(series.id);
 
   return (
     <div className="min-h-screen bg-white">
@@ -124,7 +117,7 @@ export default function TestSeriesDetail() {
               </ul>
               <div className="mt-3 flex items-center gap-3"><span className="font-bold text-green-700">{series.sellingPrice != null ? `Rs ${series.sellingPrice}` : series.price != null ? `Rs ${series.price}` : "FREE"}</span>{series.mrp && <span className="text-sm text-muted line-through">Rs {series.mrp}</span>}</div>
               <div className="mt-4 flex flex-wrap items-center gap-2">
-                {isFreeSeries ? <p className="inline-flex w-fit rounded-full bg-[#fff0df] px-4 py-2 text-sm font-bold text-[#b65318]">Free access - choose a paper below to start.</p> : <button type="button" onClick={() => handleBuySeries()} className="btn-primary !bg-[#e86516] !shadow-[0_8px_18px_rgba(232,101,22,0.22)] hover:!bg-[#c84c0b]">BUY TEST SERIES</button>}
+                {isFreeSeries ? <p className="inline-flex w-fit rounded-full bg-[#fff0df] px-4 py-2 text-sm font-bold text-[#b65318]">Free access - choose a paper below to start.</p> : <button type="button" onClick={() => handleBuySeries()} className="btn-primary !bg-[#e86516] !shadow-[0_8px_18px_rgba(232,101,22,0.22)] hover:!bg-[#c84c0b]">{hasAccess ? "SOLVE TEST SERIES" : "BUY TEST SERIES"}</button>}
                 <button type="button" onClick={() => setLeaderboardTarget({ type: "series", id, title: series.title })} className="inline-flex items-center gap-2 rounded-lg border border-[#f3bd63] bg-white px-4 py-2 text-sm font-bold text-[#e86516] hover:bg-[#fff0df]"><Trophy size={16} /> Series leaderboard</button>
               </div>
             </div>
@@ -143,13 +136,12 @@ export default function TestSeriesDetail() {
                   <span><b className="block text-ink">Marks:</b>{paper.totalMarks}</span>
                   <span><b className="block text-ink">Time:</b>{paper.duration} min</span>
                 </div>
-                {/* Auth-aware Start button */}
                 <button
                   type="button"
                   onClick={() => handleStartPaper(paper)}
                   className="mt-4 block w-full rounded-lg bg-[#e86516] px-3 py-2 text-center text-sm font-semibold text-white shadow-[0_8px_16px_rgba(232,101,22,0.22)] transition hover:-translate-y-0.5 hover:bg-[#c84c0b]"
                 >
-                  Start Free Test
+                  {hasAccess ? "Solve Test Series" : "Buy Test Series"}
                 </button>
                 <div className="mt-2 flex gap-2">
                   <button type="button" disabled className="flex items-center justify-center rounded-md border border-[#f3bd63] bg-white px-3 py-2 text-[#e86516] disabled:opacity-50" aria-label="Download test paper"><ArrowDownToLine size={18} /></button>

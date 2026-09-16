@@ -1,8 +1,7 @@
 import React, { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { ArrowRight, CheckCircle2, GraduationCap, LockKeyhole, ShieldCheck } from "lucide-react";
 import { useAuth } from "../context/AuthContext.jsx";
-import { fetchExams } from "../services/backendService.js";
 
 export default function Login() {
   const [loginMethod, setLoginMethod] = useState("mobile");
@@ -11,6 +10,7 @@ export default function Login() {
   const [error, setError] = useState("");
   const { loginStudent } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -23,18 +23,10 @@ export default function Login() {
       return;
     }
     if (res.success) {
-      try {
-        const exams = await fetchExams();
-        const chosen = exams.find((exam) => exam && exam.active) || exams[0];
-        const student = res.user ?? null;
-        const paymentStatus = String(student?.paymentStatus || "").toLowerCase();
-        const isPaid = ["paid", "success", "completed"].includes(paymentStatus) || (Number(student?.amount || 0) > 0 && student?.paymentId);
-        if (chosen && isPaid) navigate(`/exam/${chosen.id}/start`, { state: { exam: chosen } });
-        else navigate("/student/profile");
-      } catch (err) {
-        console.warn("Failed to fetch exams after login", err);
-        navigate("/student/profile");
-      }
+      navigate("/student/profile", {
+        state: location.state?.testSeries ? { purchaseSeries: location.state.testSeries } : undefined,
+        replace: true,
+      });
     } else {
       setError(res.message || "Invalid credentials.");
     }

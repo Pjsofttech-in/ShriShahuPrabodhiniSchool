@@ -1,10 +1,12 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { ChevronDown, ImageOff, LoaderCircle, Share2, Sparkles, Trophy } from "lucide-react";
 import PageHeader from "../../components/PageHeader.jsx";
 import LeaderboardModal from "../../components/LeaderboardModal.jsx";
 import { fetchTestSeries, fetchTestSeriesCategories, fetchTestSeriesLeaderboard } from "../../services/backendService.js";
 import { API_BASE_URL } from "../../utils/api.js";
+import { useAuth } from "../../context/AuthContext.jsx";
+import { hasPaidForTestSeries, hasPaidStudentFees } from "../../utils/testSeriesAccess.js";
 
 function imageUrl(image) {
   if (!image) return "";
@@ -82,6 +84,8 @@ function featureList(series) {
 }
 
 export default function TestSeries() {
+  const navigate = useNavigate();
+  const { user } = useAuth();
   const [series, setSeries] = useState([]);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -178,6 +182,9 @@ export default function TestSeries() {
                 const safeTitle = item.title || "Test Series";
                 const badge = item.subject || "Test Series";
                 const price = priceLabel(item);
+                const isFree = Number(item.sellingPrice ?? item.price ?? 0) === 0;
+                const isPaid = isFree || hasPaidStudentFees(user) || hasPaidForTestSeries(item.id);
+                const mrp = Number(item.mrp ?? item.price ?? 0);
                 const features = featureList(item);
                 const showFeatures = expandedFeatures.has(item.id);
 
@@ -218,19 +225,15 @@ export default function TestSeries() {
                           <span>Features</span>
                           <ChevronDown size={15} className={`text-[#e86516] transition-transform ${showFeatures ? "rotate-180" : ""}`} />
                         </button>
-                        <span className="rounded-full bg-gradient-to-r from-[#ff8c1a] to-[#ff6a00] px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.08em] text-white shadow-sm">
-                          {price}
+                        <span className="flex items-center gap-2">
+                          <span className="rounded-full bg-gradient-to-r from-[#ff8c1a] to-[#ff6a00] px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.08em] text-white shadow-sm">{price}</span>
+                          {!isFree && mrp > Number(item.sellingPrice ?? item.price ?? 0) && <span className="text-xs font-semibold text-slate-400 line-through">₹ {mrp.toLocaleString("en-IN")}</span>}
                         </span>
                       </div>
 
                       {showFeatures && <div className="mt-3 space-y-2 border-t border-[#ffead8] bg-transparent pt-3 text-[11px] text-[#e86516]">{features.map((feature) => <div key={feature} className="flex items-center gap-2"><span className="h-1.5 w-1.5 rounded-full bg-[#f97316]" /><span className="truncate">{feature}</span></div>)}</div>}
 
-                      <Link
-                        to={`/sankalp/test-series/${item.id}`}
-                          className="mt-3 flex w-full items-center justify-center rounded-lg bg-gradient-to-r from-[#ff8c1a] to-[#ed4b00] px-3 py-2.5 text-xs font-bold uppercase tracking-[0.05em] text-white shadow-[0_8px_16px_rgba(237,90,0,0.25)] transition hover:-translate-y-0.5 hover:brightness-110 hover:shadow-[0_12px_22px_rgba(237,90,0,0.32)]"
-                      >
-                        View Test Papers
-                      </Link>
+                      {isPaid ? <Link to={`/sankalp/test-series/${item.id}`} className="mt-3 flex w-full items-center justify-center rounded-lg bg-gradient-to-r from-[#ff8c1a] to-[#ed4b00] px-3 py-2.5 text-xs font-bold uppercase tracking-[0.05em] text-white shadow-[0_8px_16px_rgba(237,90,0,0.25)] transition hover:-translate-y-0.5 hover:brightness-110 hover:shadow-[0_12px_22px_rgba(237,90,0,0.32)]">Solve Test Series</Link> : <button type="button" onClick={() => navigate("/login", { state: { next: `/student/profile`, testSeries: item } })} className="mt-3 flex w-full items-center justify-center rounded-lg bg-gradient-to-r from-[#ff8c1a] to-[#ed4b00] px-3 py-2.5 text-xs font-bold uppercase tracking-[0.05em] text-white shadow-[0_8px_16px_rgba(237,90,0,0.25)] transition hover:-translate-y-0.5 hover:brightness-110 hover:shadow-[0_12px_22px_rgba(237,90,0,0.32)]">Buy Test Series</button>}
                       <button type="button" onClick={() => setLeaderboardSeries(item)} className="mt-2 inline-flex w-full items-center justify-center gap-2 rounded-lg border border-[#f3bd63] bg-white px-3 py-2 text-xs font-bold uppercase tracking-[0.05em] text-[#e86516] transition hover:bg-[#fff0df]">
                         <Trophy size={14} /> Leaderboard
                       </button>

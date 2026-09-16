@@ -1003,6 +1003,24 @@ function normalizeStudent(student) {
     payment.payment_id ??
     payment.razorpayPaymentId ??
     "";
+  const rawPaymentAmount =
+    student.amount ??
+    student.amountPaid ??
+    student.paidAmount ??
+    student.paymentAmount ??
+    student.registrationFee ??
+    payment.amount ??
+    payment.amountPaid ??
+    payment.paidAmount ??
+    payment.paymentAmount ??
+    payment.registrationFee ??
+    payment.totalAmount ??
+    null;
+  const paymentAmount = rawPaymentAmount == null
+    ? null
+    : Number(rawPaymentAmount) > 100000
+      ? Number(rawPaymentAmount) / 100
+      : Number(rawPaymentAmount);
   const normalizedPaymentStatus = String(paymentStatus).trim().toUpperCase();
   const paymentDone =
     [student.paymentDone, student.isPaymentDone, student.payment_done, payment.paymentDone, payment.isPaymentDone].some((value) =>
@@ -1051,7 +1069,8 @@ function normalizeStudent(student) {
     paymentDone,
     paymentId,
     paymentMode: student.paymentMode ?? payment.paymentMode ?? payment.mode ?? "",
-    amount: student.amount ?? student.registrationFee ?? student.paymentAmount ?? payment.amount ?? null,
+    amount: Number.isFinite(paymentAmount) ? paymentAmount : rawPaymentAmount,
+    paymentAmount: Number.isFinite(paymentAmount) ? paymentAmount : rawPaymentAmount,
   };
 }
 
@@ -1193,12 +1212,13 @@ export async function getMyProfile() {
   return payload?.data ?? payload?.student ?? payload?.user ?? payload;
 }
 
-export async function createRazorpayOrder(amount, mobileNo) {
+export async function createRazorpayOrder(amount, mobileNo, metadata = {}) {
   try {
     const response = await api.post("/api/payments/create-order", {
       amount,
       mobileNo,
       paymentStatus: "PENDING",
+      ...metadata,
     });
 
     return response.data;
@@ -1212,12 +1232,13 @@ export async function createRazorpayOrder(amount, mobileNo) {
   }
 }
 
-export async function verifyRazorpayPayment({ orderId, paymentId, signature }) {
+export async function verifyRazorpayPayment({ orderId, paymentId, signature, ...metadata }) {
   try {
     const response = await api.post("/api/payments/verify", {
       orderId,
       paymentId,
       signature,
+      ...metadata,
     });
 
     console.log("verifyRazorpayPayment - Response received:", {

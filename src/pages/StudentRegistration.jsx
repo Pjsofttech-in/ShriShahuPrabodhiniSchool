@@ -1,16 +1,13 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { CheckCircle2, Copy, Eye, EyeOff } from "lucide-react";
-import { payWithRazorpay } from "../utils/razorpay.js";
 import {
-  createRazorpayOrder,
   fetchCenters,
   fetchCoordinators,
   fetchDistricts,
   fetchSchools,
   fetchTalukas,
   registerStudent,
-  verifyRazorpayPayment,
 } from "../services/backendService.js";
 
 const initialForm = {
@@ -30,6 +27,7 @@ const initialForm = {
   state: "Maharashtra",
   pincode: "",
   schoolName: "",
+  examMode: "offline",
   districtId: "",
   talukaId: "",
   centerId: "",
@@ -148,8 +146,6 @@ export default function StudentRegistration() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [registered, setRegistered] = useState(null);
-  const [paymentCompleted, setPaymentCompleted] = useState(false);
-  const [paymentDetails, setPaymentDetails] = useState(null);
   const [districts, setDistricts] = useState([]);
   const [talukas, setTalukas] = useState([]);
   const [centers, setCenters] = useState([]);
@@ -178,6 +174,10 @@ export default function StudentRegistration() {
 
       if (field === "centerId") {
         next = { ...next, coordinatorId: "" };
+      }
+
+      if (field === "examMode" && value === "online") {
+        next = { ...next, centerId: "", coordinatorId: "" };
       }
 
       return next;
@@ -244,7 +244,7 @@ export default function StudentRegistration() {
     loadDistricts();
   }, []);
 
-  async function saveToBackend(paymentId = null) {
+  async function saveToBackend() {
     const payload = {
       studentName: form.name,
       fatherName: form.fatherName,
@@ -263,13 +263,14 @@ export default function StudentRegistration() {
       dateOfBirth: form.dateOfBirth || null,
       active: true,
       userId: form.userId || null,
+      examMode: form.examMode,
       districtId: Number(form.districtId),
       talukaId: Number(form.talukaId),
-      centerId: Number(form.centerId),
-      coordinatorId: Number(form.coordinatorId),
-      paymentId: paymentId || null,
-      paymentStatus: paymentId ? "SUCCESS" : "NOT_REQUIRED",
-      amount: paymentId ? 100 : 0,
+      centerId: form.examMode === "offline" ? Number(form.centerId) : null,
+      coordinatorId: form.examMode === "offline" ? Number(form.coordinatorId) : null,
+      paymentId: null,
+      paymentStatus: "NOT_REQUIRED",
+      amount: 0,
     };
 
     return await registerStudent(payload);
@@ -278,97 +279,6 @@ export default function StudentRegistration() {
   async function handleSubmit(e) {
     e?.preventDefault();
     await handleRegister(e);
-  }
-
-  async function handlePayment(e) {
-    e?.preventDefault();
-    setError("");
-
-    if (!form.name.trim()) return setError("Please enter the student's name.");
-    if (!/^[0-9]{10}$/.test(form.mobile.trim())) return setError("Please enter a valid 10-digit mobile number.");
-    if (!form.districtId) return setError("Please select a District.");
-    if (!form.talukaId) return setError("Please select a Taluka.");
-    if (!form.schoolName.trim()) return setError("Please enter your School Name.");
-    if (!form.centerId) return setError("Please select an Exam Center.");
-    if (!form.coordinatorId) return setError("Please select a Co-ordinator assigned to your center.");
-    if (!form.password) return setError("Please enter a password.");
-    if (form.password.length < 6) return setError("Password must be at least 6 characters long.");
-    if (form.password !== form.confirmPassword) return setError("Password and Confirm Password do not match.");
-    if (!acceptedTerms) return setError("Please agree to the Terms and Conditions before registering.");
-
-    try {
-      setStep("paying");
-
-      const order = await createRazorpayOrder(100, form.mobile);
-      console.log("Backend Order Response:", order);
-      console.log("Razorpay Order ID:", order?.id);
-
-      if (!order?.id || !String(order.id).startsWith("order_")) {
-        console.error("Invalid Razorpay Order ID:", order?.id);
-        throw new Error("Invalid Razorpay order received from the server.");
-      }
-
-      const orderId = order.id;
-      const orderAmountInPaise = Number(order.amount);
-      payWithRazorpay({
-        amount: 100,
-        amountInPaise: orderAmountInPaise,
-        currency: order.currency || "INR",
-        name: form.name,
-        contact: form.mobile,
-        orderId: order.id,
-        onSuccess: async ({ paymentId, orderId: razorpayOrderId, signature }) => {
-          try {
-            const verification = await verifyRazorpayPayment({
-              orderId: razorpayOrderId || orderId,
-              paymentId,
-              signature,
-            });
-
-            console.log("Payment verification response:", verification);
-
-            const isVerified =
-              verification === "Payment Successful" ||
-              verification?.success === true ||
-              verification?.verified === true ||
-              verification?.message === "Payment verified";
-
-            if (!isVerified) {
-              throw new Error("Payment verification failed.");
-            }
-
-            setPaymentCompleted(true);
-            setPaymentDetails({ paymentId, orderId: razorpayOrderId || orderId, signature });
-            setError("Payment successful. Please click Register to complete your enrollment.");
-            setStep("form");
-          } catch (error) {
-            console.error("Payment verification failed:", error);
-            setPaymentCompleted(false);
-            setPaymentDetails(null);
-            setError(
-              error?.response?.data?.message ||
-                error?.message ||
-                "Payment verification failed. Please try again."
-            );
-            setStep("form");
-          }
-        },
-        onFailure: (message) => {
-          setPaymentCompleted(false);
-          setPaymentDetails(null);
-          setError(message || "Payment was not completed. Please try again.");
-          setStep("form");
-        },
-      });
-    } catch (error) {
-      console.error("Payment order creation failed:", error);
-      setError(
-        error?.response?.data?.message ||
-          error?.message ||
-          "Unable to create payment order. Please try again."
-      );
-      setStep("form");
-    }
   }
 
   async function handleRegister(e) {
@@ -380,8 +290,9 @@ export default function StudentRegistration() {
     if (!form.districtId) return setError("Please select a District.");
     if (!form.talukaId) return setError("Please select a Taluka.");
     if (!form.schoolName.trim()) return setError("Please enter your School Name.");
-    if (!form.centerId) return setError("Please select an Exam Center.");
-    if (!form.coordinatorId) return setError("Please select a Co-ordinator assigned to your center.");
+    if (!form.examMode) return setError("Please select an Exam Mode.");
+    if (form.examMode === "offline" && !form.centerId) return setError("Please select an Exam Center.");
+    if (form.examMode === "offline" && !form.coordinatorId) return setError("Please select a Co-ordinator assigned to your center.");
     if (!form.password) return setError("Please enter a password.");
     if (form.password.length < 6) return setError("Password must be at least 6 characters long.");
     if (form.password !== form.confirmPassword) return setError("Password and Confirm Password do not match.");
@@ -389,11 +300,9 @@ export default function StudentRegistration() {
 
     try {
       setStep("saving");
-      const saved = await saveToBackend(paymentDetails?.paymentId || null);
+      const saved = await saveToBackend();
       setRegistered(saved);
       setStep("success");
-      setPaymentCompleted(false);
-      setPaymentDetails(null);
     } catch (error) {
       console.error("Registration failed:", error);
       setError(
@@ -480,6 +389,13 @@ export default function StudentRegistration() {
                 <option>Other</option>
               </select>
             </Field>
+            <Field label="Exam Mode">
+              <select required className="input-field" value={form.examMode} onChange={(e) => update("examMode", e.target.value)}>
+                <option value="">Exam Mode</option>
+                <option value="online">Online</option>
+                <option value="offline">Offline</option>
+              </select>
+            </Field>
 
             <Field label="Date of Birth">
               <input required type="date" aria-label="Date of Birth" className="input-field" value={form.dateOfBirth} onChange={(e) => update("dateOfBirth", e.target.value)} />
@@ -542,25 +458,27 @@ export default function StudentRegistration() {
             <Field label="Pincode">
               <input required inputMode="numeric" pattern="[0-9]{6}" title="6 digit pincode" placeholder="Pincode" className="input-field" value={form.pincode} onChange={(e) => update("pincode", e.target.value)} />
             </Field>
-            <Field label="Exam Center">
-              <select required disabled={!form.talukaId} className="input-field" value={form.centerId} onChange={(e) => update("centerId", e.target.value)}>
-                <option value="">{form.talukaId ? "Exam Center" : "Select Taluka First"}</option>
-                {centerOptions.map((center) => (
-                  <option key={center.id} value={center.id}>{center.name}</option>
-                ))}
-              </select>
-            </Field>
-            <Field label="Coordinator">
-              <select required disabled={!form.centerId} className="input-field" value={form.coordinatorId} onChange={(e) => update("coordinatorId", e.target.value)}>
-                <option value="">{form.centerId ? "Coordinator" : "Select Center First"}</option>
-                {coordinatorOptions.map((coordinator) => (
-                  <option key={coordinator.id} value={coordinator.id}>{coordinator.name}</option>
-                ))}
-              </select>
-              {form.centerId && coordinatorOptions.length === 0 && (
-                <p className="text-[10px] text-red-500 mt-0.5">No coordinator allocated yet.</p>
-              )}
-            </Field>
+            {form.examMode === "offline" && <>
+              <Field label="Exam Center">
+                <select required disabled={!form.talukaId} className="input-field" value={form.centerId} onChange={(e) => update("centerId", e.target.value)}>
+                  <option value="">{form.talukaId ? "Exam Center" : "Select Taluka First"}</option>
+                  {centerOptions.map((center) => (
+                    <option key={center.id} value={center.id}>{center.name}</option>
+                  ))}
+                </select>
+              </Field>
+              <Field label="Coordinator">
+                <select required disabled={!form.centerId} className="input-field" value={form.coordinatorId} onChange={(e) => update("coordinatorId", e.target.value)}>
+                  <option value="">{form.centerId ? "Coordinator" : "Select Center First"}</option>
+                  {coordinatorOptions.map((coordinator) => (
+                    <option key={coordinator.id} value={coordinator.id}>{coordinator.name}</option>
+                  ))}
+                </select>
+                {form.centerId && coordinatorOptions.length === 0 && (
+                  <p className="text-[10px] text-red-500 mt-0.5">No coordinator allocated yet.</p>
+                )}
+              </Field>
+            </>}
           </div>
 
           <div className="pt-2 flex flex-col items-center gap-3">
@@ -576,23 +494,14 @@ export default function StudentRegistration() {
                 className="mt-0.5 accent-gold"
               />
               <span>
-                I agree to the <Link to="/terms-and-conditions" className="text-navy font-semibold hover:text-gold">Terms and Conditions</Link> and understand that payment is optional.
+                I agree to the <Link to="/terms-and-conditions" className="text-navy font-semibold hover:text-gold">Terms and Conditions</Link>.
               </span>
             </label>
-            <div className="flex w-full flex-col gap-3 sm:w-[26rem] sm:flex-row">
-              <button
-                type="button"
-                onClick={handlePayment}
-                disabled={step === "paying" || paymentCompleted}
-                className="btn-primary justify-center disabled:opacity-60 flex-1"
-              >
-                {step === "paying" ? "Processing Payment..." : paymentCompleted ? "Payment Completed" : "Pay ₹100"}
-              </button>
-
+            <div className="flex w-full sm:w-[26rem]">
               <button
                 type="submit"
-                disabled={step === "saving" || step === "paying"}
-                className="btn-primary justify-center disabled:opacity-60 flex-1 bg-green-600 hover:bg-green-700"
+                disabled={step === "saving"}
+                className="btn-primary w-full justify-center disabled:opacity-60 bg-green-600 hover:bg-green-700"
               >
                 {step === "saving" ? "Saving Registration..." : "Register"}
               </button>
