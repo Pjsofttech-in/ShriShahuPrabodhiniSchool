@@ -99,7 +99,7 @@ export default function TestSeriesDetail() {
   if (loading) return <div><PageHeader title="Test Series" /><div className="flex justify-center py-24 text-muted"><LoaderCircle className="animate-spin text-gold" /></div></div>;
   if (!series) return <div><PageHeader title="Test Series" /><p className="py-24 text-center text-muted">Test series not found.</p></div>;
 
-  const isFreeSeries = Number(series.sellingPrice ?? series.price ?? 0) === 0;
+  const isFreeSeries = (series.price !== null && series.price !== undefined && series.price !== "" && Number(series.price) === 0) || (series.sellingPrice !== null && series.sellingPrice !== undefined && series.sellingPrice !== "" && Number(series.sellingPrice) === 0);
   const hasAccess = isFreeSeries || hasPaidStudentFees(user) || hasPaidForTestSeries(series.id);
 
   return (
@@ -115,7 +115,7 @@ export default function TestSeriesDetail() {
                 {[series.featureOne, series.featureTwo, series.featureThree].filter(Boolean).map((feature) => <li key={feature}>{feature}</li>)}
                 {!series.featureOne && !series.featureTwo && !series.featureThree && <><li>Latest test papers</li><li>Detailed solutions</li><li>Performance tracking</li></>}
               </ul>
-              <div className="mt-3 flex items-center gap-3"><span className="font-bold text-green-700">{series.sellingPrice != null ? `Rs ${series.sellingPrice}` : series.price != null ? `Rs ${series.price}` : "FREE"}</span>{series.mrp && <span className="text-sm text-muted line-through">Rs {series.mrp}</span>}</div>
+              <div className="mt-3 flex items-center gap-3"><span className="font-bold text-green-700">{isFreeSeries ? "FREE" : series.sellingPrice != null ? `Rs ${series.sellingPrice}` : series.price != null ? `Rs ${series.price}` : "FREE"}</span>{series.mrp && <span className="text-sm text-muted line-through">Rs {series.mrp}</span>}</div>
               <div className="mt-4 flex flex-wrap items-center gap-2">
                 {isFreeSeries ? <p className="inline-flex w-fit rounded-full bg-[#fff0df] px-4 py-2 text-sm font-bold text-[#b65318]">Free access - choose a paper below to start.</p> : <button type="button" onClick={() => handleBuySeries()} className="btn-primary !bg-[#e86516] !shadow-[0_8px_18px_rgba(232,101,22,0.22)] hover:!bg-[#c84c0b]">{hasAccess ? "SOLVE TEST SERIES" : "BUY TEST SERIES"}</button>}
                 <button type="button" onClick={() => setLeaderboardTarget({ type: "series", id, title: series.title })} className="inline-flex items-center gap-2 rounded-lg border border-[#f3bd63] bg-white px-4 py-2 text-sm font-bold text-[#e86516] hover:bg-[#fff0df]"><Trophy size={16} /> Series leaderboard</button>

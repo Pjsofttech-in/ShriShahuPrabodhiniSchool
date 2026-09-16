@@ -610,7 +610,7 @@ export default function StudentDashboard({ defaultTab = "profile" }) {
           </div>
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
             {testSeries.map((series) => {
-              const isFree = Number(series.sellingPrice ?? series.price ?? 0) === 0;
+              const isFree = (series.price !== null && series.price !== undefined && series.price !== "" && Number(series.price) === 0) || (series.sellingPrice !== null && series.sellingPrice !== undefined && series.sellingPrice !== "" && Number(series.sellingPrice) === 0);
               const paid = isPaymentSuccessful || hasPaidStudentFees(student) || hasPaidForTestSeries(series.id);
               return (
                 <article key={series.id} className="card flex flex-col gap-3 p-5">

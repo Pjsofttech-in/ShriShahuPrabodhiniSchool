@@ -63,6 +63,9 @@ function SeriesImage({ src, alt, className = "" }) {
 
 function priceLabel(series) {
   const rawPrice = series?.sellingPrice ?? series?.price ?? null;
+  const priceIsZero = series?.price !== null && series?.price !== undefined && series?.price !== "" && Number(series.price) === 0;
+  const sellingPriceIsZero = series?.sellingPrice !== null && series?.sellingPrice !== undefined && series?.sellingPrice !== "" && Number(series.sellingPrice) === 0;
+  if (priceIsZero || sellingPriceIsZero) return "FREE";
   if (rawPrice !== null && Number(rawPrice) > 0) return `₹ ${Number(rawPrice).toLocaleString("en-IN")}`;
   if (series?.sellingPrice === 0 || series?.price === 0) return "FREE";
   return "FREE";
@@ -181,7 +184,7 @@ export default function TestSeries() {
               {filteredSeries.map((item) => {
                 const safeTitle = item.title || "Test Series";
                 const price = priceLabel(item);
-                const isFree = Number(item.sellingPrice ?? item.price ?? 0) === 0;
+                const isFree = (item.price !== null && item.price !== undefined && item.price !== "" && Number(item.price) === 0) || (item.sellingPrice !== null && item.sellingPrice !== undefined && item.sellingPrice !== "" && Number(item.sellingPrice) === 0);
                 const isPaid = isFree || hasPaidStudentFees(user) || hasPaidForTestSeries(item.id);
                 const mrp = Number(item.mrp ?? item.price ?? 0);
                 const features = featureList(item);
