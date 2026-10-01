@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Award, CalendarClock, CheckCircle2, CircleX, Clock3, Download, Eye, FileDown, Gauge, LoaderCircle, Medal, Trophy, UserRound, X } from "lucide-react";
-import { jsPDF } from "jspdf";
+// import { jsPDF } from "jspdf";
 
 function formatDuration(seconds) {
   if (seconds == null || seconds === "") return "-";

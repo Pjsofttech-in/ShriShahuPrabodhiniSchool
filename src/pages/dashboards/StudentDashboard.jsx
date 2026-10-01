@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { jsPDF } from "jspdf";
+// import { jsPDF } from "jspdf";
 import { BadgeCheck, BookOpen, Building2, CheckCircle2, CreditCard, Download, FileText, GraduationCap, LayoutDashboard, Mail, ShieldCheck, Trophy, User } from "lucide-react";
 import DashboardShell from "../../components/DashboardShell.jsx";
 import { useAuth } from "../../context/AuthContext.jsx";
