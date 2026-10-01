@@ -1022,22 +1022,57 @@ export async function fetchStudentById(studentId) {
 
 function normalizeStudent(student) {
   if (!student || typeof student !== "object") return student;
-  const payment = student.payment ?? student.latestPayment ?? student.paymentDetails ?? {};
+  const payment = student.payment ?? student.latestPayment ?? student.paymentDetails ?? student.payment_details ?? {};
+  const paymentHistory = [
+    student.paymentHistory,
+    student.payment_history,
+    student.paymentHistoryList,
+    student.payment_history_list,
+    student.payments,
+    student.paymentRecords,
+    student.payment_records,
+    student.transactions,
+  ].flatMap((value) => Array.isArray(value) ? value : value && typeof value === "object" ? Object.values(value) : []).filter((item) => item && typeof item === "object");
+  const latestHistoryPayment = paymentHistory.find((item) => {
+    const status = item.paymentStatus ?? item.payment_status ?? item.paymentStatusName ?? item.payment_status_name ?? item.transactionStatus ?? item.transaction_status ?? item.status ?? item.state;
+    return [item.paymentDone, item.isPaymentDone, item.payment_done, item.isPaid, item.paid, item.paymentCompleted, item.payment_completed].some((value) =>
+      value === true || value === 1 || String(value).toLowerCase() === "true" || String(value) === "1"
+    ) || ["PAID", "SUCCESS", "SUCCESSFUL", "COMPLETED", "CAPTURED", "PAYMENT SUCCESSFUL"].includes(String(status ?? "").trim().toUpperCase());
+  }) ?? paymentHistory[paymentHistory.length - 1] ?? {};
   const paymentStatus =
     student.paymentStatus ??
     student.payment_status ??
+    student.paymentStatusName ??
+    student.payment_status_name ??
     payment.paymentStatus ??
     payment.payment_status ??
+    payment.paymentStatusName ??
+    payment.payment_status_name ??
+    payment.transactionStatus ??
+    payment.transaction_status ??
     payment.status ??
     payment.state ??
+    latestHistoryPayment.paymentStatus ??
+    latestHistoryPayment.payment_status ??
+    latestHistoryPayment.status ??
+    latestHistoryPayment.state ??
     "";
   const paymentId =
     student.paymentId ??
     student.payment_id ??
     student.razorpayPaymentId ??
+    student.transactionId ??
+    student.transaction_id ??
     payment.paymentId ??
     payment.payment_id ??
     payment.razorpayPaymentId ??
+    payment.transactionId ??
+    payment.transaction_id ??
+    latestHistoryPayment.paymentId ??
+    latestHistoryPayment.payment_id ??
+    latestHistoryPayment.razorpayPaymentId ??
+    latestHistoryPayment.transactionId ??
+    latestHistoryPayment.transaction_id ??
     "";
   const rawPaymentAmount =
     student.amount ??
@@ -1051,6 +1086,10 @@ function normalizeStudent(student) {
     payment.paymentAmount ??
     payment.registrationFee ??
     payment.totalAmount ??
+    latestHistoryPayment.amount ??
+    latestHistoryPayment.amountPaid ??
+    latestHistoryPayment.paidAmount ??
+    latestHistoryPayment.paymentAmount ??
     null;
   const paymentAmount = rawPaymentAmount == null
     ? null
@@ -1059,7 +1098,7 @@ function normalizeStudent(student) {
       : Number(rawPaymentAmount);
   const normalizedPaymentStatus = String(paymentStatus).trim().toUpperCase();
   const paymentDone =
-    [student.paymentDone, student.isPaymentDone, student.payment_done, payment.paymentDone, payment.isPaymentDone].some((value) =>
+    [student.paymentDone, student.isPaymentDone, student.payment_done, student.isPaid, student.paid, student.paymentCompleted, student.payment_completed, payment.paymentDone, payment.isPaymentDone, payment.isPaid, payment.paid, payment.paymentCompleted, payment.payment_completed, latestHistoryPayment.paymentDone, latestHistoryPayment.isPaymentDone, latestHistoryPayment.payment_done, latestHistoryPayment.isPaid, latestHistoryPayment.paid, latestHistoryPayment.paymentCompleted, latestHistoryPayment.payment_completed].some((value) =>
       value === true || value === 1 || String(value).toLowerCase() === "true" || String(value) === "1"
     ) ||
     ["PAID", "SUCCESS", "SUCCESSFUL", "COMPLETED", "CAPTURED", "PAYMENT SUCCESSFUL"].includes(normalizedPaymentStatus);
@@ -1104,7 +1143,7 @@ function normalizeStudent(student) {
     paymentStatus: paymentStatus || (paymentDone ? "PAID" : ""),
     paymentDone,
     paymentId,
-    paymentMode: student.paymentMode ?? payment.paymentMode ?? payment.mode ?? "",
+    paymentMode: student.paymentMode ?? payment.paymentMode ?? payment.mode ?? latestHistoryPayment.paymentMode ?? latestHistoryPayment.mode ?? "",
     amount: Number.isFinite(paymentAmount) ? paymentAmount : rawPaymentAmount,
     paymentAmount: Number.isFinite(paymentAmount) ? paymentAmount : rawPaymentAmount,
   };

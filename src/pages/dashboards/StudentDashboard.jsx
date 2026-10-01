@@ -38,8 +38,16 @@ function isPaymentFlagSet(student) {
     student?.paymentDone,
     student?.isPaymentDone,
     student?.payment_done,
+    student?.isPaid,
+    student?.paid,
+    student?.paymentCompleted,
+    student?.payment_completed,
     student?.payment?.paymentDone,
     student?.payment?.isPaymentDone,
+    student?.payment?.isPaid,
+    student?.payment?.paid,
+    student?.payment?.paymentCompleted,
+    student?.payment?.payment_completed,
   ].some((value) => value === true || value === 1 || String(value).toLowerCase() === "true" || String(value) === "1");
 }
 
@@ -303,7 +311,7 @@ function unwrapPaymentRecords(value) {
   if (!value || typeof value !== "object") return [];
   if (Array.isArray(value)) return value.flatMap(unwrapPaymentRecords);
 
-  const recordKeys = ["id", "paymentId", "payment_id", "orderId", "order_id", "status", "paymentStatus", "amount", "paidAmount"];
+  const recordKeys = ["id", "paymentId", "payment_id", "transactionId", "transaction_id", "referenceNumber", "reference_number", "orderId", "order_id", "status", "paymentStatus", "paymentStatusName", "transactionStatus", "amount", "paidAmount", "paidAt", "paymentDate"];
   if (recordKeys.some((key) => value[key] != null)) return [value];
 
   return Object.values(value).flatMap(unwrapPaymentRecords);
@@ -316,14 +324,21 @@ function getPaymentHistory(student, localPayments) {
     source.payment_history,
     source.paymentHistoryList,
     source.payment_history_list,
+    source.paymentHistoryData,
+    source.payment_history_data,
     source.payments,
     source.studentPayments,
     source.paymentList,
+    source.transactionList,
+    source.transaction_list,
+    source.paymentResponses,
     source.paymentRecords,
     source.payment_records,
     source.paymentTransactions,
     source.transactionHistory,
     source.transaction_history,
+    source.latestTransaction,
+    source.latest_transaction,
     source.transactions,
     source.payment,
     source.latestPayment,
@@ -346,8 +361,8 @@ function getPaymentHistory(student, localPayments) {
 
 function getResultTimestamp(result, type) {
   const keys = type === "started"
-    ? ["startedAt", "started_at", "startTime", "start_time", "startedOn", "started_on", "startedDate", "startDate", "startDateTime", "start_date_time", "attemptStartedAt", "attempt_started_at", "createdAt", "created_at", "createdOn", "created_on", "createdDate", "createdDateTime"]
-    : ["submittedAt", "submitted_at", "submitTime", "submit_time", "submitDateTime", "submit_date_time", "submittedOn", "submitted_on", "submittedDate", "submitDate", "submittedDateTime", "completedAt", "completed_at", "completedOn", "completed_on", "completedDate", "completedDateTime", "completionTime", "endTime", "end_time", "endDate", "endDateTime", "updatedAt", "updated_at", "updatedOn", "updated_on", "updatedDate", "updatedDateTime"];
+    ? ["startedAt", "started_at", "startTime", "start_time", "startedOn", "started_on", "startedDate", "startedDateTime", "startDate", "start_date", "startDateTime", "start_date_time", "startTimestamp", "start_timestamp", "attemptStartedAt", "attempt_started_at", "attemptStartTime", "attempt_start_time", "attemptStartDate", "actualStartTime", "createdAt", "created_at", "createdOn", "created_on", "createdDate", "createdDateTime"]
+    : ["submittedAt", "submitted_at", "submitTime", "submit_time", "submittedTime", "submitted_time", "submitDateTime", "submit_date_time", "submittedOn", "submitted_on", "submittedDate", "submitDate", "submittedDateTime", "submissionTime", "submissionDateTime", "attemptSubmittedAt", "attempt_submitted_at", "attemptSubmitTime", "attempt_submit_time", "completedAt", "completed_at", "completedOn", "completed_on", "completedDate", "completedDateTime", "completionTime", "completionDate", "endTime", "end_time", "endDate", "endDateTime", "finishTime", "finishedAt", "updatedAt", "updated_at", "updatedOn", "updated_on", "updatedDate", "updatedDateTime"];
   const visited = new Set();
   function findTimestamp(value, depth = 0) {
     if (!value || typeof value !== "object" || depth > 5 || visited.has(value)) return null;
@@ -563,8 +578,15 @@ export default function StudentDashboard({ defaultTab = "profile" }) {
     (isPaymentFlagSet(student) ? "PAID" : "") ||
     student.paymentStatus ||
     student.payment_status ||
+    student.paymentStatusName ||
+    student.payment_status_name ||
+    student.transactionStatus ||
+    student.transaction_status ||
     student.payment?.status ||
     student.payment?.paymentStatus ||
+    student.payment?.payment_status ||
+    student.payment?.paymentStatusName ||
+    student.payment?.transactionStatus ||
     (student.paymentId || student.payment_id || student.razorpayPaymentId ? "Paid" : "Pending");
   const isStudentFeePaid = Boolean(isPaymentFlagSet(student)) || hasPaidStudentFees(student) || ["paid", "success", "successful", "completed", "captured", "payment successful"].includes(String(paymentStatusFromApi).trim().toLowerCase());
   const isPaymentSuccessful = isStudentFeePaid || Boolean(latestSuccessfulPayment);
