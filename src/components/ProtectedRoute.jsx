@@ -1,9 +1,10 @@
 import React from "react";
-import { Navigate } from "react-router-dom";
+import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
 
 export default function ProtectedRoute({ role, children }) {
   const { user } = useAuth();
+  const location = useLocation();
   let storedUser = null;
 
   try {
@@ -17,7 +18,7 @@ export default function ProtectedRoute({ role, children }) {
   const expectedRole = String(role || "").toLowerCase();
 
   if (!activeUser || (currentRole !== expectedRole && !currentRole.includes(expectedRole))) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to="/login" replace state={{ next: `${location.pathname}${location.search}`, nextState: location.state }} />;
   }
 
   return children;

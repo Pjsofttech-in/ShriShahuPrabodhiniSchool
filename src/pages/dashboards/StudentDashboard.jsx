@@ -22,7 +22,7 @@ import {
 } from "../../services/backendService.js";
 import { payWithRazorpay } from "../../utils/razorpay.js";
 import { API_BASE_URL } from "../../utils/api.js";
-import { getTestSeriesPayments, hasPaidForTestSeries, hasPaidStudentFees, saveTestSeriesPayment } from "../../utils/testSeriesAccess.js";
+import { getTestSeriesPayments, hasPaidForTestSeries, hasPaidStudentFees, isSuccessfulPayment, saveTestSeriesPayment } from "../../utils/testSeriesAccess.js";
 
 const tabs = [
   { key: "overview", label: "Overview", icon: LayoutDashboard },
@@ -109,6 +109,51 @@ function getQuestionId(question) {
 function getQuestionText(question) {
   const questionData = question?.question && typeof question.question === "object" ? question.question : question;
   return question?.questionText ?? question?.question_text ?? question?.text ?? (typeof question?.question === "string" ? question.question : null) ?? questionData?.questionText ?? questionData?.text ?? questionData?.question ?? "";
+}
+
+function unwrapPaymentRecords(value) {
+  if (!value || typeof value !== "object") return [];
+  if (Array.isArray(value)) return value.flatMap(unwrapPaymentRecords);
+
+  const recordKeys = ["id", "paymentId", "payment_id", "orderId", "order_id", "status", "paymentStatus", "amount", "paidAmount"];
+  if (recordKeys.some((key) => value[key] != null)) return [value];
+
+  return Object.values(value).flatMap(unwrapPaymentRecords);
+}
+
+function getPaymentHistory(student, localPayments) {
+  const profileSources = [student, student?.data, student?.student, student?.profile].filter(Boolean);
+  const profilePayments = profileSources.flatMap((source) => [
+    source.paymentHistory,
+    source.payment_history,
+    source.paymentHistoryList,
+    source.payment_history_list,
+    source.payments,
+    source.studentPayments,
+    source.paymentList,
+    source.paymentRecords,
+    source.payment_records,
+    source.paymentTransactions,
+    source.transactionHistory,
+    source.transaction_history,
+    source.transactions,
+    source.payment,
+    source.latestPayment,
+    source.paymentDetails,
+  ].flatMap(unwrapPaymentRecords));
+  const allPayments = [...profilePayments, ...Object.values(localPayments)];
+  const uniquePayments = new Map();
+
+  allPayments.forEach((payment, index) => {
+    const key = payment.paymentId ?? payment.payment_id ?? payment.razorpayPaymentId ?? payment.orderId ?? payment.order_id ?? payment.id ?? `${payment.testSeriesId ?? "payment"}-${payment.paidAt ?? payment.createdAt ?? index}-${payment.amount ?? ""}`;
+    uniquePayments.set(String(key), payment);
+  });
+
+  return Array.from(uniquePayments.values()).sort((first, second) => {
+    const firstDate = new Date(first.paidAt ?? first.paymentDate ?? first.createdAt ?? first.created_at ?? 0).getTime();
+    const secondDate = new Date(second.paidAt ?? second.paymentDate ?? second.createdAt ?? second.created_at ?? 0).getTime();
+    return secondDate - firstDate;
+  });
 }
 
 function getResultTimestamp(result, type) {
@@ -321,6 +366,10 @@ export default function StudentDashboard({ defaultTab = "profile" }) {
   if (!student) return <div className="min-h-[60vh] flex items-center justify-center">Loading profile...</div>;
 
   const rollNo = student.rollNo || student.roll_number || student.rollNumber || student.id || student.studentId || "—";
+  const studentId = student.id ?? student.studentId ?? user?.studentId ?? user?.id;
+  const paymentRecords = getTestSeriesPayments(studentId);
+  const paymentHistory = getPaymentHistory(student, paymentRecords);
+  const latestSuccessfulPayment = paymentHistory.find(isSuccessfulPayment);
   const paymentStatusFromApi =
     (isPaymentFlagSet(student) ? "PAID" : "") ||
     student.paymentStatus ||
@@ -328,13 +377,13 @@ export default function StudentDashboard({ defaultTab = "profile" }) {
     student.payment?.status ||
     student.payment?.paymentStatus ||
     (student.paymentId || student.payment_id || student.razorpayPaymentId ? "Paid" : "Pending");
-  const paymentAmount = getDisplayedPaymentAmount(student);
-  const isPaymentSuccessful = Boolean(isPaymentFlagSet(student)) || ["paid", "success", "successful", "completed", "captured", "payment successful"].includes(String(paymentStatusFromApi).trim().toLowerCase());
+  const isStudentFeePaid = Boolean(isPaymentFlagSet(student)) || hasPaidStudentFees(student) || ["paid", "success", "successful", "completed", "captured", "payment successful"].includes(String(paymentStatusFromApi).trim().toLowerCase());
+  const isPaymentSuccessful = isStudentFeePaid || Boolean(latestSuccessfulPayment);
+  const paymentAmount = getDisplayedPaymentAmount(student) ?? (latestSuccessfulPayment ? getDisplayedPaymentAmount(latestSuccessfulPayment) : null);
   const paymentStatus = isPaymentSuccessful ? "PAID" : String(paymentStatusFromApi).toUpperCase();
-  const paymentMode = student.paymentMode || (isPaymentSuccessful ? "ONLINE" : "—");
+  const paymentMode = student.paymentMode || latestSuccessfulPayment?.paymentMode || latestSuccessfulPayment?.mode || (isPaymentSuccessful ? "ONLINE" : "—");
   const selectedSeries = location.state?.purchaseSeries || location.state?.testSeries || null;
-  const selectedSeriesPaid = selectedSeries ? (isPaymentSuccessful || hasPaidStudentFees(student) || hasPaidForTestSeries(selectedSeries.id)) : false;
-  const paymentRecords = getTestSeriesPayments();
+  const selectedSeriesPaid = selectedSeries ? (isStudentFeePaid || hasPaidForTestSeries(selectedSeries.id, studentId)) : false;
   const hiddenProfileKeys = new Set(["password", "confirmPassword", "token", "accessToken", "refreshToken", "payment", "latestPayment", "paymentDetails"]);
   const additionalDetails = Object.entries(student).filter(([key, value]) => {
     if (hiddenProfileKeys.has(key) || value == null || value === "" || typeof value === "object") return false;
@@ -562,7 +611,7 @@ export default function StudentDashboard({ defaultTab = "profile" }) {
             const verification = await verifyRazorpayPayment({ orderId: orderId || order.id, paymentId, signature, ...metadata });
             const verified = verification === "Payment Successful" || verification?.success === true || verification?.verified === true || verification?.message === "Payment verified";
             if (!verified) throw new Error("Payment verification failed.");
-            const record = saveTestSeriesPayment(series.id, { ...metadata, paymentId, orderId: orderId || order.id, signature, status: "PAID" });
+            const record = saveTestSeriesPayment(series.id, { ...metadata, studentId, paymentId, orderId: orderId || order.id, signature, status: "PAID" });
             setPaymentTarget(null);
             setPaymentSuccess(record);
           } catch (error) {
@@ -595,10 +644,13 @@ export default function StudentDashboard({ defaultTab = "profile" }) {
   return (
     <DashboardShell title="Student" roleLabel="Student" tabs={tabs} activeTab={tab} onTabChange={setTab}>
       {tab === "overview" && (
-        <div className="grid sm:grid-cols-3 gap-5">
-          <div className="card p-6 text-center"><p className="font-mono font-bold text-navy text-lg">{rollNo}</p><p className="text-xs text-muted mt-1">Roll Number</p></div>
-          <div className="card p-6 text-center"><p className="font-display font-bold text-navy text-lg">{student.class || student.studentClass || "—"}</p><p className="text-xs text-muted mt-1">Class</p></div>
-          <div className="card p-6 text-center"><p className="font-display font-bold text-navy text-lg">{paymentStatus}</p><p className="text-xs text-muted mt-1">Payment Status</p></div>
+        <div className="space-y-5">
+          <div className="grid sm:grid-cols-3 gap-5">
+            <div className="card p-6 text-center"><p className="font-mono font-bold text-navy text-lg">{rollNo}</p><p className="text-xs text-muted mt-1">Roll Number</p></div>
+            <div className="card p-6 text-center"><p className="font-display font-bold text-navy text-lg">{student.class || student.studentClass || "—"}</p><p className="text-xs text-muted mt-1">Class</p></div>
+            <div className="card p-6 text-center"><p className="font-display font-bold text-navy text-lg">{paymentStatus}</p><p className="text-xs text-muted mt-1">Payment Status</p></div>
+          </div>
+          <PaymentHistoryGroup paymentHistory={paymentHistory} formatDate={formatDate} />
         </div>
       )}
       {tab === "solve" && (
@@ -611,7 +663,7 @@ export default function StudentDashboard({ defaultTab = "profile" }) {
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
             {testSeries.map((series) => {
               const isFree = (series.price !== null && series.price !== undefined && series.price !== "" && Number(series.price) === 0) || (series.sellingPrice !== null && series.sellingPrice !== undefined && series.sellingPrice !== "" && Number(series.sellingPrice) === 0);
-              const paid = isPaymentSuccessful || hasPaidStudentFees(student) || hasPaidForTestSeries(series.id);
+              const paid = isStudentFeePaid || hasPaidForTestSeries(series.id, studentId);
               return (
                 <article key={series.id} className="card flex flex-col gap-3 p-5">
                   <div className="flex items-start justify-between gap-3"><h3 className="font-display text-lg font-bold text-navy">{series.title}</h3><span className={`rounded-full px-2 py-1 text-[10px] font-bold uppercase ${isFree || paid ? "bg-green-50 text-green-700" : "bg-amber-50 text-amber-700"}`}>{isFree ? "Free" : paid ? "Paid" : "Fee pending"}</span></div>
@@ -632,7 +684,7 @@ export default function StudentDashboard({ defaultTab = "profile" }) {
           </section>
           {ebooks.length === 0 ? <div className="card p-10 text-center text-muted">No ebooks are available right now.</div> : <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">{ebooks.map((ebook) => {
             const isFree = ebook.status === "free" || ebook.price <= 0;
-            const hasAccess = isFree || hasPaidStudentFees(student) || isPaymentSuccessful;
+            const hasAccess = isFree || isStudentFeePaid;
             const image = ebookMediaUrl(ebook.thumbnail);
             return <article key={ebook.id} className="group overflow-hidden rounded-2xl border border-[#f3d1ae] bg-white shadow-[0_10px_25px_rgba(23,59,95,0.08)] transition hover:-translate-y-1 hover:shadow-[0_16px_30px_rgba(232,101,22,0.16)]">
               <div className="aspect-[1.7] overflow-hidden bg-[#fff0df]">{image ? <img src={image} alt={ebook.title} className="h-full w-full object-cover transition duration-500 group-hover:scale-105" /> : <div className="flex h-full items-center justify-center text-[#e86516]"><BookOpen size={38} /></div>}</div>
@@ -723,16 +775,7 @@ export default function StudentDashboard({ defaultTab = "profile" }) {
             </section>
           )}
 
-          {Object.keys(paymentRecords).length > 0 && (
-            <ProfileGroup icon={CreditCard} title="Test-series payment account">
-              {Object.values(paymentRecords).map((payment) => (
-                <div key={payment.testSeriesId} className="flex flex-col gap-1 border-b border-slate-100 py-3 last:border-0 sm:flex-row sm:items-center sm:justify-between">
-                  <div><p className="font-semibold text-navy">{payment.testSeriesTitle}</p><p className="text-xs text-muted">Payment ID: {payment.paymentId || "—"} · Order ID: {payment.orderId || "—"}</p></div>
-                  <div className="text-left sm:text-right"><p className="font-bold text-green-700">₹{Number(payment.amount || 0).toLocaleString("en-IN")} · PAID</p><p className="text-xs text-muted">{formatDate(payment.paidAt)}</p></div>
-                </div>
-              ))}
-            </ProfileGroup>
-          )}
+          <PaymentHistoryGroup paymentHistory={paymentHistory} formatDate={formatDate} />
 
           <div className={`flex items-center gap-3 rounded-2xl border p-4 ${isPaymentSuccessful ? "border-green-200 bg-green-50" : "border-amber-200 bg-amber-50"}`}>
             <CheckCircle2 className={isPaymentSuccessful ? "shrink-0 text-green-600" : "shrink-0 text-amber-600"} size={26} />
@@ -1020,5 +1063,31 @@ function ProfileGroup({ icon: Icon, title, children }) {
       <div className="mb-5 flex items-center gap-3 border-b border-slate-100 pb-4"><div className="grid h-9 w-9 place-items-center rounded-lg bg-[#edf5f7] text-[#205b78]"><Icon size={18} /></div><h3 className="font-display font-bold text-navy">{title}</h3></div>
       <dl className="space-y-3 text-sm">{children}</dl>
     </section>
+  );
+}
+
+function PaymentHistoryGroup({ paymentHistory, formatDate }) {
+  return (
+    <ProfileGroup icon={CreditCard} title="Payment history">
+      {paymentHistory.length === 0 ? (
+        <p className="text-muted">No payment history available.</p>
+      ) : paymentHistory.map((payment, index) => {
+        const paid = isSuccessfulPayment(payment);
+        const recordStatus = paid
+          ? "PAID"
+          : String(payment.status ?? payment.paymentStatus ?? payment.payment_status ?? payment.state ?? "PENDING").toUpperCase();
+        const recordAmount = getDisplayedPaymentAmount(payment);
+        const paymentId = payment.paymentId ?? payment.payment_id ?? payment.razorpayPaymentId ?? payment.id ?? "—";
+        const orderId = payment.orderId ?? payment.order_id;
+        const title = payment.testSeriesTitle ?? payment.seriesTitle ?? payment.testSeries?.title ?? payment.description ?? "Student payment";
+        const paidDate = payment.paidAt ?? payment.paymentDate ?? payment.createdAt ?? payment.created_at;
+        return (
+          <div key={String(paymentId !== "—" ? paymentId : `${payment.testSeriesId ?? "payment"}-${index}`)} className="flex flex-col gap-1 border-b border-slate-100 py-3 last:border-0 sm:flex-row sm:items-center sm:justify-between">
+            <div><p className="font-semibold text-navy">{title}</p><p className="text-xs text-muted">Payment ID: {paymentId}{orderId ? ` · Order ID: ${orderId}` : ""}</p></div>
+            <div className="text-left sm:text-right"><p className={`font-bold ${paid ? "text-green-700" : "text-muted"}`}>{recordAmount == null ? "—" : `₹${Number(recordAmount).toLocaleString("en-IN")}`} · {recordStatus}</p><p className="text-xs text-muted">{formatDate(paidDate)}</p></div>
+          </div>
+        );
+      })}
+    </ProfileGroup>
   );
 }

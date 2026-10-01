@@ -774,8 +774,11 @@ export async function fetchQuestionsByExamId(examId) {
   const questions = normalizeList(response.data);
   return questions
     .filter((question) => question?.active !== false)
-    .filter((question) => !examId || String(question?.examId ?? "") === String(examId))
-    .sort((first, second) => Number(first?.sequence ?? 0) - Number(second?.sequence ?? 0));
+    .filter((question) => {
+      const questionExamId = question?.examId ?? question?.exam_id ?? question?.examID ?? question?.exam?.id ?? question?.exam?.examId ?? question?.exam?.exam_id;
+      return !examId || String(questionExamId ?? "") === String(examId);
+    })
+    .sort((first, second) => Number(first?.sequence ?? first?.questionSequence ?? first?.question_sequence ?? 0) - Number(second?.sequence ?? second?.questionSequence ?? second?.question_sequence ?? 0));
 }
 
 function unwrapResponse(data) {

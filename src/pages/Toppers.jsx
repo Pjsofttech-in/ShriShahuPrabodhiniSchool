@@ -153,7 +153,7 @@ export default function Toppers() {
                       </h3>
 
                       <p className="mt-1 text-sm text-slate-500">
-                        Class {topper.className || "-"} · {topper.year || "2025"}
+                        Year {topper.year || "2025"}
                       </p>
                       {(topper.score || topper.post) && <div className="mt-4 flex items-center justify-center gap-2 text-xs font-semibold text-muted">
                         {topper.score && <span className="rounded-full bg-[#f7f1df] px-3 py-1.5 text-gold-dark">Score: {topper.score}</span>}

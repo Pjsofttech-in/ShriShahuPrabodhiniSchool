@@ -56,8 +56,8 @@ export default function App() {
             <Route path="/sankalp/results-pdf" element={<ResultsPDF />} />
             <Route path="/sankalp/test-series" element={<TestSeries />} />
             <Route path="/sankalp/test-series/:id" element={<TestSeriesDetail />} />
-            <Route path="/exam/:id/start" element={<StartExam />} />
-            <Route path="/exam/:id" element={<ExamPlayer />} />
+            <Route path="/exam/:id/start" element={<ProtectedRoute role="student"><StartExam /></ProtectedRoute>} />
+            <Route path="/exam/:id" element={<ProtectedRoute role="student"><ExamPlayer /></ProtectedRoute>} />
 
             <Route path="/courses" element={<Courses />} />
             <Route path="/courses/:id" element={<CourseDetails />} />

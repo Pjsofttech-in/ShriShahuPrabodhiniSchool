@@ -23,8 +23,12 @@ export default function Login() {
       return;
     }
     if (res.success) {
-      navigate("/student/profile", {
-        state: location.state?.testSeries ? { purchaseSeries: location.state.testSeries } : undefined,
+      const requestedPath = location.state?.next;
+      const nextPath = typeof requestedPath === "string" && requestedPath.startsWith("/") && !requestedPath.startsWith("//")
+        ? requestedPath
+        : "/student/profile";
+      navigate(nextPath, {
+        state: location.state?.nextState ?? (location.state?.testSeries ? { purchaseSeries: location.state.testSeries } : undefined),
         replace: true,
       });
     } else {

@@ -21,9 +21,10 @@ export default function ExamPlayer() {
 
   const passedExam = location.state?.exam ?? null;
   const [exam, setExam] = useState(passedExam);
-  const [loading, setLoading] = useState(!passedExam);
+  const [loading, setLoading] = useState(true);
   const [questions, setQuestions] = useState([]);
   const [attemptId, setAttemptId] = useState(null);
+  const [attemptReady, setAttemptReady] = useState(false);
   const [loadError, setLoadError] = useState("");
   const [submitError, setSubmitError] = useState("");
   const [answers, setAnswers] = useState({});
@@ -49,23 +50,42 @@ export default function ExamPlayer() {
     const text = question?.question ?? question?.questionText ?? question?.text ?? item?.questionText ?? `Question ${index + 1}`;
     let options = question?.options ?? question?.choices ?? question?.optionList ?? item?.options;
 
-    if (!options) {
-      options = [question?.optionA, question?.optionB, question?.optionC, question?.optionD].filter((option) => option != null && option !== "");
-    }
-    if (!options && question?.optionsJson) options = question.optionsJson;
     if (typeof options === "string") {
-      try { options = JSON.parse(options); } catch (error) { options = options.split("|").map((option) => option.trim()).filter(Boolean); }
+      try { options = JSON.parse(options); } catch { options = options.split("|").map((option) => option.trim()).filter(Boolean); }
     }
+
+    if (options && !Array.isArray(options) && typeof options === "object") options = Object.values(options);
+    if (!Array.isArray(options) || options.length === 0) {
+      options = [
+        question?.optionA ?? item?.optionA,
+        question?.optionB ?? item?.optionB,
+        question?.optionC ?? item?.optionC,
+        question?.optionD ?? item?.optionD,
+      ].filter((option) => option != null && option !== "");
+    }
+    if (options.length === 0) {
+      const optionsJson = question?.optionsJson ?? item?.optionsJson ?? question?.options_json ?? item?.options_json;
+      if (typeof optionsJson === "string") {
+        try { options = JSON.parse(optionsJson); } catch { options = optionsJson.split("|").map((option) => option.trim()).filter(Boolean); }
+      } else if (Array.isArray(optionsJson)) {
+        options = optionsJson;
+      }
+    }
+    if (options && !Array.isArray(options) && typeof options === "object") options = Object.values(options);
+    if (Array.isArray(options)) options = options.map((option) => option && typeof option === "object" ? option.text ?? option.label ?? option.value ?? option.optionText ?? option.option_text ?? "" : option).filter((option) => option != null && option !== "");
     if (!Array.isArray(options) || options.length === 0) {
       throw new Error(`Question ${index + 1} has no options in the database.`);
     }
 
     const rawCorrectAnswer = question?.correctAnswer ?? question?.correct_answer ?? question?.correctOption ?? question?.answer ?? item?.correctAnswer ?? item?.correct_answer ?? null;
     const rawCorrectIndex = question?.correctIndex ?? question?.answerIndex ?? question?.correctAnswerIndex ?? item?.correctIndex ?? item?.answerIndex ?? null;
+    const correctAnswerLetterIndex = typeof rawCorrectAnswer === "string" && /^[A-D]$/i.test(rawCorrectAnswer.trim())
+      ? rawCorrectAnswer.trim().toUpperCase().charCodeAt(0) - 65
+      : null;
     const resolvedCorrectIndex = rawCorrectIndex !== null && rawCorrectIndex !== undefined
-      ? Number(rawCorrectIndex)
+      ? (/^[A-D]$/i.test(String(rawCorrectIndex).trim()) ? String(rawCorrectIndex).trim().toUpperCase().charCodeAt(0) - 65 : Number(rawCorrectIndex))
       : (rawCorrectAnswer !== null && rawCorrectAnswer !== undefined
-        ? options.findIndex((option) => String(option).trim() === String(rawCorrectAnswer).trim())
+        ? correctAnswerLetterIndex ?? options.findIndex((option) => String(option).trim() === String(rawCorrectAnswer).trim())
         : null);
 
     return {
@@ -88,11 +108,18 @@ export default function ExamPlayer() {
   useEffect(() => {
     async function load() {
       try {
-        const all = await fetchExams();
-        const found = all.find((e) => String(e.id) === String(id));
-        if (found) setExam(found);
+        let examDetails = passedExam;
+        try {
+          const all = await fetchExams();
+          const found = all.find((candidate) => String(candidate.id) === String(id));
+          if (found) examDetails = { ...examDetails, ...found };
+        } catch (examError) {
+          if (!examDetails) throw examError;
+          console.warn("Could not refresh exam details; using the selected paper data.", examError);
+        }
+        if (examDetails) setExam(examDetails);
 
-        const attempt = await startExamAttempt(id, passedExam?.testSeriesId ?? found?.testSeriesId);
+        const attempt = await startExamAttempt(id, examDetails?.testSeriesId);
         setAttemptId(attempt.attemptId);
         let backendQs = [];
         try {
@@ -107,10 +134,11 @@ export default function ExamPlayer() {
 
         setQuestions(normalized);
 
-        const durationMin = Number(found?.duration) || 10;
+        const durationMin = Number(examDetails?.duration) || 10;
         const sec = durationMin * 60;
         initialDurationRef.current = sec;
         setTimeLeft(sec);
+        setAttemptReady(true);
       } catch (err) {
         console.error("Failed to load exam questions:", err);
         const backendMessage = typeof err?.response?.data === "string"
@@ -130,7 +158,7 @@ export default function ExamPlayer() {
 
   // Start timer
   useEffect(() => {
-    if (timeLeft <= 0 || submitted) return;
+    if (!attemptReady || timeLeft <= 0 || submitted) return;
     timerRef.current = setInterval(() => {
       setTimeLeft((t) => {
         if (t <= 1) {
@@ -142,14 +170,14 @@ export default function ExamPlayer() {
     }, 1000);
     return () => clearInterval(timerRef.current);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [timeLeft, submitted]);
+  }, [attemptReady, timeLeft, submitted]);
 
   useEffect(() => {
-    if (timeLeft === 0 && attemptId && !submitted && !loading) {
+    if (attemptReady && timeLeft === 0 && attemptId && !submitted && !loading) {
       handleAutoSubmit();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [timeLeft, attemptId, loading, submitted]);
+  }, [attemptReady, timeLeft, attemptId, loading, submitted]);
 
   function formatTime(s) {
     const mm = String(Math.floor(s / 60)).padStart(2, "0");

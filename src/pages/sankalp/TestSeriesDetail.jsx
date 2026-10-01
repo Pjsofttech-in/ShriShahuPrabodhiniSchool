@@ -25,6 +25,7 @@ function paperFrom(value, index) {
     id: exam?.examId ?? exam?.exam_id ?? exam?.id ?? index + 1,
     name: exam?.examName ?? exam?.name ?? `Test Paper ${index + 1}`,
     image: exam?.image ?? exam?.imageUrl ?? "",
+    testSeriesId: exam?.testSeriesId ?? exam?.testSeries?.id ?? null,
     totalMarks: exam?.totalMarks ?? "-",
     totalQuestions: exam?.totalQuestions ?? "-",
     duration: exam?.duration ?? "-",
@@ -43,7 +44,10 @@ export default function TestSeriesDetail() {
     Promise.all([fetchTestSeriesById(id), fetchExams()])
       .then(([loadedSeries, allExams]) => {
         setSeries(loadedSeries);
-        const linked = loadedSeries.exams?.length ? loadedSeries.exams.map(paperFrom) : allExams.filter((exam) => !exam.testSeriesId || String(exam.testSeriesId) === String(id)).map(paperFrom);
+        const seriesId = loadedSeries.id ?? id;
+        const linked = loadedSeries.exams?.length
+          ? loadedSeries.exams.map((exam) => ({ ...paperFrom(exam), testSeriesId: seriesId }))
+          : allExams.filter((exam) => !exam.testSeriesId || String(exam.testSeriesId) === String(seriesId)).map(paperFrom);
         setPapers(linked.filter((paper) => paper.active));
       })
       .catch(() => setSeries(null))
@@ -66,7 +70,7 @@ export default function TestSeriesDetail() {
     }
 
     const firstPaper = papers && papers.length ? papers[0] : null;
-    const paid = hasPaidStudentFees(user) || hasPaidForTestSeries(series.id);
+    const paid = hasPaidStudentFees(user) || hasPaidForTestSeries(series.id, user?.studentId ?? user?.id);
     if (paid && firstPaper) {
       navigate(`/exam/${firstPaper.id}/start`, { state: { exam: firstPaper } });
       return;
@@ -86,21 +90,20 @@ export default function TestSeriesDetail() {
       return;
     }
 
-    const paid = hasPaidStudentFees(user) || hasPaidForTestSeries(series.id);
+    const paid = hasPaidStudentFees(user) || hasPaidForTestSeries(series.id, user?.studentId ?? user?.id);
     if (!paid) {
       navigate("/student/profile", { state: { tab: "profile", purchaseSeries: series } });
       return;
     }
 
-    // Navigate to the exam player, pass paper as state for client-side rendering
-    navigate(`/exam/${paper.id}`, { state: { exam: paper } });
+    navigate(`/exam/${paper.id}/start`, { state: { exam: { ...paper, testSeriesId: series.id } } });
   }
 
   if (loading) return <div><PageHeader title="Test Series" /><div className="flex justify-center py-24 text-muted"><LoaderCircle className="animate-spin text-gold" /></div></div>;
   if (!series) return <div><PageHeader title="Test Series" /><p className="py-24 text-center text-muted">Test series not found.</p></div>;
 
   const isFreeSeries = (series.price !== null && series.price !== undefined && series.price !== "" && Number(series.price) === 0) || (series.sellingPrice !== null && series.sellingPrice !== undefined && series.sellingPrice !== "" && Number(series.sellingPrice) === 0);
-  const hasAccess = isFreeSeries || hasPaidStudentFees(user) || hasPaidForTestSeries(series.id);
+  const hasAccess = isFreeSeries || hasPaidStudentFees(user) || hasPaidForTestSeries(series.id, user?.studentId ?? user?.id);
 
   return (
     <div className="min-h-screen bg-white">

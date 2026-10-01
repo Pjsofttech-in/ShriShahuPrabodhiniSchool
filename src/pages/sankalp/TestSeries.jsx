@@ -185,7 +185,7 @@ export default function TestSeries() {
                 const safeTitle = item.title || "Test Series";
                 const price = priceLabel(item);
                 const isFree = (item.price !== null && item.price !== undefined && item.price !== "" && Number(item.price) === 0) || (item.sellingPrice !== null && item.sellingPrice !== undefined && item.sellingPrice !== "" && Number(item.sellingPrice) === 0);
-                const isPaid = isFree || hasPaidStudentFees(user) || hasPaidForTestSeries(item.id);
+                const isPaid = isFree || hasPaidStudentFees(user) || hasPaidForTestSeries(item.id, user?.studentId ?? user?.id);
                 const mrp = Number(item.mrp ?? item.price ?? 0);
                 const features = featureList(item);
                 const showFeatures = expandedFeatures.has(item.id);
