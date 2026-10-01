@@ -109,6 +109,15 @@ export default function ExamPlayer() {
 
   useEffect(() => {
     async function load() {
+      setLoading(true);
+      setAttemptReady(false);
+      setAttemptId(null);
+      setSubmitted(false);
+      setResult(null);
+      setQuestions([]);
+      setAnswers({});
+      setTimeLeft(0);
+      submittingRef.current = false;
       try {
         let examDetails = passedExam;
         try {
@@ -209,14 +218,17 @@ export default function ExamPlayer() {
   function computeResult() {
     let score = 0;
     let maxScore = 0;
+     let answerKeyAvailable = true;
     questions.forEach((q) => {
       maxScore += Number(q.marks || 1);
       const given = answers[q.id];
-      if (typeof given !== 'undefined' && Number(given) === Number(q.correctIndex)) {
+       if (!Number.isInteger(q.correctIndex)) {
+         answerKeyAvailable = false;
+       } else if (typeof given !== 'undefined' && Number(given) === Number(q.correctIndex)) {
         score += Number(q.marks || 1);
       }
     });
-    return { score, maxScore, total: questions.length };
+     return { score, maxScore, total: questions.length, answerKeyAvailable };
   }
 
   const { user, refreshProfile } = useAuth();
@@ -227,19 +239,24 @@ export default function ExamPlayer() {
     return questions.map((question, index) => {
       const detail = source.find((item) => String(item.questionId ?? item.question_id ?? item.id) === String(question.id)) ?? source[index] ?? {};
       const serverAnswer = detail.studentAnswer ?? detail.selectedAnswer ?? detail.selected_answer ?? null;
-      const serverAnswerIndex = typeof serverAnswer === "string"
-        ? question.options.findIndex((option) => String(option).trim() === serverAnswer.trim())
-        : -1;
-      const selectedIndex = detail.selectedIndex ?? detail.selected_index ?? detail.answerIndex ?? detail.answer_index ?? (serverAnswerIndex >= 0 ? serverAnswerIndex : answers[question.id] ?? null);
+      const serverAnswerIndex = answerOptionIndex(serverAnswer, question.options);
+      const rawSelectedIndex = detail.selectedIndex ?? detail.selected_index ?? detail.answerIndex ?? detail.answer_index;
+      const selectedIndex = rawSelectedIndex != null
+        ? answerOptionIndex(rawSelectedIndex, question.options)
+        : serverAnswerIndex >= 0 ? serverAnswerIndex : answers[question.id] ?? null;
       const selectedAnswer = serverAnswer ?? (selectedIndex !== null && selectedIndex >= 0 ? question.options[selectedIndex] : null);
       const rawCorrectAnswer = detail.correctAnswer ?? detail.correct_answer ?? detail.correctOption ?? detail.correct_option ?? detail.answer ?? question.correctAnswer ?? null;
       const rawCorrectIndex = detail.correctIndex ?? detail.correct_index ?? detail.correctAnswerIndex ?? detail.correct_answer_index ?? question.correctIndex ?? null;
       const correctIndex = rawCorrectIndex !== null && rawCorrectIndex !== undefined
-        ? Number(rawCorrectIndex)
-        : (rawCorrectAnswer !== null && rawCorrectAnswer !== undefined ? question.options.findIndex((option) => String(option).trim() === String(rawCorrectAnswer).trim()) : null);
+        ? answerOptionIndex(rawCorrectIndex, question.options)
+        : answerOptionIndex(rawCorrectAnswer, question.options);
       const correctAnswer = correctIndex !== null && correctIndex >= 0 ? question.options[correctIndex] : rawCorrectAnswer;
-      const isCorrect = detail.correct === true || (detail.correct === false ? false : correctIndex !== null && correctIndex >= 0 && selectedIndex !== null && Number(correctIndex) === Number(selectedIndex));
-      const status = selectedAnswer === null || selectedAnswer === undefined ? "UNANSWERED" : isCorrect ? "CORRECT" : "INCORRECT";
+      const explicitCorrect = [detail.isCorrect, detail.is_correct, detail.correctness, typeof detail.correct === "boolean" ? detail.correct : undefined].find((value) => typeof value === "boolean");
+      const hasAnswerKey = correctIndex >= 0 || correctAnswer != null;
+      const answerMatchesKey = (selectedIndex !== null && selectedIndex >= 0 && correctIndex >= 0 && Number(correctIndex) === Number(selectedIndex))
+        || (selectedAnswer != null && correctAnswer != null && String(selectedAnswer).trim().toLowerCase() === String(correctAnswer).trim().toLowerCase());
+      const isCorrect = hasAnswerKey ? answerMatchesKey : explicitCorrect ?? null;
+      const status = selectedAnswer === null || selectedAnswer === undefined ? "UNANSWERED" : isCorrect === null ? "UNSCORED" : isCorrect ? "CORRECT" : "INCORRECT";
       return { ...question, detail, selectedIndex, selectedAnswer, correctIndex, correctAnswer, status, marksObtained: detail.marksObtained ?? detail.marks_obtained ?? null, answerExplanation: detail.answerExplanation ?? question.answerExplanation ?? "", markedForReview: Boolean(detail.markedForReview ?? detail.marked_for_review) };
     });
   }, [result, questions, answers]);
@@ -248,6 +265,7 @@ export default function ExamPlayer() {
     correct: resultItems.filter((item) => item.status === "CORRECT").length,
     incorrect: resultItems.filter((item) => item.status === "INCORRECT").length,
     unanswered: resultItems.filter((item) => item.status === "UNANSWERED").length,
+    unscored: resultItems.filter((item) => item.status === "UNSCORED").length,
   }), [resultItems]);
 
   async function handleSubmit() {
@@ -277,8 +295,67 @@ export default function ExamPlayer() {
           console.warn("Submitted result was saved, but the persisted result refresh failed.", refreshError);
         }
       }
+      const responseData = submittedResult?.data ?? submittedResult?.result ?? submittedResult;
+      const responseObject = responseData && typeof responseData === "object" && !Array.isArray(responseData) ? responseData : {};
+      const serverQuestionRows = [responseObject.questions, responseObject.questionResponses, responseObject.resultQuestions, responseObject.resultQuestionResponses, responseObject.details, responseObject.answers]
+        .find((items) => Array.isArray(items) && items.length > 0) || [];
+      const questionResults = questions.map((question) => {
+        const serverRow = serverQuestionRows.find((row) => String(row.questionId ?? row.question_id ?? row.id) === String(question.id)) || {};
+        const selectedIndex = answers[question.id] ?? null;
+        const selectedAnswer = selectedIndex == null ? null : question.options[selectedIndex];
+        const isCorrect = selectedIndex == null || !Number.isInteger(question.correctIndex)
+          ? null
+          : selectedIndex === question.correctIndex;
+        return {
+          ...serverRow,
+          ...question,
+          id: question.id,
+          questionId: question.id,
+          selectedIndex,
+          selectedAnswer: selectedAnswer ?? serverRow.selectedAnswer ?? serverRow.studentAnswer ?? null,
+          correctAnswer: Number.isInteger(question.correctIndex) ? question.options[question.correctIndex] : serverRow.correctAnswer ?? serverRow.correct_answer,
+          isCorrect: isCorrect ?? serverRow.isCorrect ?? serverRow.is_correct,
+          marksObtained: isCorrect === true ? Number(question.marks || 1) : isCorrect === false ? 0 : serverRow.marksObtained ?? serverRow.marks_obtained,
+          marks: question.marks || serverRow.marks || 1,
+        };
+      });
+      const localResult = computeResult();
+      const serverScoreValue = responseObject.obtainedMarks ?? responseObject.obtained_marks ?? responseObject.score ?? responseObject.marks ?? responseObject.totalMarksObtained;
+      const serverScore = serverScoreValue == null || serverScoreValue === "" ? null : Number(serverScoreValue);
+      const keyedRows = questionResults.filter((row) => row.marksObtained != null);
+      const score = localResult.answerKeyAvailable
+        ? localResult.score
+        : Number.isFinite(serverScore)
+          ? serverScore
+          : keyedRows.length === questionResults.length
+            ? keyedRows.reduce((total, row) => total + Number(row.marksObtained || 0), 0)
+            : null;
+      const serverMaxValue = responseObject.maxScore ?? responseObject.totalMarks ?? responseObject.total_marks ?? responseObject.maxMarks ?? responseObject.total;
+      const serverMax = serverMaxValue == null || serverMaxValue === "" ? null : Number(serverMaxValue);
+      const maxScore = localResult.answerKeyAvailable ? localResult.maxScore : Number.isFinite(serverMax) ? serverMax : localResult.maxScore;
+      const serverPercentage = responseObject.percentage ?? responseObject.percent;
+      const percentage = localResult.answerKeyAvailable && maxScore
+        ? Math.round((score / maxScore) * 100)
+        : serverPercentage ?? (score != null && maxScore ? Math.round((score / maxScore) * 100) : null);
+      const finalResult = {
+        ...responseObject,
+        attemptId,
+        examId: id,
+        examName: exam?.name ?? responseObject.examName ?? responseObject.exam_name,
+        score: score ?? 0,
+        obtainedMarks: score ?? 0,
+        maxScore,
+        totalMarks: maxScore,
+        total: questions.length,
+        totalQuestions: questions.length,
+        percentage,
+        questions: questionResults,
+        details: questionResults,
+      };
+      setResult(finalResult);
+      setDetailedResults(questionResults);
+      setResultTab("summary");
       try { await refreshProfile(); } catch (e) { /* ignore */ }
-      navigate("/student/profile", { state: { tab: "result" } });
     } catch (err) {
       console.warn('Result submission failed:', err);
       setSubmitError(err?.response?.data?.message || err?.message || "Unable to submit this exam.");
@@ -339,6 +416,8 @@ export default function ExamPlayer() {
               </div>
             )}
 
+            {submitted && !result && <div className="flex min-h-56 flex-col items-center justify-center gap-3 text-center" role="status"><span className="h-8 w-8 animate-spin rounded-full border-4 border-[#2795db] border-t-transparent" /><p className="font-semibold text-navy">Submitting answers and preparing your result...</p><p className="text-sm text-muted">Please keep this page open.</p></div>}
+
             {!submitted && (
               <div className="mb-4 flex items-center justify-between border-b border-slate-100 pb-3">
                 <div className="flex items-center gap-2 text-sm text-slate-600"><Clock3 size={16} className="text-gold" /> Question <span className="font-bold text-navy">{currentIndex + 1}</span> of {questions.length}</div>
@@ -385,7 +464,7 @@ export default function ExamPlayer() {
               <div className="rounded-2xl border border-slate-200 bg-white p-3 sm:p-5">
                 <div className="text-center"><h3 className="text-xl font-bold text-blue-700">Result Summary</h3><p className="mt-1 text-sm text-muted">{exam?.name}</p></div>
                 <div className="mt-4 flex overflow-x-auto rounded-xl border border-slate-200 bg-slate-50">
-                  {[{ id: "summary", label: "Summary", Icon: BarChart3 }, { id: "all", label: "All", Icon: ListChecks }, { id: "correct", label: "Correct", Icon: Check }, { id: "incorrect", label: "Incorrect", Icon: X }, { id: "unanswered", label: "Unanswered", Icon: CircleHelp }].map(({ id: tabId, label, Icon }) => <button key={tabId} type="button" onClick={() => setResultTab(tabId)} className={`flex min-w-[92px] flex-1 flex-col items-center gap-1 px-3 py-3 text-[10px] font-bold uppercase tracking-wide transition ${resultTab === tabId ? "bg-blue-600 text-white" : "text-slate-500 hover:bg-white"}`}><Icon size={16} />{label}</button>)}
+                  {[{ id: "summary", label: "Summary", Icon: BarChart3 }, { id: "all", label: "All", Icon: ListChecks }, { id: "correct", label: "Correct", Icon: Check }, { id: "incorrect", label: "Incorrect", Icon: X }, { id: "unanswered", label: "Unanswered", Icon: CircleHelp }, { id: "unscored", label: "Unscored", Icon: CircleMinus }].map(({ id: tabId, label, Icon }) => <button key={tabId} type="button" onClick={() => setResultTab(tabId)} className={`flex min-w-[92px] flex-1 flex-col items-center gap-1 px-3 py-3 text-[10px] font-bold uppercase tracking-wide transition ${resultTab === tabId ? "bg-blue-600 text-white" : "text-slate-500 hover:bg-white"}`}><Icon size={16} />{label}</button>)}
                 </div>
 
                 {resultTab === "summary" ? (
@@ -393,10 +472,13 @@ export default function ExamPlayer() {
                     <h4 className="text-sm font-bold text-blue-700">Question Stats</h4>
                     <div className="mt-3 grid gap-5 lg:grid-cols-2">
                       <div className="space-y-3">
-                        {[[Trophy, "Total Score", `${result.score ?? 0} / ${result.maxScore ?? result.total ?? resultItems.length}`, "bg-gold"], [CircleHelp, "Rank", result.rank ?? "-", "bg-violet-600"], [Check, "Correct", resultCounts.correct, "bg-green-500"], [X, "Incorrect", resultCounts.incorrect, "bg-red-500"], [CircleMinus, "Unsolved", resultCounts.unanswered, "bg-slate-400"], [ListChecks, "Solved", resultItems.length - resultCounts.unanswered, "bg-orange-500"]].map(([Icon, label, value, color]) => <div key={label} className="flex items-center gap-3"><div className={`flex h-10 w-10 items-center justify-center rounded-full text-white ${color}`}><Icon size={20} /></div><span className="text-sm text-muted">{label}:</span><strong className="text-navy">{value}</strong></div>)}
+                        {[[Trophy, "Total Score", `${result.score == null ? "—" : result.score} / ${result.maxScore ?? result.total ?? resultItems.length}`, "bg-gold"], [CircleHelp, "Rank", result.rank ?? "-", "bg-violet-600"], [Check, "Correct", resultCounts.correct], [X, "Incorrect", resultCounts.incorrect], [CircleMinus, "Unsolved", resultCounts.unanswered], [ListChecks, "Solved", resultItems.length - resultCounts.unanswered - resultCounts.unscored], [CircleHelp, "Unscored", resultCounts.unscored]].map(([Icon, label, value], index) => {
+                          const color = ["bg-gold", "bg-violet-600", "bg-green-500", "bg-red-500", "bg-slate-400", "bg-orange-500", "bg-slate-500"][index];
+                          return <div key={label} className="flex items-center gap-3"><div className={`flex h-10 w-10 items-center justify-center rounded-full text-white ${color}`}><Icon size={20} /></div><span className="text-sm text-muted">{label}:</span><strong className="text-navy">{value}</strong></div>;
+                        })}
                       </div>
                       <div className="flex min-h-[210px] items-end justify-center gap-5 rounded-xl bg-slate-50 p-5">
-                        {[["Correct", resultCounts.correct, "bg-green-500"], ["Incorrect", resultCounts.incorrect, "bg-red-500"], ["Unanswered", resultCounts.unanswered, "bg-blue-500"]].map(([label, value, color]) => <div key={label} className="flex h-full flex-1 flex-col items-center justify-end gap-2"><span className="text-xs font-bold text-navy">{value}</span><div className={`w-full max-w-16 rounded-t-md ${color}`} style={{ height: `${Math.max(10, (value / Math.max(resultItems.length, 1)) * 150)}px` }} /><span className="text-center text-[10px] text-muted">{label}</span></div>)}
+                                      {[ ["Correct", resultCounts.correct, "bg-green-500"], ["Incorrect", resultCounts.incorrect, "bg-red-500"], ["Unanswered", resultCounts.unanswered, "bg-blue-500"], ["Unscored", resultCounts.unscored, "bg-slate-400"]].map(([label, value, color]) => <div key={label} className="flex h-full flex-1 flex-col items-center justify-end gap-2"><span className="text-xs font-bold text-navy">{value}</span><div className={`w-full max-w-16 rounded-t-md ${color}`} style={{ height: `${Math.max(10, (value / Math.max(resultItems.length, 1)) * 150)}px` }} /><span className="text-center text-[10px] text-muted">{label}</span></div>)}
                       </div>
                     </div>
                   </div>
@@ -406,7 +488,7 @@ export default function ExamPlayer() {
                     {resultItems.filter((item) => resultTab === "all" || item.status.toLowerCase() === resultTab).map((item, index) => <div key={item.id} className="rounded-xl border border-slate-200 p-3"><div className="flex items-start justify-between gap-3"><div className="text-sm font-semibold text-navy">Q{index + 1}. {item.text}</div><span className={`shrink-0 rounded-full px-2 py-1 text-[10px] font-bold ${item.status === "CORRECT" ? "bg-green-50 text-green-700" : item.status === "INCORRECT" ? "bg-red-50 text-red-700" : "bg-slate-100 text-slate-600"}`}>{item.status}</span></div><div className="mt-2 grid gap-1 text-xs text-muted sm:grid-cols-2"><span>Your Answer: <strong className="text-navy">{item.selectedAnswer ?? "Not Answered"}</strong></span><span>Correct Answer: <strong className="text-green-700">{item.correctAnswer ?? "Not Provided"}</strong></span><span>Marks: <strong className="text-navy">{item.marksObtained ?? "—"}{item.marks != null ? ` / ${item.marks}` : ""}</strong></span></div>{item.answerExplanation && <p className="mt-2 rounded-lg bg-amber-50 p-2 text-xs text-amber-800">{item.answerExplanation}</p>}{item.markedForReview && <span className="mt-2 inline-block rounded-full bg-amber-50 px-2 py-1 text-[10px] font-semibold text-amber-700">Marked for review</span>}</div>)}
                   </div>
                 )}
-                <div className="mt-5 flex flex-col gap-2 sm:flex-row"><button onClick={() => navigate('/sankalp/test-series')} className="rounded-lg border px-3 py-2 text-sm">Back to Series</button><button onClick={() => navigate('/student/profile', { state: { tab: 'result', submittedAttempt: result } })} className="rounded-lg bg-blue-600 px-3 py-2 text-sm font-semibold text-white">View in My Result</button></div>
+                <div className="mt-5 flex flex-col gap-2 sm:flex-row"><button onClick={() => navigate(exam?.testSeriesId ? `/sankalp/test-series/${exam.testSeriesId}` : "/sankalp/test-series")} className="rounded-lg border px-3 py-2 text-sm">Back to Test Series</button><button onClick={() => navigate('/student/profile', { state: { tab: 'result', submittedAttempt: result } })} className="rounded-lg bg-blue-600 px-3 py-2 text-sm font-semibold text-white">View in My Result</button></div>
               </div>
             )}
 

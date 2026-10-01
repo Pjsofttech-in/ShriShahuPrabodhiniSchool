@@ -261,6 +261,44 @@ function applyCalculatedScore(attempt, questions) {
     : scoredResult;
 }
 
+function getAttemptSummary(attempt) {
+  const result = attempt?.result && typeof attempt.result === "object" ? attempt.result : attempt;
+  const metadata = { ...attempt, ...attempt?.data, ...attempt?.attempt, ...result, ...result?.data };
+  const questions = findQuestionList(result) || [];
+  const calculated = calculateAttemptScore(questions);
+  const readNumber = (...values) => {
+    for (const value of values) {
+      if (value === null || value === undefined || value === "") continue;
+      const number = Number(value);
+      if (Number.isFinite(number)) return number;
+    }
+    return null;
+  };
+  const score = calculated?.score ?? readNumber(metadata.obtainedMarks, metadata.obtained_marks, metadata.score, metadata.marks, metadata.totalMarksObtained);
+  const totalMarks = calculated?.maxScore ?? readNumber(metadata.maxScore, metadata.totalMarks, metadata.total_marks, metadata.maxMarks, metadata.total);
+  const totalQuestions = readNumber(metadata.totalQuestions, metadata.total_questions, questions.length) ?? questions.length;
+  const attemptedQuestions = readNumber(metadata.attemptedCount, metadata.attemptedQuestions, metadata.answeredCount, metadata.solvedQuestions, metadata.solved_questions)
+    ?? questions.filter((question) => question.selectedAnswer ?? question.selected_answer ?? question.studentAnswer ?? question.student_answer ?? question.answerText ?? question.response ?? question.answer).length;
+  const correctCount = calculated?.correctCount ?? readNumber(metadata.correctQuestions, metadata.correct_questions, metadata.correctCount, metadata.correct_count);
+  const incorrectCount = calculated?.incorrectCount ?? readNumber(metadata.incorrectQuestions, metadata.incorrect_questions, metadata.incorrectCount, metadata.incorrect_count);
+  const unansweredCount = calculated?.unansweredCount ?? readNumber(metadata.unattemptedCount, metadata.unattemptedQuestions, metadata.unansweredCount, metadata.unanswered_questions)
+    ?? (totalQuestions > 0 ? Math.max(0, totalQuestions - attemptedQuestions) : null);
+
+  return {
+    status: metadata.status ?? metadata.resultStatus ?? "Submitted",
+    score,
+    totalMarks,
+    percentage: calculated?.percentage ?? readNumber(metadata.percentage, metadata.percent) ?? (score != null && totalMarks ? Math.round((score / totalMarks) * 100) : null),
+    totalQuestions,
+    attemptedQuestions,
+    correctCount,
+    incorrectCount,
+    unansweredCount,
+    startedAt: getResultTimestamp(attempt, "started"),
+    submittedAt: getResultTimestamp(attempt, "submitted"),
+  };
+}
+
 function unwrapPaymentRecords(value) {
   if (!value || typeof value !== "object") return [];
   if (Array.isArray(value)) return value.flatMap(unwrapPaymentRecords);
@@ -363,6 +401,7 @@ export default function StudentDashboard({ defaultTab = "profile" }) {
   const [resultsError, setResultsError] = useState("");
   const [selectedAttempt, setSelectedAttempt] = useState(null);
   const [showAttemptModal, setShowAttemptModal] = useState(false);
+  const [attemptModalView, setAttemptModalView] = useState("summary");
   const [testSeries, setTestSeries] = useState([]);
   const [ebooks, setEbooks] = useState([]);
   const [paymentTarget, setPaymentTarget] = useState(null);
@@ -552,7 +591,8 @@ export default function StudentDashboard({ defaultTab = "profile" }) {
   }).length;
   const formatDate = (value) => value ? new Date(value).toLocaleDateString(undefined, { day: "2-digit", month: "short", year: "numeric" }) : "—";
 
-  async function viewAttempt(attempt) {
+  async function viewAttempt(attempt, initialView = "questions") {
+    setAttemptModalView(initialView);
     const attemptId = attempt.attemptId ?? attempt.id ?? attempt.resultId ?? attempt.attempt_id;
     const resultId = attempt.resultId ?? attempt.result?.id ?? attempt.id;
     if (!attemptId) {
@@ -1051,8 +1091,9 @@ export default function StudentDashboard({ defaultTab = "profile" }) {
                     </div>
                     <div className="flex items-center justify-between gap-5 border-t border-slate-100 pt-4 sm:border-t-0 sm:pt-0">
                       <div className="text-left sm:text-right"><div className="text-2xl font-bold text-navy">{percentage != null ? `${percentage}%` : "—"}</div><div className="text-xs text-muted">Score {obtained ?? "—"}{total ? ` / ${total}` : ""}</div></div>
-                      <div className="flex gap-2 justify-end">
-                        <button className="btn btn-sm transition group-hover:bg-gold" onClick={() => viewAttempt(r)}>View details</button>
+                      <div className="flex flex-wrap gap-2 justify-end">
+                        <button type="button" className="btn btn-sm transition group-hover:bg-gold" onClick={() => viewAttempt(r)}>View details</button>
+                        <button type="button" className="inline-flex items-center gap-1.5 rounded-md border border-gold/50 bg-gold/10 px-3 py-2 text-xs font-bold text-gold-dark transition hover:bg-gold hover:text-white" onClick={() => viewAttempt(r, "summary")}><Trophy size={14} /> Result summary</button>
                       </div>
                     </div>
                   </div>
@@ -1079,6 +1120,17 @@ export default function StudentDashboard({ defaultTab = "profile" }) {
                 </div>
 
                 <div className="min-h-0 overflow-y-auto px-4 py-4 sm:px-6 sm:py-5">
+                  <div className="mb-4 flex w-fit max-w-full rounded-lg border border-slate-200 bg-slate-50 p-1" role="tablist" aria-label="Attempt result views">
+                    {[{ id: "summary", label: "Result summary" }, { id: "questions", label: "Question details" }].map((view) => (
+                      <button key={view.id} type="button" role="tab" aria-selected={attemptModalView === view.id} onClick={() => setAttemptModalView(view.id)} className={`rounded-md px-3 py-2 text-xs font-bold transition sm:text-sm ${attemptModalView === view.id ? "bg-white text-navy shadow-sm" : "text-muted hover:text-navy"}`}>
+                        {view.label}
+                      </button>
+                    ))}
+                  </div>
+                  {attemptModalView === "summary" ? (
+                    <AttemptSummary summary={getAttemptSummary(selectedAttempt)} amountPaid={selectedAttempt.result?.amount ?? selectedAttempt.amount ?? paymentAmount} />
+                  ) : (
+                    <>
                   {(() => {
                     const result = selectedAttempt.result ?? selectedAttempt;
                     const metadata = { ...selectedAttempt, ...selectedAttempt.data, ...selectedAttempt.attempt, ...result, ...result.data };
@@ -1225,6 +1277,8 @@ export default function StudentDashboard({ defaultTab = "profile" }) {
                       );
                     });
                   })()}
+                    </>
+                  )}
                 </div>
 
               </div>
@@ -1289,3 +1343,55 @@ function PaymentHistoryGroup({ paymentHistory, formatDate }) {
     </ProfileGroup>
   );
 }
+
+function AttemptSummary({ summary, amountPaid }) {
+  const hasBreakdown = summary.correctCount != null || summary.incorrectCount != null || summary.unansweredCount != null;
+  const correct = Number(summary.correctCount ?? 0);
+  const incorrect = Number(summary.incorrectCount ?? 0);
+  const unanswered = Number(summary.unansweredCount ?? 0);
+  const distributionTotal = correct + incorrect + unanswered;
+  const segments = [
+    { label: "Correct", value: correct, color: "bg-emerald-500", textColor: "text-emerald-700" },
+    { label: "Incorrect", value: incorrect, color: "bg-rose-500", textColor: "text-rose-700" },
+    { label: "Unanswered", value: unanswered, color: "bg-slate-300", textColor: "text-slate-600" },
+  ];
+  const percentage = summary.percentage == null ? null : Math.min(100, Math.max(0, Number(summary.percentage)));
+
+  return (
+    <div className="space-y-4 sm:space-y-5">
+      <section className="overflow-hidden rounded-xl bg-[#173b5f] text-white">
+        <div className="flex flex-col gap-5 p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#f8d77e]">Assessment result</p>
+            <p className="mt-2 text-sm text-white/75">{summary.status}</p>
+            <p className="mt-1 text-2xl font-bold">{summary.score ?? "—"}<span className="text-base font-medium text-white/70"> / {summary.totalMarks ?? "—"}</span></p>
+          </div>
+          <div className="flex items-center gap-4">
+            <div className="relative grid h-20 w-20 shrink-0 place-items-center rounded-full sm:h-24 sm:w-24" style={{ background: `conic-gradient(#f3bd63 ${percentage ?? 0}%, rgba(255,255,255,0.2) 0)` }}>
+              <div className="grid h-[3.75rem] w-[3.75rem] place-items-center rounded-full bg-[#173b5f] text-lg font-extrabold sm:h-[4.5rem] sm:w-[4.5rem] sm:text-xl">{percentage == null ? "—" : `${percentage}%`}</div>
+            </div>
+            <div className="text-sm"><p className="text-white/65">Attempted</p><p className="font-bold">{summary.attemptedQuestions ?? "—"} / {summary.totalQuestions || "—"}</p></div>
+          </div>
+        </div>
+        <div className="h-1.5 bg-white/10"><div className="h-full bg-[#f3bd63] transition-[width]" style={{ width: `${percentage ?? 0}%` }} /></div>
+      </section>
+
+      <section className="rounded-xl border border-slate-200 bg-white p-4 sm:p-5">
+        <div className="flex items-center justify-between gap-3"><div><h5 className="font-bold text-navy">Question breakdown</h5><p className="mt-1 text-xs text-muted">Performance across this paper</p></div><span className="text-xs font-semibold text-muted">{distributionTotal} questions</span></div>
+        {hasBreakdown ? (
+          <div className="mt-5 grid min-h-40 grid-cols-3 items-end gap-4 border-b border-slate-200 px-2 pb-2" aria-label={`Correct ${correct}, incorrect ${incorrect}, unanswered ${unanswered}`}>
+            {segments.map((segment) => <div key={segment.label} className="flex h-full min-w-0 flex-col items-center justify-end gap-2"><span className={`text-sm font-extrabold ${segment.textColor}`}>{segment.value}</span><div className={`w-full max-w-16 rounded-t-md ${segment.color}`} style={{ height: distributionTotal ? `${Math.max(8, (segment.value / Math.max(...segments.map((item) => item.value), 1)) * 96)}px` : "0px" }} /><span className="text-center text-[11px] text-muted">{segment.label}</span></div>)}
+          </div>
+        ) : <p className="mt-4 text-sm text-muted">Question-level results are not available for this attempt.</p>}
+      </section>
+
+      <dl className="grid gap-x-5 gap-y-3 rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm sm:grid-cols-2">
+        <Row label="Started" value={formatDateTime(summary.startedAt)} />
+        <Row label="Submitted" value={formatDateTime(summary.submittedAt)} />
+        <Row label="Total questions" value={summary.totalQuestions || "—"} />
+        <Row label="Amount paid" value={amountPaid == null ? "—" : `₹${Number(amountPaid).toLocaleString("en-IN")}`} />
+      </dl>
+    </div>
+  );
+}
+
