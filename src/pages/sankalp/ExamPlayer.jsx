@@ -10,6 +10,8 @@ import {
   submitExamAttempt,
   fetchStudentResultById,
   fetchExamAttemptResult,
+  rememberExamAttempt,
+  rememberExamSubmittedAt,
 } from "../../services/backendService.js";
 import { useAuth } from "../../context/AuthContext.jsx";
 
@@ -121,6 +123,7 @@ export default function ExamPlayer() {
 
         const attempt = await startExamAttempt(id, examDetails?.testSeriesId);
         setAttemptId(attempt.attemptId);
+        rememberExamAttempt(attempt.attemptId, attempt.startedAt ?? attempt.started_at ?? attempt.startTime ?? attempt.start_time ?? attempt.startDateTime ?? attempt.start_date_time ?? attempt.createdAt ?? attempt.createdOn ?? new Date().toISOString());
         let backendQs = [];
         try {
           backendQs = await fetchAttemptQuestions(attempt.attemptId);
@@ -260,6 +263,7 @@ export default function ExamPlayer() {
     try {
       await Promise.allSettled([...pendingAnswerSavesRef.current]);
       let submittedResult = await submitExamAttempt(attemptId);
+      rememberExamSubmittedAt(attemptId);
       try {
         submittedResult = await fetchExamAttemptResult(attemptId);
       } catch (refreshError) {

@@ -828,11 +828,44 @@ export async function fetchStudentResultById(resultId) {
   return unwrapResponse(response.data);
 }
 
-export function rememberExamAttempt(attemptId) {
+export function rememberExamAttempt(attemptId, startedAt = new Date().toISOString()) {
   if (!attemptId) return;
-  const saved = JSON.parse(sessionStorage.getItem("ssp_attempt_ids") || "[]");
+  let saved = [];
+  try { saved = JSON.parse(sessionStorage.getItem("ssp_attempt_ids") || "[]"); } catch { saved = []; }
   const ids = [String(attemptId), ...saved.filter((id) => String(id) !== String(attemptId))].slice(0, 20);
   sessionStorage.setItem("ssp_attempt_ids", JSON.stringify(ids));
+  rememberExamStartedAt(attemptId, startedAt);
+}
+
+const ATTEMPT_TIMESTAMPS_KEY = "ssp_exam_attempt_timestamps";
+
+function readAttemptTimestamps() {
+  try {
+    const value = JSON.parse(sessionStorage.getItem(ATTEMPT_TIMESTAMPS_KEY) || "{}");
+    return value && typeof value === "object" && !Array.isArray(value) ? value : {};
+  } catch {
+    return {};
+  }
+}
+
+export function getRememberedExamTimestamps(attemptId) {
+  return readAttemptTimestamps()[String(attemptId)] || {};
+}
+
+export function rememberExamStartedAt(attemptId, startedAt = new Date().toISOString()) {
+  if (!attemptId) return;
+  const timestamps = readAttemptTimestamps();
+  const key = String(attemptId);
+  timestamps[key] = { ...timestamps[key], startedAt: timestamps[key]?.startedAt || startedAt };
+  sessionStorage.setItem(ATTEMPT_TIMESTAMPS_KEY, JSON.stringify(timestamps));
+}
+
+export function rememberExamSubmittedAt(attemptId, submittedAt = new Date().toISOString()) {
+  if (!attemptId) return;
+  const timestamps = readAttemptTimestamps();
+  const key = String(attemptId);
+  timestamps[key] = { ...timestamps[key], submittedAt };
+  sessionStorage.setItem(ATTEMPT_TIMESTAMPS_KEY, JSON.stringify(timestamps));
 }
 
 export function rememberExamResult(result) {

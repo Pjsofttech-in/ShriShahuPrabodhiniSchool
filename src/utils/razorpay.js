@@ -25,7 +25,7 @@ export function loadRazorpayScript() {
  * @param {Function} opts.onSuccess - called with { paymentId, orderId, signature } on success
  * @param {Function} opts.onFailure - called with (error) on failure/cancel
  */
-export async function payWithRazorpay({ amount, amountInPaise, currency = "INR", name, email, contact, orderId, onSuccess, onFailure }) {
+export async function payWithRazorpay({ amount, amountInPaise, currency = "INR", name, email, contact, orderId, description, onSuccess, onFailure }) {
   console.log("Razorpay Live Key:", import.meta.env.VITE_RAZORPAY_KEY_ID);
   console.log("Razorpay Order ID:", orderId);
 
@@ -57,7 +57,7 @@ export async function payWithRazorpay({ amount, amountInPaise, currency = "INR",
     amount: Number.isFinite(Number(amountInPaise)) ? Number(amountInPaise) : amount * 100,
     currency: currency || "INR",
     name: "Shri Shahu Prabodhini",
-    description: "Sankalp Scholarship Exam Registration Fee",
+    description: description || "Sankalp Scholarship Exam Registration Fee",
     order_id: orderId,
     handler: function (response) {
       onSuccess && onSuccess({

@@ -15,6 +15,7 @@ import {
   fetchStudentResults,
   fetchExamAttemptResult,
   fetchStudentResultById,
+  getRememberedExamTimestamps,
   fetchTestSeries,
   fetchEbookMaterials,
   createRazorpayOrder,
@@ -111,6 +112,155 @@ function getQuestionText(question) {
   return question?.questionText ?? question?.question_text ?? question?.text ?? (typeof question?.question === "string" ? question.question : null) ?? questionData?.questionText ?? questionData?.text ?? questionData?.question ?? "";
 }
 
+function getQuestionOptions(question) {
+  const questionData = question?.question && typeof question.question === "object" ? question.question : question;
+  let options = question?.options ?? question?.choices ?? question?.optionList ?? questionData?.options ?? [
+    question?.optionA ?? questionData?.optionA,
+    question?.optionB ?? questionData?.optionB,
+    question?.optionC ?? questionData?.optionC,
+    question?.optionD ?? questionData?.optionD,
+  ].filter((option) => option != null && option !== "");
+  if (typeof options === "string") {
+    try { options = JSON.parse(options); } catch { options = options.split("|").map((option) => option.trim()).filter(Boolean); }
+  }
+  if (options && !Array.isArray(options) && typeof options === "object") options = Object.values(options);
+  return Array.isArray(options)
+    ? options.map((option) => option && typeof option === "object" ? option.text ?? option.label ?? option.value ?? option.optionText ?? option.option_text ?? "" : option).filter((option) => option != null && option !== "")
+    : [];
+}
+
+function answerOptionIndex(value, options) {
+  if (value == null || !options.length) return -1;
+  if (typeof value === "object") value = value.text ?? value.label ?? value.value ?? value.answer ?? value.option ?? value.id;
+  if (value == null) return -1;
+
+  const normalizedValue = String(value).trim().toLowerCase();
+  const exactIndex = options.findIndex((option) => String(option).trim().toLowerCase() === normalizedValue);
+  if (exactIndex >= 0) return exactIndex;
+  if (/^[a-d]$/i.test(normalizedValue)) return normalizedValue.toUpperCase().charCodeAt(0) - 65;
+  const labeledOption = normalizedValue.match(/^([a-d])[).:\-]\s*/i);
+  if (labeledOption) return labeledOption[1].toUpperCase().charCodeAt(0) - 65;
+  if (/^\d+$/.test(normalizedValue)) {
+    const index = Number(normalizedValue);
+    if (index >= 0 && index < options.length) return index;
+  }
+  return -1;
+}
+
+function calculateAttemptScore(questions) {
+  if (!Array.isArray(questions) || questions.length === 0) return null;
+  let score = 0;
+  let maxScore = 0;
+  let correctCount = 0;
+  let incorrectCount = 0;
+  let unansweredCount = 0;
+
+  for (const row of questions) {
+    const nestedQuestion = row?.question && typeof row.question === "object" ? row.question : {};
+    const detail = row?.detail && typeof row.detail === "object" ? row.detail : {};
+    const options = getQuestionOptions(row);
+    const selectedAnswer = row?.selectedAnswer ?? row?.selected_answer ?? row?.studentAnswer ?? row?.student_answer ?? row?.answerText ?? row?.response ?? row?.selectedOption ?? row?.selected_option ?? detail.selectedAnswer ?? detail.studentAnswer;
+    const selectedIndexValue = row?.selectedIndex ?? row?.selected_index ?? row?.answerIndex ?? row?.answer_index ?? row?.studentAnswerIndex ?? row?.student_answer_index ?? detail.selectedIndex ?? detail.answerIndex;
+    const selectedIndex = selectedIndexValue == null ? answerOptionIndex(selectedAnswer, options) : answerOptionIndex(selectedIndexValue, options);
+    const explicitCorrect = [row?.isCorrect, row?.is_correct, row?.correctness, detail.isCorrect, detail.is_correct, detail.correctness, typeof row?.correct === "boolean" ? row.correct : undefined]
+      .find((value) => typeof value === "boolean");
+    const correctIndexValue = row?.correctIndex ?? row?.correct_index ?? row?.correctAnswerIndex ?? row?.correct_answer_index ?? row?.correctOptionIndex ?? row?.correct_option_index ?? nestedQuestion.correctIndex ?? nestedQuestion.correct_index;
+    const rawCorrectAnswer = row?.correctAnswer ?? row?.correct_answer ?? row?.correctOption ?? row?.correct_option ?? row?.answerKey ?? row?.answer_key ?? row?.answerExplanationKey ?? nestedQuestion.correctAnswer ?? nestedQuestion.correct_answer ?? nestedQuestion.correctOption ?? nestedQuestion.correct_option ?? nestedQuestion.answerKey ?? nestedQuestion.answer_key;
+    const correctIndex = correctIndexValue == null ? answerOptionIndex(rawCorrectAnswer, options) : answerOptionIndex(correctIndexValue, options);
+    const normalizedSelectedAnswer = selectedAnswer == null ? "" : String(typeof selectedAnswer === "object" ? selectedAnswer.text ?? selectedAnswer.label ?? selectedAnswer.value ?? selectedAnswer.answer ?? "" : selectedAnswer).trim().toLowerCase();
+    const normalizedCorrectAnswer = rawCorrectAnswer == null ? "" : String(typeof rawCorrectAnswer === "object" ? rawCorrectAnswer.text ?? rawCorrectAnswer.label ?? rawCorrectAnswer.value ?? rawCorrectAnswer.answer ?? "" : rawCorrectAnswer).trim().toLowerCase();
+    const hasCorrectAnswer = explicitCorrect !== undefined || correctIndex >= 0 || Boolean(normalizedCorrectAnswer);
+    if (!hasCorrectAnswer) return null;
+
+    const weightValue = nestedQuestion.marksPerQuestion ?? nestedQuestion.marks_per_question ?? nestedQuestion.questionMarks ?? nestedQuestion.question_marks ?? nestedQuestion.marks ?? nestedQuestion.weight ?? row?.maxMarks ?? row?.max_marks ?? row?.totalMarks ?? row?.total_marks ?? row?.marksTotal ?? row?.marks_total;
+    const weight = Number(weightValue);
+    const questionMarks = Number.isFinite(weight) && weight > 0 ? weight : 1;
+    maxScore += questionMarks;
+
+    const answered = selectedAnswer != null && String(typeof selectedAnswer === "object" ? selectedAnswer.text ?? selectedAnswer.label ?? selectedAnswer.value ?? selectedAnswer.answer ?? "" : selectedAnswer).trim() !== "" || selectedIndex >= 0;
+    if (!answered) {
+      unansweredCount += 1;
+      continue;
+    }
+
+    const canCompareAnswers = correctIndex >= 0 || Boolean(normalizedCorrectAnswer);
+    const isCorrect = canCompareAnswers
+      ? (selectedIndex >= 0 && correctIndex >= 0 && selectedIndex === correctIndex) || (normalizedSelectedAnswer !== "" && normalizedSelectedAnswer === normalizedCorrectAnswer)
+      : explicitCorrect === true;
+    if (isCorrect) {
+      score += questionMarks;
+      correctCount += 1;
+    } else {
+      incorrectCount += 1;
+    }
+  }
+
+  return {
+    score,
+    maxScore,
+    percentage: maxScore ? Math.round((score / maxScore) * 100) : 0,
+    correctCount,
+    incorrectCount,
+    unansweredCount,
+  };
+}
+
+async function enrichAttemptWithQuestions(attempt) {
+  const attemptId = attempt?.attemptId ?? attempt?.attempt_id ?? attempt?.id ?? attempt?.resultId;
+  let enrichedAttempt = { ...attempt, ...(attempt?.data ?? {}), attemptId };
+  const rememberedTimestamps = getRememberedExamTimestamps(attemptId);
+  if (!getResultTimestamp(enrichedAttempt, "started") && rememberedTimestamps.startedAt) enrichedAttempt.startedAt = rememberedTimestamps.startedAt;
+  if (!getResultTimestamp(enrichedAttempt, "submitted") && rememberedTimestamps.submittedAt) enrichedAttempt.submittedAt = rememberedTimestamps.submittedAt;
+  const result = enrichedAttempt.result ?? enrichedAttempt;
+  const examId = result.examId ?? result.exam_id ?? result.data?.examId ?? result.data?.exam_id ?? result.exam?.id ?? result.exam?.examId ?? attempt.examId ?? attempt.exam_id ?? attempt.data?.examId ?? attempt.exam?.id;
+  const answerRows = findQuestionList(result);
+
+  if (examId) {
+    try {
+      const questionBank = await fetchQuestionsByExamId(examId);
+      if (questionBank.length > 0 && answerRows?.length) {
+        const questions = answerRows.map((answerRow, index) => {
+          const answerText = getQuestionText(answerRow).trim().toLowerCase();
+          const matchingQuestion = questionBank.find((question) => {
+            const sameId = getQuestionId(question) != null && String(getQuestionId(question)) === String(getQuestionId(answerRow));
+            const sameText = answerText && getQuestionText(question).trim().toLowerCase() === answerText;
+            return sameId || sameText;
+          }) || questionBank[index];
+          return { ...matchingQuestion, ...answerRow, question: answerRow.question ?? matchingQuestion };
+        });
+        enrichedAttempt = enrichedAttempt.result
+          ? { ...enrichedAttempt, result: { ...enrichedAttempt.result, questions } }
+          : { ...enrichedAttempt, questions };
+      }
+    } catch (error) {
+      console.warn("Could not load question keys for score calculation.", error);
+    }
+  }
+
+  const questions = findQuestionList(enrichedAttempt.result ?? enrichedAttempt);
+  return questions?.length ? applyCalculatedScore(enrichedAttempt, questions) : enrichedAttempt;
+}
+
+function applyCalculatedScore(attempt, questions) {
+  const calculated = calculateAttemptScore(questions);
+  if (!calculated) return attempt;
+  const result = attempt?.result && typeof attempt.result === "object" ? attempt.result : attempt;
+  const scoredResult = {
+    ...result,
+    obtainedMarks: calculated.score,
+    score: calculated.score,
+    totalMarks: calculated.maxScore,
+    maxScore: calculated.maxScore,
+    percentage: calculated.percentage,
+    correctQuestions: calculated.correctCount,
+    incorrectQuestions: calculated.incorrectCount,
+    unattemptedQuestions: calculated.unansweredCount,
+  };
+  return attempt?.result && typeof attempt.result === "object"
+    ? { ...attempt, result: scoredResult }
+    : scoredResult;
+}
+
 function unwrapPaymentRecords(value) {
   if (!value || typeof value !== "object") return [];
   if (Array.isArray(value)) return value.flatMap(unwrapPaymentRecords);
@@ -158,8 +308,8 @@ function getPaymentHistory(student, localPayments) {
 
 function getResultTimestamp(result, type) {
   const keys = type === "started"
-    ? ["startedAt", "started_at", "startTime", "start_time", "startedOn", "startedDate", "startDate", "startDateTime", "attemptStartedAt", "attempt_started_at", "createdAt", "created_at", "createdDate", "createdDateTime"]
-    : ["submittedAt", "submitted_at", "submitTime", "submit_time", "submittedOn", "submittedDate", "submitDate", "submittedDateTime", "completedAt", "completed_at", "completionTime", "endTime", "updatedAt", "updated_at", "updatedDate", "updatedDateTime"];
+    ? ["startedAt", "started_at", "startTime", "start_time", "startedOn", "started_on", "startedDate", "startDate", "startDateTime", "start_date_time", "attemptStartedAt", "attempt_started_at", "createdAt", "created_at", "createdOn", "created_on", "createdDate", "createdDateTime"]
+    : ["submittedAt", "submitted_at", "submitTime", "submit_time", "submitDateTime", "submit_date_time", "submittedOn", "submitted_on", "submittedDate", "submitDate", "submittedDateTime", "completedAt", "completed_at", "completedOn", "completed_on", "completedDate", "completedDateTime", "completionTime", "endTime", "end_time", "endDate", "endDateTime", "updatedAt", "updated_at", "updatedOn", "updated_on", "updatedDate", "updatedDateTime"];
   const visited = new Set();
   function findTimestamp(value, depth = 0) {
     if (!value || typeof value !== "object" || depth > 5 || visited.has(value)) return null;
@@ -207,7 +357,7 @@ export default function StudentDashboard({ defaultTab = "profile" }) {
   const [student, setStudent] = useState(null);
   const [center, setCenter] = useState(null);
   const [coordinator, setCoordinator] = useState(null);
-  const { user } = useAuth();
+  const { user, refreshProfile } = useAuth();
   const [results, setResults] = useState([]);
   const [loadingResults, setLoadingResults] = useState(false);
   const [resultsError, setResultsError] = useState("");
@@ -337,13 +487,13 @@ export default function StudentDashboard({ defaultTab = "profile" }) {
         });
         const hydratedResults = await Promise.all(loadedResults.map(async (item) => {
           const itemAttemptId = item.attemptId ?? item.id ?? item.resultId ?? item.attempt_id;
-          if (!itemAttemptId) return item;
+          if (!itemAttemptId) return enrichAttemptWithQuestions(item);
           try {
             const liveResult = await fetchExamAttemptResult(itemAttemptId);
-            return { ...item, ...liveResult, attemptId: itemAttemptId };
+            return enrichAttemptWithQuestions({ ...item, ...liveResult, attemptId: itemAttemptId });
           } catch (error) {
             console.warn(`Could not load live timestamps for attempt ${itemAttemptId}.`, error);
-            return item;
+            return enrichAttemptWithQuestions(item);
           }
         }));
         setResults(hydratedResults.sort((first, second) => {
@@ -384,6 +534,10 @@ export default function StudentDashboard({ defaultTab = "profile" }) {
   const paymentMode = student.paymentMode || latestSuccessfulPayment?.paymentMode || latestSuccessfulPayment?.mode || (isPaymentSuccessful ? "ONLINE" : "—");
   const selectedSeries = location.state?.purchaseSeries || location.state?.testSeries || null;
   const selectedSeriesPaid = selectedSeries ? (isStudentFeePaid || hasPaidForTestSeries(selectedSeries.id, studentId)) : false;
+  const profilePaymentAmount = selectedSeries
+    ? Number(selectedSeries.sellingPrice ?? selectedSeries.price ?? 0)
+    : Number(student.registrationFee ?? student.registration_fee ?? student.feeAmount ?? student.fee_amount ?? student.amountDue ?? student.amount_due ?? 100);
+  const paymentRequired = selectedSeries ? !selectedSeriesPaid : !isPaymentSuccessful;
   const hiddenProfileKeys = new Set(["password", "confirmPassword", "token", "accessToken", "refreshToken", "payment", "latestPayment", "paymentDetails"]);
   const additionalDetails = Object.entries(student).filter(([key, value]) => {
     if (hiddenProfileKeys.has(key) || value == null || value === "" || typeof value === "object") return false;
@@ -416,31 +570,7 @@ export default function StudentDashboard({ defaultTab = "profile" }) {
       const historyResult = resultDetails.status === "fulfilled" ? resultDetails.value : null;
       if (!liveResult && !historyResult) throw new Error("No result data was returned for this attempt.");
       // The attempt endpoint is the source of truth for lifecycle timestamps.
-      let enrichedAttempt = { ...attempt, ...historyResult, ...liveResult, attemptId };
-      const result = enrichedAttempt.result ?? enrichedAttempt;
-      const examId = result.examId ?? result.exam_id ?? result.data?.examId ?? result.data?.exam_id ?? result.exam?.id ?? attempt.examId ?? attempt.exam_id ?? attempt.exam?.id;
-      try {
-        const questionBank = await fetchQuestionsByExamId(examId);
-        if (questionBank.length > 0) {
-          const answerRows = findQuestionList(result);
-          const questions = answerRows?.length
-            ? answerRows.map((answerRow, index) => {
-              const answerText = getQuestionText(answerRow).trim().toLowerCase();
-              const matchingQuestion = questionBank.find((question) => {
-                const sameId = getQuestionId(question) != null && String(getQuestionId(question)) === String(getQuestionId(answerRow));
-                const sameText = answerText && getQuestionText(question).trim().toLowerCase() === answerText;
-                return sameId || sameText;
-              }) || questionBank[index];
-              return { ...matchingQuestion, ...answerRow, question: answerRow.question ?? matchingQuestion };
-            })
-            : questionBank;
-          enrichedAttempt = enrichedAttempt.result
-            ? { ...enrichedAttempt, result: { ...enrichedAttempt.result, questions } }
-            : { ...enrichedAttempt, questions };
-        }
-      } catch (questionError) {
-        console.warn("Could not load the original question options for this result.", questionError);
-      }
+      const enrichedAttempt = await enrichAttemptWithQuestions({ ...attempt, ...historyResult, ...liveResult, attemptId });
       setSelectedAttempt(enrichedAttempt);
     } catch (error) {
       console.warn("Could not load exam attempt result.", error);
@@ -630,6 +760,77 @@ export default function StudentDashboard({ defaultTab = "profile" }) {
     }
   }
 
+  async function handleProfilePayment() {
+    if (selectedSeries) {
+      await handleSeriesPayment(selectedSeries);
+      return;
+    }
+    if (!student || !Number.isFinite(profilePaymentAmount) || profilePaymentAmount <= 0 || paymentTarget) return;
+
+    setPaymentError("");
+    setPaymentTarget("student-fees");
+    const metadata = {
+      studentId,
+      studentName: student.studentName || student.name,
+      paymentType: "STUDENT_FEES",
+      purpose: "STUDENT_FEES",
+      amount: profilePaymentAmount,
+    };
+
+    try {
+      const order = await createRazorpayOrder(profilePaymentAmount, student.mobile, metadata);
+      if (!order?.id || !String(order.id).startsWith("order_")) throw new Error("Invalid Razorpay order received from the server.");
+
+      payWithRazorpay({
+        amount: profilePaymentAmount,
+        amountInPaise: Number(order.amount),
+        currency: order.currency || "INR",
+        name: student.studentName || student.name,
+        email: student.email,
+        contact: student.mobile,
+        orderId: order.id,
+        description: "Student fees",
+        onSuccess: async ({ paymentId, orderId, signature }) => {
+          try {
+            const verifiedPayment = await verifyRazorpayPayment({ orderId: orderId || order.id, paymentId, signature, ...metadata });
+            const verified = verifiedPayment === "Payment Successful" || verifiedPayment?.success === true || verifiedPayment?.verified === true || verifiedPayment?.message === "Payment verified";
+            if (!verified) throw new Error("Payment verification failed.");
+            const record = saveTestSeriesPayment("student-fees", {
+              ...metadata,
+              testSeriesTitle: "Student fees",
+              paymentId,
+              orderId: orderId || order.id,
+              signature,
+              status: "PAID",
+            });
+            setStudent((current) => ({
+              ...current,
+              paymentDone: true,
+              isPaymentDone: true,
+              paymentStatus: "PAID",
+              paymentId,
+              paymentMode: "ONLINE",
+              amount: profilePaymentAmount,
+            }));
+            setPaymentTarget(null);
+            setPaymentSuccess(record);
+            refreshProfile?.();
+          } catch (error) {
+            setPaymentError(error?.response?.data?.message || error?.message || "Payment verification failed. Please try again.");
+            setPaymentTarget(null);
+          }
+        },
+        onFailure: (message) => {
+          setPaymentError(message || "Payment was not completed. Please try again.");
+          setPaymentTarget(null);
+        },
+      });
+    } catch (error) {
+      setPaymentError(error?.response?.data?.message || error?.message || "Unable to create payment order. Please try again.");
+      setPaymentTarget(null);
+    }
+  }
+
   function openSeries(series) {
     navigate(`/sankalp/test-series/${series.id}`);
   }
@@ -742,7 +943,13 @@ export default function StudentDashboard({ defaultTab = "profile" }) {
             </ProfileGroup>
             <ProfileGroup icon={CreditCard} title="Account & payment">
               <Row label="Payment done" value={isPaymentSuccessful ? "Yes" : "No"} />
-              <Row label="Payment status" value={paymentStatus} />
+              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-black/5 pb-2">
+                <dt className="text-muted">Payment status</dt>
+                <dd className="flex items-center gap-2 text-right font-semibold text-navy">
+                  <span>{paymentRequired ? "PENDING" : paymentStatus}</span>
+                  {paymentRequired && <button type="button" onClick={handleProfilePayment} disabled={Boolean(paymentTarget)} className="inline-flex items-center gap-1 rounded-md bg-[#e86516] px-2.5 py-1.5 text-xs font-bold text-white shadow-[0_4px_10px_rgba(232,101,22,0.25)] transition hover:-translate-y-0.5 hover:bg-[#c84c0b] disabled:cursor-wait disabled:opacity-60">{paymentTarget ? "Processing..." : <><CreditCard size={13} /> Pay ₹{profilePaymentAmount.toLocaleString("en-IN")}</>}</button>}
+                </dd>
+              </div>
               <Row label="Payment mode" value={paymentMode} />
               <Row label="Amount" value={paymentAmount == null ? "—" : `₹${Number(paymentAmount).toLocaleString("en-IN")}`} />
               <Row label="Member since" value={formatDate(student.createdAt)} />
@@ -755,6 +962,8 @@ export default function StudentDashboard({ defaultTab = "profile" }) {
               </ProfileGroup>
             )}
           </div>
+
+          {paymentError && <p className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">{paymentError}</p>}
 
           {selectedSeries && !selectedSeriesPaid && (
             <section className="rounded-2xl border border-amber-200 bg-amber-50 p-5">
@@ -776,11 +985,6 @@ export default function StudentDashboard({ defaultTab = "profile" }) {
           )}
 
           <PaymentHistoryGroup paymentHistory={paymentHistory} formatDate={formatDate} />
-
-          <div className={`flex items-center gap-3 rounded-2xl border p-4 ${isPaymentSuccessful ? "border-green-200 bg-green-50" : "border-amber-200 bg-amber-50"}`}>
-            <CheckCircle2 className={isPaymentSuccessful ? "shrink-0 text-green-600" : "shrink-0 text-amber-600"} size={26} />
-            <div><p className={`font-semibold ${isPaymentSuccessful ? "text-green-700" : "text-amber-700"}`}>{isPaymentSuccessful ? "Payment verified" : "Payment pending"}</p><p className="text-sm text-muted">Last updated {formatDate(student.updatedAt)}</p></div>
-          </div>
         </div>
       )}
       {paymentSuccess && (
@@ -788,7 +992,7 @@ export default function StudentDashboard({ defaultTab = "profile" }) {
           <div className="w-full max-w-md rounded-2xl bg-white p-7 text-center shadow-2xl">
             <CheckCircle2 className="mx-auto text-green-600" size={52} />
             <h2 className="mt-3 text-2xl font-bold text-navy">Payment Successful</h2>
-            <p className="mt-2 text-sm text-muted">{paymentSuccess.testSeriesTitle} is now available in Solve Test Series.</p>
+            <p className="mt-2 text-sm text-muted">{paymentSuccess.testSeriesId === "student-fees" ? "Your student fees have been paid and verified." : `${paymentSuccess.testSeriesTitle} is now available in Solve Test Series.`}</p>
             <p className="mt-3 text-xs text-slate-500">Payment ID: {paymentSuccess.paymentId || "—"}</p>
             <button type="button" onClick={() => setPaymentSuccess(null)} className="btn-primary mt-6 w-full justify-center">Continue</button>
           </div>
@@ -832,7 +1036,6 @@ export default function StudentDashboard({ defaultTab = "profile" }) {
                   <div key={String(attemptId || resultIndex)} className="card group flex flex-col gap-5 border-l-4 border-l-gold p-5 transition hover:-translate-y-0.5 hover:shadow-[0_12px_28px_rgba(23,59,95,0.12)] sm:flex-row sm:items-center sm:justify-between">
                     <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-2"><div className="font-display text-lg font-bold text-navy">{examName}</div><span className="rounded-full bg-emerald-50 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-emerald-700">{resultStatus}</span></div>
-                      <div className="mt-1 text-xs text-muted">Attempt {attemptId ?? "—"}</div>
                       <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-slate-500">
                         <span>Started: {formatDateTime(startedAt)}</span>
                         <span>Submitted: {formatDateTime(submittedAt)}</span>
@@ -936,39 +1139,34 @@ export default function StudentDashboard({ defaultTab = "profile" }) {
                       const qId = q.questionId ?? q.id ?? q.question_id ?? q.question?.id ?? q.questionId;
                       const questionData = q.question && typeof q.question === "object" ? q.question : null;
                       const text = q.questionText ?? q.question_text ?? q.text ?? (typeof q.question === "string" ? q.question : null) ?? questionData?.questionText ?? questionData?.text ?? questionData?.question ?? `Question ${idx + 1}`;
-                      let options = q.options ?? q.choices ?? q.optionList ?? questionData?.options ?? [
-                        q.optionA ?? questionData?.optionA,
-                        q.optionB ?? questionData?.optionB,
-                        q.optionC ?? questionData?.optionC,
-                        q.optionD ?? questionData?.optionD,
-                      ].filter((option) => option != null && option !== "");
-                      if (typeof options === "string") {
-                        try { options = JSON.parse(options); } catch (error) { options = options.split("|").map((option) => option.trim()).filter(Boolean); }
-                      }
+                      const options = getQuestionOptions(q);
                       const selectedIndex = q.selectedIndex ?? q.selected_index ?? q.answerIndex ?? q.answer_index ?? q.studentAnswerIndex ?? q.student_answer_index ?? null;
                       const selectedValue = q.selectedAnswer ?? q.selected_answer ?? q.studentAnswer ?? q.student_answer ?? q.answerText ?? q.response ?? q.answer ?? null;
-                      const selected = selectedValue && typeof selectedValue === "object"
-                        ? selectedValue.text ?? selectedValue.label ?? selectedValue.value ?? selectedValue.answer ?? null
-                        : selectedValue !== null && selectedValue !== undefined && Array.isArray(options) && Number.isInteger(Number(selectedValue))
-                          ? options[Number(selectedValue)]
-                          : selectedValue ?? (selectedIndex !== null && Array.isArray(options) ? options[Number(selectedIndex)] : null);
-                      const rawCorrect = q.correctAnswer ?? q.correct_answer ?? q.correctOption ?? q.correct_option ?? q.correct ?? q.answerKey ?? q.answer_key ?? questionData?.correctAnswer ?? questionData?.correct_answer ?? null;
+                      const resolvedSelectedIndex = selectedIndex !== null && selectedIndex !== undefined
+                        ? answerOptionIndex(selectedIndex, options)
+                        : answerOptionIndex(selectedValue, options);
+                      const selected = resolvedSelectedIndex >= 0
+                        ? options[resolvedSelectedIndex]
+                        : selectedValue && typeof selectedValue === "object"
+                          ? selectedValue.text ?? selectedValue.label ?? selectedValue.value ?? selectedValue.answer ?? null
+                          : selectedValue;
+                      const explicitCorrect = [q.isCorrect, q.is_correct, q.correctness, questionData?.isCorrect, questionData?.is_correct, typeof q.correct === "boolean" ? q.correct : undefined]
+                        .find((value) => typeof value === "boolean");
+                      const rawCorrect = q.correctAnswer ?? q.correct_answer ?? q.correctOption ?? q.correct_option ?? q.answerKey ?? q.answer_key ?? questionData?.correctAnswer ?? questionData?.correct_answer ?? (typeof q.correct === "boolean" ? null : q.correct) ?? null;
                       const rawCorrectIndex = q.correctIndex ?? q.correct_index ?? q.correctAnswerIndex ?? q.correct_answer_index ?? q.correctOptionIndex ?? q.correct_option_index ?? questionData?.correctIndex ?? null;
-                      const correctLetterIndex = rawCorrect !== null && /^[A-Z]$/i.test(String(rawCorrect).trim())
-                        ? String(rawCorrect).trim().toUpperCase().charCodeAt(0) - 65
-                        : null;
                       const correctIndex = rawCorrectIndex !== null && rawCorrectIndex !== undefined
-                        ? Number(rawCorrectIndex)
-                        : correctLetterIndex !== null && Array.isArray(options) && correctLetterIndex < options.length
-                          ? correctLetterIndex
-                          : (Array.isArray(options) && rawCorrect !== null ? options.findIndex((option) => String(option).trim() === String(rawCorrect).trim()) : null);
-                      const correct = correctIndex !== null && correctIndex !== undefined && correctIndex >= 0 && Array.isArray(options) ? options[correctIndex] : (typeof rawCorrect === "object" ? rawCorrect?.text ?? rawCorrect?.label ?? rawCorrect?.value : rawCorrect);
-                      const marksObtained = q.marksObtained ?? q.marks_obtained ?? q.marksObt ?? q.marks_obt ?? q.marks ?? null;
-                      const marksTotal = q.marks ?? q.totalMarks ?? q.total_marks ?? null;
+                        ? answerOptionIndex(rawCorrectIndex, options)
+                        : answerOptionIndex(rawCorrect, options);
+                      const correct = correctIndex >= 0 ? options[correctIndex] : (typeof rawCorrect === "object" ? rawCorrect?.text ?? rawCorrect?.label ?? rawCorrect?.value : rawCorrect);
+                      const marksTotal = Number(questionData?.marksPerQuestion ?? questionData?.marks_per_question ?? questionData?.marks ?? questionData?.weight ?? q.maxMarks ?? q.max_marks ?? q.totalMarks ?? q.total_marks ?? q.marksTotal ?? q.marks_total ?? q.marks ?? 1) || 1;
                       const explanation = q.answerExplanation ?? q.answer_explanation ?? q.explanation ?? q.solution ?? q.question?.answerExplanation ?? questionData?.answerExplanation ?? null;
                       const isAnswered = selected !== null && selected !== undefined && String(selected).trim() !== "";
-                      const isCorrect = q.isCorrect ?? q.correctness ?? (isAnswered && correct !== null && String(selected).trim() === String(correct).trim());
-                      const questionStatus = q.status ?? (isAnswered ? (isCorrect ? "CORRECT" : "INCORRECT") : "UNANSWERED");
+                      const canCompareAnswers = correctIndex >= 0 || correct != null;
+                      const isCorrect = isAnswered && (canCompareAnswers
+                        ? (resolvedSelectedIndex >= 0 && correctIndex >= 0 && resolvedSelectedIndex === correctIndex) || (correct != null && String(selected).trim().toLowerCase() === String(correct).trim().toLowerCase())
+                        : explicitCorrect === true);
+                      const displayedMarks = isCorrect ? marksTotal : 0;
+                      const questionStatus = !isAnswered ? "UNANSWERED" : isCorrect ? "CORRECT" : "INCORRECT";
                       const markedForReview = isQuestionMarkedForReview(q);
                       const statusStyles = questionStatus === "CORRECT"
                         ? "border-emerald-200 bg-emerald-50/70"
@@ -986,7 +1184,7 @@ export default function StudentDashboard({ defaultTab = "profile" }) {
                                 {markedForReview && <span className="rounded-full bg-amber-50 px-2 py-1 text-amber-700">MARKED FOR REVIEW</span>}
                               </div>
                             </div>
-                            <div className="text-sm text-muted sm:text-right">Marks: {marksObtained ?? '—'}{marksTotal ? ` / ${marksTotal}` : ''}</div>
+                            <div className="text-sm text-muted sm:text-right">Marks: {displayedMarks} / {marksTotal}</div>
                           </div>
 
                           <div className="mt-3 grid gap-2 sm:grid-cols-2">
