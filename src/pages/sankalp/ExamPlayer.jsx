@@ -29,6 +29,8 @@ export default function ExamPlayer() {
   const [attemptReady, setAttemptReady] = useState(false);
   const [loadError, setLoadError] = useState("");
   const [submitError, setSubmitError] = useState("");
+  const [savingAnswer, setSavingAnswer] = useState(false);
+  const [savedQuestionId, setSavedQuestionId] = useState(null);
   const [answers, setAnswers] = useState({});
   const [timeLeft, setTimeLeft] = useState(0); // seconds
   const timerRef = useRef(null);
@@ -199,6 +201,7 @@ export default function ExamPlayer() {
 
   function selectAnswer(qid, optionIndex) {
     setAnswers((a) => ({ ...a, [qid]: optionIndex }));
+    setSavedQuestionId(null);
     const question = questions.find((item) => String(item.id) === String(qid));
 
     if (attemptId && question) {
@@ -211,6 +214,31 @@ export default function ExamPlayer() {
       });
       pendingAnswerSavesRef.current.add(savePromise);
       savePromise.finally(() => pendingAnswerSavesRef.current.delete(savePromise));
+    }
+  }
+
+  async function saveCurrentAnswer() {
+    const question = questions[currentIndex];
+    const selectedIndex = answers[question.id];
+    if (selectedIndex === undefined) return;
+    if (!attemptId) {
+      setSubmitError("Exam attempt was not created. Please restart the exam.");
+      return;
+    }
+
+    setSavingAnswer(true);
+    setSubmitError("");
+    try {
+      await saveAttemptAnswer(attemptId, {
+        questionId: question.id,
+        selectedAnswer: question.options[selectedIndex],
+      });
+      setSavedQuestionId(question.id);
+    } catch (error) {
+      console.warn("Failed to save answer:", error);
+      setSubmitError(error?.response?.data?.message || "An answer could not be saved. Please try again.");
+    } finally {
+      setSavingAnswer(false);
     }
   }
 
@@ -339,6 +367,7 @@ export default function ExamPlayer() {
         : serverPercentage ?? (score != null && maxScore ? Math.round((score / maxScore) * 100) : null);
       const finalResult = {
         ...responseObject,
+        status: percentage == null ? responseObject.status ?? responseObject.resultStatus ?? "Submitted" : Number(String(percentage).trim().replace(/%$/, "")) >= 35 ? "Pass" : "Fail",
         attemptId,
         examId: id,
         examName: exam?.name ?? responseObject.examName ?? responseObject.exam_name,
@@ -446,8 +475,13 @@ export default function ExamPlayer() {
                   <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <div className="flex flex-wrap items-center gap-2">
                       <button onClick={prevQuestion} disabled={currentIndex === 0} className="rounded-md border border-slate-200 px-4 py-2.5 text-sm text-slate-500 disabled:opacity-40">← Previous</button>
-                      <button onClick={nextQuestion} disabled={currentIndex === questions.length - 1 || answers[questions[currentIndex].id] === undefined} className="flex items-center gap-2 rounded-md border border-slate-200 px-4 py-2.5 text-sm font-semibold text-[#2795db] transition hover:bg-blue-50 disabled:cursor-not-allowed disabled:text-slate-300">Save &amp; Next <ArrowRight size={15} /></button>
+                      {currentIndex === questions.length - 1 ? (
+                        <button onClick={saveCurrentAnswer} disabled={savingAnswer || answers[questions[currentIndex].id] === undefined} className="rounded-md border border-slate-200 px-4 py-2.5 text-sm font-semibold text-[#2795db] transition hover:bg-blue-50 disabled:cursor-not-allowed disabled:text-slate-300">{savingAnswer ? "Saving..." : savedQuestionId === questions[currentIndex].id ? "Saved" : "Save Answer"}</button>
+                      ) : (
+                        <button onClick={nextQuestion} disabled={answers[questions[currentIndex].id] === undefined} className="flex items-center gap-2 rounded-md border border-slate-200 px-4 py-2.5 text-sm font-semibold text-[#2795db] transition hover:bg-blue-50 disabled:cursor-not-allowed disabled:text-slate-300">Save &amp; Next <ArrowRight size={15} /></button>
+                      )}
                       <button onClick={() => { setMarked((m) => ({ ...m, [questions[currentIndex].id]: false })); nextQuestion(); }} disabled={currentIndex === questions.length - 1} className="rounded-md border border-[#f2b632] px-5 py-2.5 text-sm font-bold text-[#ed9d00] disabled:opacity-40">Skip</button>
+                      {currentIndex === questions.length - 1 && <button onClick={() => setSubmitConfirmOpen(true)} className="rounded-md bg-[#2f8735] px-4 py-2.5 text-sm font-bold text-white transition hover:bg-[#256d2b]">Submit Test</button>}
                     </div>
 
                     <div className="flex flex-wrap items-center gap-2 sm:justify-end">
@@ -463,6 +497,7 @@ export default function ExamPlayer() {
             {submitted && result && (
               <div className="rounded-2xl border border-slate-200 bg-white p-3 sm:p-5">
                 <div className="text-center"><h3 className="text-xl font-bold text-blue-700">Result Summary</h3><p className="mt-1 text-sm text-muted">{exam?.name}</p></div>
+                <p className={`mt-3 text-center text-sm font-bold ${result.status === "Pass" ? "text-green-700" : result.status === "Fail" ? "text-red-700" : "text-muted"}`}>{result.status}</p>
                 <div className="mt-4 flex overflow-x-auto rounded-xl border border-slate-200 bg-slate-50">
                   {[{ id: "summary", label: "Summary", Icon: BarChart3 }, { id: "all", label: "All", Icon: ListChecks }, { id: "correct", label: "Correct", Icon: Check }, { id: "incorrect", label: "Incorrect", Icon: X }, { id: "unanswered", label: "Unanswered", Icon: CircleHelp }, { id: "unscored", label: "Unscored", Icon: CircleMinus }].map(({ id: tabId, label, Icon }) => <button key={tabId} type="button" onClick={() => setResultTab(tabId)} className={`flex min-w-[92px] flex-1 flex-col items-center gap-1 px-3 py-3 text-[10px] font-bold uppercase tracking-wide transition ${resultTab === tabId ? "bg-blue-600 text-white" : "text-slate-500 hover:bg-white"}`}><Icon size={16} />{label}</button>)}
                 </div>

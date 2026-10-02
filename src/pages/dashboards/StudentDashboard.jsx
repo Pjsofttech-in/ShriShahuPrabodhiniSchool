@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-// import { jsPDF } from "jspdf";
 import { BadgeCheck, BookOpen, Building2, CheckCircle2, CreditCard, Download, FileText, GraduationCap, LayoutDashboard, Mail, ShieldCheck, Trophy, User } from "lucide-react";
 import DashboardShell from "../../components/DashboardShell.jsx";
 import { useAuth } from "../../context/AuthContext.jsx";
@@ -217,8 +216,8 @@ async function enrichAttemptWithQuestions(attempt) {
   const attemptId = attempt?.attemptId ?? attempt?.attempt_id ?? attempt?.id ?? attempt?.resultId;
   let enrichedAttempt = { ...attempt, ...(attempt?.data ?? {}), attemptId };
   const rememberedTimestamps = getRememberedExamTimestamps(attemptId);
-  if (!getResultTimestamp(enrichedAttempt, "started") && rememberedTimestamps.startedAt) enrichedAttempt.startedAt = rememberedTimestamps.startedAt;
-  if (!getResultTimestamp(enrichedAttempt, "submitted") && rememberedTimestamps.submittedAt) enrichedAttempt.submittedAt = rememberedTimestamps.submittedAt;
+  if (!getResultTimestamp(enrichedAttempt, "started", false) && rememberedTimestamps.startedAt) enrichedAttempt.startedAt = rememberedTimestamps.startedAt;
+  if (!getResultTimestamp(enrichedAttempt, "submitted", false) && rememberedTimestamps.submittedAt) enrichedAttempt.submittedAt = rememberedTimestamps.submittedAt;
   const result = enrichedAttempt.result ?? enrichedAttempt;
   const examId = result.examId ?? result.exam_id ?? result.data?.examId ?? result.data?.exam_id ?? result.exam?.id ?? result.exam?.examId ?? attempt.examId ?? attempt.exam_id ?? attempt.data?.examId ?? attempt.exam?.id;
   const answerRows = findQuestionList(result);
@@ -269,6 +268,12 @@ function applyCalculatedScore(attempt, questions) {
     : scoredResult;
 }
 
+function getPassFailStatus(percentage, fallback = "Submitted") {
+  const numericPercentage = Number(String(percentage ?? "").trim().replace(/%$/, ""));
+  if (percentage == null || percentage === "" || !Number.isFinite(numericPercentage)) return fallback;
+  return numericPercentage >= 35 ? "Pass" : "Fail";
+}
+
 function getAttemptSummary(attempt) {
   const result = attempt?.result && typeof attempt.result === "object" ? attempt.result : attempt;
   const metadata = { ...attempt, ...attempt?.data, ...attempt?.attempt, ...result, ...result?.data };
@@ -291,12 +296,13 @@ function getAttemptSummary(attempt) {
   const incorrectCount = calculated?.incorrectCount ?? readNumber(metadata.incorrectQuestions, metadata.incorrect_questions, metadata.incorrectCount, metadata.incorrect_count);
   const unansweredCount = calculated?.unansweredCount ?? readNumber(metadata.unattemptedCount, metadata.unattemptedQuestions, metadata.unansweredCount, metadata.unanswered_questions)
     ?? (totalQuestions > 0 ? Math.max(0, totalQuestions - attemptedQuestions) : null);
+  const percentage = calculated?.percentage ?? readNumber(metadata.percentage, metadata.percent) ?? (score != null && totalMarks ? Math.round((score / totalMarks) * 100) : null);
 
   return {
-    status: metadata.status ?? metadata.resultStatus ?? "Submitted",
+    status: getPassFailStatus(percentage, metadata.status ?? metadata.resultStatus ?? "Submitted"),
     score,
     totalMarks,
-    percentage: calculated?.percentage ?? readNumber(metadata.percentage, metadata.percent) ?? (score != null && totalMarks ? Math.round((score / totalMarks) * 100) : null),
+    percentage,
     totalQuestions,
     attemptedQuestions,
     correctCount,
@@ -359,26 +365,45 @@ function getPaymentHistory(student, localPayments) {
   });
 }
 
-function getResultTimestamp(result, type) {
-  const keys = type === "started"
-    ? ["startedAt", "started_at", "startTime", "start_time", "startedOn", "started_on", "startedDate", "startedDateTime", "startDate", "start_date", "startDateTime", "start_date_time", "startTimestamp", "start_timestamp", "attemptStartedAt", "attempt_started_at", "attemptStartTime", "attempt_start_time", "attemptStartDate", "actualStartTime", "createdAt", "created_at", "createdOn", "created_on", "createdDate", "createdDateTime"]
-    : ["submittedAt", "submitted_at", "submitTime", "submit_time", "submittedTime", "submitted_time", "submitDateTime", "submit_date_time", "submittedOn", "submitted_on", "submittedDate", "submitDate", "submittedDateTime", "submissionTime", "submissionDateTime", "attemptSubmittedAt", "attempt_submitted_at", "attemptSubmitTime", "attempt_submit_time", "completedAt", "completed_at", "completedOn", "completed_on", "completedDate", "completedDateTime", "completionTime", "completionDate", "endTime", "end_time", "endDate", "endDateTime", "finishTime", "finishedAt", "updatedAt", "updated_at", "updatedOn", "updated_on", "updatedDate", "updatedDateTime"];
+function getResultTimestamp(result, type, includeMetadataFallback = true) {
+  const explicitKeys = type === "started"
+    ? ["startedAt", "started_at", "startTime", "start_time", "startedOn", "started_on", "startedDate", "startedDateTime", "started_date_time", "startDate", "start_date", "startDateTime", "start_date_time", "start_datetime", "dateStarted", "date_started", "startTimestamp", "start_timestamp", "attemptStartedAt", "attempt_started_at", "attemptStartTime", "attempt_start_time", "attemptStartDate", "attemptStartDateTime", "attempt_start_date_time", "actualStartTime"]
+    : ["submittedAt", "submitted_at", "submitTime", "submit_time", "submittedTime", "submitted_time", "submitDateTime", "submit_date_time", "submitted_date_time", "submittedOn", "submitted_on", "submittedDate", "submittedDateTime", "submitDate", "submit_date", "dateSubmitted", "date_submitted", "submissionTime", "submissionDateTime", "attemptSubmittedAt", "attempt_submitted_at", "attemptSubmitTime", "attempt_submit_time", "attemptEndDateTime", "attempt_end_date_time", "completedAt", "completed_at", "completedOn", "completed_on", "completedDate", "completedDateTime", "completed_date", "completed_date_time", "dateCompleted", "date_completed", "completionTime", "completionDate", "endTime", "end_time", "endDate", "endDateTime", "end_date_time", "finishTime", "finishedAt"];
+  const metadataKeys = includeMetadataFallback
+    ? type === "started"
+      ? ["createdAt", "created_at", "createdOn", "created_on", "createdDate", "createdDateTime", "created_date", "created_date_time", "dateCreated", "date_created"]
+      : ["updatedAt", "updated_at", "updatedOn", "updated_on", "updatedDate", "updatedDateTime", "modifiedAt", "modified_at", "modifiedDate", "modified_date"]
+    : [];
+  const timestampValues = new Map();
   const visited = new Set();
-  function findTimestamp(value, depth = 0) {
-    if (!value || typeof value !== "object" || depth > 5 || visited.has(value)) return null;
+  const pending = [{ value: result, depth: 0 }];
+
+  while (pending.length) {
+    const { value, depth } = pending.pop();
+    if (!value || typeof value !== "object" || depth > 6 || visited.has(value)) continue;
     visited.add(value);
-    const directValue = keys.map((key) => value[key]).find((candidate) => candidate != null && candidate !== "");
-    if (directValue != null) return directValue;
-    return Object.values(value).reduce((found, child) => found || findTimestamp(child, depth + 1), null);
+    for (const key of [...explicitKeys, ...metadataKeys]) {
+      if (!timestampValues.has(key) && value[key] != null && value[key] !== "") timestampValues.set(key, value[key]);
+    }
+    Object.values(value).forEach((child) => pending.push({ value: child, depth: depth + 1 }));
   }
-  return findTimestamp(result);
+
+  for (const key of [...explicitKeys, ...metadataKeys]) {
+    if (timestampValues.has(key)) return timestampValues.get(key);
+  }
+  return null;
 }
 
 function formatDateTime(value) {
-  if (!value) return "—";
-  const normalizedValue = Array.isArray(value)
+  if (value == null || value === "") return "—";
+  let normalizedValue = Array.isArray(value)
     ? new Date(Date.UTC(value[0], (value[1] ?? 1) - 1, value[2] ?? 1, value[3] ?? 0, value[4] ?? 0, value[5] ?? 0))
     : value;
+  if (typeof normalizedValue === "number" && Math.abs(normalizedValue) < 1e12) normalizedValue *= 1000;
+  if (typeof normalizedValue === "string" && /^\d+$/.test(normalizedValue)) {
+    const numericValue = Number(normalizedValue);
+    if (Number.isFinite(numericValue)) normalizedValue = numericValue < 1e12 ? numericValue * 1000 : numericValue;
+  }
   const date = new Date(normalizedValue);
   return Number.isNaN(date.getTime()) ? String(value) : date.toLocaleString(undefined, {
     day: "2-digit",
@@ -641,15 +666,17 @@ export default function StudentDashboard({ defaultTab = "profile" }) {
     setShowAttemptModal(true);
   }
 
-  function downloadAttemptResult(attempt) {
+  async function downloadAttemptResult(attempt) {
+    const { jsPDF } = await import("jspdf");
     const result = attempt.result ?? attempt;
     const metadata = { ...attempt, ...attempt.data, ...attempt.attempt, ...result, ...result.data };
-    const score = metadata.obtainedMarks ?? metadata.obtained_marks ?? metadata.score ?? metadata.marks ?? metadata.totalMarksObtained ?? "-";
-    const totalMarks = metadata.maxScore ?? metadata.totalMarks ?? metadata.total_marks ?? metadata.maxMarks ?? metadata.total ?? "-";
-    const percentage = metadata.percentage ?? metadata.percent ?? "-";
+    const summary = getAttemptSummary(attempt);
+    const score = summary.score ?? "-";
+    const totalMarks = summary.totalMarks ?? "-";
+    const percentage = summary.percentage ?? "-";
     const examName = metadata.examName ?? metadata.exam_name ?? metadata.exam?.name ?? "Exam Attempt";
     const attemptId = metadata.attemptId ?? metadata.id ?? metadata.resultId ?? "-";
-    const status = metadata.status ?? metadata.resultStatus ?? metadata.result ?? "Submitted";
+    const status = summary.status;
     const startedAt = getResultTimestamp(attempt, "started");
     const submittedAt = getResultTimestamp(attempt, "submitted");
     const questions = findQuestionList(result) || [];
@@ -705,15 +732,18 @@ export default function StudentDashboard({ defaultTab = "profile" }) {
 
     pdf.setFillColor(248, 250, 252);
     pdf.setDrawColor(226, 232, 240);
-    pdf.roundedRect(margin, cursorY, pageWidth - margin * 2, 39, 3, 3, "FD");
+    pdf.roundedRect(margin, cursorY, pageWidth - margin * 2, 55, 3, 3, "FD");
     const columnWidth = (pageWidth - margin * 2 - 12) / 3;
     drawLabelValue("Status", status, margin + 6, cursorY + 9, columnWidth - 5);
     drawLabelValue("Score", `${score} / ${totalMarks}`, margin + 6 + columnWidth, cursorY + 9, columnWidth - 5);
     drawLabelValue("Percentage", `${percentage}%`, margin + 6 + columnWidth * 2, cursorY + 9, columnWidth - 5);
     drawLabelValue("Started", formatDateTime(startedAt).replace("—", "-"), margin + 6, cursorY + 25, columnWidth - 5);
     drawLabelValue("Submitted", formatDateTime(submittedAt).replace("—", "-"), margin + 6 + columnWidth, cursorY + 25, columnWidth - 5);
-    drawLabelValue("Questions", metadata.totalQuestions ?? metadata.total_questions ?? (questions.length || "-"), margin + 6 + columnWidth * 2, cursorY + 25, columnWidth - 5);
-    cursorY += 49;
+    drawLabelValue("Questions", summary.totalQuestions || questions.length || "-", margin + 6 + columnWidth * 2, cursorY + 25, columnWidth - 5);
+    drawLabelValue("Correct", summary.correctCount ?? "-", margin + 6, cursorY + 41, columnWidth - 5);
+    drawLabelValue("Incorrect", summary.incorrectCount ?? "-", margin + 6 + columnWidth, cursorY + 41, columnWidth - 5);
+    drawLabelValue("Not attempted", summary.unansweredCount ?? "-", margin + 6 + columnWidth * 2, cursorY + 41, columnWidth - 5);
+    cursorY += 65;
 
     pdf.setFont("helvetica", "bold");
     pdf.setFontSize(13);
@@ -1086,7 +1116,7 @@ export default function StudentDashboard({ defaultTab = "profile" }) {
                 const total = resultData.totalMarks ?? resultData.total_marks ?? resultData.total ?? resultData.maxMarks ?? null;
                 const resultAmount = resultData.amount ?? resultData.amountPaid ?? resultData.paidAmount ?? resultData.paymentAmount ?? paymentAmount;
                 const percentage = resultData.percentage ?? resultData.percent ?? (obtained != null && total ? Math.round((Number(obtained) / Number(total)) * 100) : null);
-                const resultStatus = resultData.status ?? resultData.resultStatus ?? resultData.result ?? "Submitted";
+                const resultStatus = getPassFailStatus(percentage, resultData.status ?? resultData.resultStatus ?? resultData.result ?? "Submitted");
                 const startedAt = getResultTimestamp(r, "started");
                 const submittedAt = getResultTimestamp(r, "submitted");
                 const attemptedCount = r.attemptedCount ?? r.attemptedQuestions ?? r.answeredCount ?? null;
@@ -1097,7 +1127,7 @@ export default function StudentDashboard({ defaultTab = "profile" }) {
                 return (
                   <div key={String(attemptId || resultIndex)} className="card group flex flex-col gap-5 border-l-4 border-l-gold p-5 transition hover:-translate-y-0.5 hover:shadow-[0_12px_28px_rgba(23,59,95,0.12)] sm:flex-row sm:items-center sm:justify-between">
                     <div className="min-w-0">
-                      <div className="flex flex-wrap items-center gap-2"><div className="font-display text-lg font-bold text-navy">{examName}</div><span className="rounded-full bg-emerald-50 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-emerald-700">{resultStatus}</span></div>
+                      <div className="flex flex-wrap items-center gap-2"><div className="font-display text-lg font-bold text-navy">{examName}</div><span className={`rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide ${resultStatus === "Pass" ? "bg-emerald-50 text-emerald-700" : resultStatus === "Fail" ? "bg-rose-50 text-rose-700" : "bg-slate-100 text-slate-600"}`}>{resultStatus}</span></div>
                       <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-slate-500">
                         <span>Started: {formatDateTime(startedAt)}</span>
                         <span>Submitted: {formatDateTime(submittedAt)}</span>
@@ -1161,7 +1191,7 @@ export default function StudentDashboard({ defaultTab = "profile" }) {
                     const totalMarks = metadata.maxScore ?? metadata.totalMarks ?? metadata.total_marks ?? metadata.maxMarks ?? metadata.total;
                     const percentage = result.percentage ?? result.percent ?? (score != null && totalMarks ? ((Number(score) / Number(totalMarks)) * 100).toFixed(2) : null);
                     const resultAmount = metadata.amount ?? metadata.amountPaid ?? metadata.paidAmount ?? metadata.paymentAmount ?? paymentAmount;
-                    const status = metadata.status ?? metadata.resultStatus ?? metadata.result ?? null;
+                    const status = getPassFailStatus(percentage, metadata.status ?? metadata.resultStatus ?? metadata.result ?? "Submitted");
                     const attemptedCount = metadata.attemptedCount ?? metadata.attemptedQuestions ?? metadata.answeredCount ?? (questionRows.length ? questionRows.filter((question) => question.selectedAnswer ?? question.selected_answer ?? question.studentAnswer ?? question.student_answer ?? question.answerText ?? question.answer).length : null);
                     const unattemptedCount = metadata.unattemptedCount ?? metadata.unattemptedQuestions ?? metadata.unansweredCount ?? (questionRows.length && attemptedCount !== null ? questionRows.length - Number(attemptedCount) : null);
                     const reviewedCount = metadata.reviewedCount ?? metadata.markedCount ?? metadata.markedForReviewCount ?? (questionRows.length ? questionRows.filter(isQuestionMarkedForReview).length : null);

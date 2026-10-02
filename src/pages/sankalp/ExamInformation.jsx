@@ -42,6 +42,18 @@ const prizeHighlights = [
   { title: "Books", description: "Get valuable books to support learning and strengthen your preparation.", Icon: BookOpen, tone: "text-[#31597d]" },
 ];
 
+function formatExamInfoDate(value) {
+  if (!value) return "—";
+  const dateValue = String(value).trim();
+  const isoDate = dateValue.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (isoDate) return `${isoDate[3]}/${isoDate[2]}/${isoDate[1]}`;
+
+  const date = new Date(dateValue);
+  return Number.isNaN(date.getTime())
+    ? dateValue
+    : date.toLocaleDateString("en-GB", { day: "2-digit", month: "2-digit", year: "numeric" });
+}
+
 export default function ExamInformation() {
   const [syllabus, setSyllabus] = useState([]);
   const [syllabusLoading, setSyllabusLoading] = useState(true);
@@ -66,40 +78,60 @@ export default function ExamInformation() {
   }, []);
 
   const liveExamInfo = examSection || {};
+  const examEdition = liveExamInfo.name?.match(/20\d{2}(?:-\d{2,4})?/)?.[0] || "2026";
 
   return (
     <div className="exam-information-page">
       <PageHeader title="Sankalp Exam Information" crumb="Exam Information" compact />
 
-      <section className="relative overflow-hidden bg-[#f8f5ee] pb-10 pt-0 md:pb-16">
-        <div className="pointer-events-none absolute -right-24 top-24 h-72 w-72 rounded-full bg-gold/15 blur-3xl" />
-        <div className="pointer-events-none absolute -left-32 bottom-16 h-72 w-72 rounded-full bg-navy/10 blur-3xl" />
-        <div className="container-app">
-          <div className="relative mb-6 overflow-hidden rounded-[30px] bg-[linear-gradient(120deg,#173b5f_0%,#255b80_58%,#f0bd43_180%)] p-6 text-white shadow-[0_20px_50px_rgba(23,59,95,0.20)] sm:p-8 md:p-10">
-            <div className="pointer-events-none absolute -right-12 -top-24 h-72 w-72 rounded-full border-[34px] border-white/10" />
-            <div className="pointer-events-none absolute bottom-[-5rem] right-32 h-44 w-44 rounded-full bg-gold/20 blur-2xl" />
-            <div className="relative grid items-center gap-7 md:grid-cols-[1fr_auto]">
-              <div className="max-w-2xl">
-                <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-gold/40 bg-white/10 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.2em] text-white">Sankalp 2026 · Registrations open</div>
-                <h2 className="font-display text-3xl font-bold leading-tight sm:text-4xl md:text-5xl">A stronger start to a <span className="text-gold-light">brighter future.</span></h2>
-                <p className="mt-4 max-w-xl text-sm leading-6 text-white/75 md:text-base">Discover your academic potential through a thoughtfully designed scholarship examination built for ambitious young learners.</p>
-                <Link to="/register" className="mt-6 inline-flex items-center gap-2 rounded-xl bg-gold px-5 py-3 text-sm font-bold text-white shadow-[0_10px_24px_rgba(243,185,61,0.25)] transition hover:-translate-y-1 hover:bg-gold-light">Start Registration <ArrowRight size={16} /></Link>
-              </div>
-              <div className="hidden h-36 w-36 items-center justify-center rounded-[28px] border border-white/20 bg-white/10 p-3 shadow-inner sm:flex md:h-44 md:w-44">
-                <img src={logo} alt="Sankalp Scholarship Exam" className="h-full w-full rounded-2xl object-contain" />
-              </div>
+      <section className="relative isolate overflow-hidden bg-[#102b46]">
+        <img
+          src="https://images.unsplash.com/photo-1509062522246-3755977927d7?q=85&w=2000&auto=format&fit=crop"
+          alt="Students learning in a classroom"
+          className="absolute inset-0 h-full w-full object-cover object-[center_42%]"
+        />
+        <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(12,35,57,0.96)_0%,rgba(12,35,57,0.88)_42%,rgba(12,35,57,0.48)_100%)]" />
+        <div className="absolute inset-0 bg-[linear-gradient(0deg,rgba(12,35,57,0.78)_0%,transparent_52%)]" />
+        <div className="container-app relative flex min-h-[440px] items-center py-12 sm:min-h-[470px] md:min-h-[500px] md:py-16">
+          <div className="max-w-3xl text-white">
+            <div className="mb-5 inline-flex items-center gap-2 border-l-2 border-[#f3bd63] pl-3 text-xs font-bold uppercase text-white/90">
+              Sankalp {examEdition} <span className="text-[#f3bd63]" aria-hidden="true">/</span> Registrations open
             </div>
+            <h1 className="max-w-3xl text-[2.6rem] font-extrabold leading-[1.05] text-white sm:text-5xl md:text-6xl">
+              {liveExamInfo.name || "Sankalp Scholarship Examination 2026"}
+            </h1>
+            <p className="mt-5 max-w-2xl text-base leading-7 text-white/85 sm:text-lg">
+              Discover your academic potential through a scholarship examination designed for ambitious young learners.
+            </p>
+            <div className="mt-7 flex flex-wrap items-center gap-3">
+              <Link to="/register" className="inline-flex items-center gap-2 rounded-md bg-[#ed5a00] px-5 py-3 text-sm font-bold text-white shadow-[0_8px_22px_rgba(237,90,0,0.3)] transition hover:-translate-y-0.5 hover:bg-[#d94f00]">
+                Register for the exam <ArrowRight size={16} />
+              </Link>
+              <a href="#exam-details" className="inline-flex items-center gap-2 rounded-md border border-white/45 px-5 py-3 text-sm font-semibold text-white transition hover:border-white hover:bg-white/10">
+                View exam details <ArrowRight size={16} />
+              </a>
+            </div>
+            <dl className="mt-9 grid max-w-2xl grid-cols-1 gap-4 border-t border-white/25 pt-5 sm:grid-cols-3 sm:gap-6">
+              <div><dt className="text-xs text-white/65">Eligible classes</dt><dd className="mt-1 text-sm font-bold text-white">{liveExamInfo.eligibleClasses || "All students"}</dd></div>
+              <div><dt className="text-xs text-white/65">Exam date</dt><dd className="mt-1 text-sm font-bold text-white">{formatExamInfoDate(liveExamInfo.examDate)}</dd></div>
+              <div><dt className="text-xs text-white/65">Registration fee</dt><dd className="mt-1 text-sm font-bold text-white">{liveExamInfo.fee != null ? `₹${liveExamInfo.fee}` : "See exam details"}</dd></div>
+            </dl>
           </div>
+        </div>
+      </section>
 
-          <div className="relative mb-5 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
+      <section className="border-b border-[#e4d9c4] bg-[#fffdf8]">
+        <nav className="container-app" aria-label="Sankalp resources">
+          <div className="flex gap-5 overflow-x-auto">
             {quickLinks.map(({ label, to, icon: Icon }) => (
               <Link
                 key={label}
                 to={to}
-                className={`inline-flex items-center justify-center gap-1.5 rounded-full border px-2.5 py-2 text-xs font-semibold transition-all duration-300 sm:gap-2 sm:px-4 sm:text-sm ${
+                aria-current={to === "/sankalp/exam-information" ? "page" : undefined}
+                className={`inline-flex shrink-0 items-center gap-2 border-b-2 px-1 py-4 text-xs font-semibold transition-colors sm:text-sm ${
                   to === "/sankalp/exam-information"
-                    ? "border-navy bg-navy text-white shadow-[0_10px_20px_rgba(23,59,95,0.20)]"
-                    : "border-[#e4d9c4] bg-white/80 text-navy hover:border-gold hover:text-gold-dark hover:shadow-sm"
+                    ? "border-[#ed5a00] text-[#173b5f]"
+                    : "border-transparent text-[#607382] hover:border-[#ed5a00]/50 hover:text-[#173b5f]"
                 }`}
               >
                 <Icon size={15} />
@@ -107,7 +139,11 @@ export default function ExamInformation() {
               </Link>
             ))}
           </div>
+        </nav>
+      </section>
 
+      <section id="exam-details" className="bg-[#f8f5ee] pb-10 pt-7 md:pb-16 md:pt-10">
+        <div className="container-app">
           <div className="relative mb-6 rounded-[26px] border border-[#e7dcc8] bg-[#fffdf8] px-4 py-5 shadow-[0_18px_42px_rgba(23,59,95,0.09)] md:px-8 md:py-7">
             <div className="mb-6 text-center">
               <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-gold-dark">Simple registration journey</p>
@@ -162,11 +198,11 @@ export default function ExamInformation() {
                     </div>
                     <div className="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
                       <dt className="text-sm text-slate-500">Exam Date</dt>
-                      <dd className="text-sm font-bold text-navy">{liveExamInfo.examDate}</dd>
+                      <dd className="text-sm font-bold text-navy">{formatExamInfoDate(liveExamInfo.examDate)}</dd>
                     </div>
                     <div className="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
                       <dt className="text-sm text-slate-500">Registration Deadline</dt>
-                      <dd className="text-sm font-bold text-navy">{liveExamInfo.registrationDeadline}</dd>
+                      <dd className="text-sm font-bold text-navy">{formatExamInfoDate(liveExamInfo.registrationDeadline)}</dd>
                     </div>
                     <div className="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
                       <dt className="text-sm text-slate-500">Registration Fee</dt>

@@ -251,7 +251,6 @@ export default function Home() {
                 <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/10 text-gold-light"><GraduationCap size={23} /></div>
               </div>
               <dl className="space-y-0 text-sm">
-                <div className="flex items-center justify-between gap-4 border-t border-white/15 py-4"><dt className="text-white/65">Registration Fee</dt><dd className="font-bold text-gold-light">₹{examInfo.fee}</dd></div>
                 <div className="flex items-center justify-between gap-4 border-t border-white/15 py-4"><dt className="text-white/65">Eligible Classes</dt><dd className="text-right font-bold">{examInfo.eligibleClasses}</dd></div>
                 <div className="flex items-start justify-between gap-4 border-t border-white/15 py-4"><dt className="text-white/65">Exam Pattern</dt><dd className="max-w-[15rem] text-right font-bold leading-5">{examInfo.pattern}</dd></div>
                 <div className="flex items-center justify-between gap-4 border-y border-white/15 py-4"><dt className="text-white/65">Centers</dt><dd className="text-right font-bold">{examInfo.centers}</dd></div>
@@ -430,7 +429,7 @@ export default function Home() {
             <h3 className="font-display text-lg font-bold leading-tight text-navy">{t.name}</h3>
             <p className="mt-1 text-sm text-muted">Class {t.className || t.post || "-"} · {t.year || "Sankalp Exam"}</p>
             <div className="mt-4 flex items-center justify-between gap-2 border-t border-[#edf0f3] pt-3">
-              <span className="text-xs font-semibold text-gold-dark">Sankalp achiever</span>
+              <span className="text-xs font-semibold text-gold-dark">Shri Shahu Prabodhini</span>
               {t.score && <span className="rounded-full bg-[#f7f1df] px-2.5 py-1 text-xs font-bold text-gold-dark">{t.score}</span>}
             </div>
           </div>

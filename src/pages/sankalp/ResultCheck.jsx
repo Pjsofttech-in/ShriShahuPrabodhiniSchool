@@ -24,7 +24,7 @@ export default function ResultCheck() {
     const student = studentsData.find((s) => s.rollNo.toLowerCase() === rollNo.trim().toLowerCase());
     if (student) {
       const marks = 70 + (student.rollNo.charCodeAt(student.rollNo.length - 1) % 30);
-      setResult({ ...student, marks, status: marks >= 40 ? "Pass" : "Fail" });
+      setResult({ ...student, marks, status: marks >= 35 ? "Pass" : "Fail" });
     } else {
       setResult(null);
     }
