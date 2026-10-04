@@ -15,6 +15,24 @@ import {
 } from "../../services/backendService.js";
 import { useAuth } from "../../context/AuthContext.jsx";
 
+function answerOptionIndex(value, options) {
+  if (value == null || !Array.isArray(options) || options.length === 0) return -1;
+  if (typeof value === "object") value = value.text ?? value.label ?? value.value ?? value.answer ?? value.option ?? value.id;
+  if (value == null) return -1;
+
+  const normalizedValue = String(value).trim().toLowerCase();
+  const exactIndex = options.findIndex((option) => String(option).trim().toLowerCase() === normalizedValue);
+  if (exactIndex >= 0) return exactIndex;
+  if (/^[a-d]$/i.test(normalizedValue)) return normalizedValue.toUpperCase().charCodeAt(0) - 65;
+  const labeledOption = normalizedValue.match(/^([a-d])[).:\-]\s*/i);
+  if (labeledOption) return labeledOption[1].toUpperCase().charCodeAt(0) - 65;
+  if (/^\d+$/.test(normalizedValue)) {
+    const index = Number(normalizedValue);
+    if (index >= 0 && index < options.length) return index;
+  }
+  return -1;
+}
+
 // Simple responsive professional UI for taking an exam with timer, answers, submit and result.
 export default function ExamPlayer() {
   const { id } = useParams();
@@ -533,7 +551,7 @@ export default function ExamPlayer() {
           <aside className="order-first lg:order-last">
             <div className="rounded-xl border border-slate-100 bg-white p-5 shadow-[0_5px_18px_rgba(25,25,45,0.08)] lg:sticky lg:top-20">
               <h4 className="text-2xl font-bold text-[#292933]">Progress</h4>
-              {!submitted && <div className="mt-5 space-y-3 text-sm text-slate-600"><div className="flex items-center gap-3"><span className="h-4 w-4 rounded-full bg-[#4caf50]" /> Answered</div><div className="flex items-center gap-3"><span className="h-4 w-4 rounded-full bg-[#f28c00]" /> Unanswered</div><div className="grid grid-cols-3 gap-2 pt-2 text-center text-xs font-bold"><span className="rounded-full bg-[#4caf50] px-2 py-2 text-white">Answered: {Object.keys(answers).length}</span><span className="rounded-full bg-[#2997dd] px-2 py-2 text-white">Total: {questions.length}</span><span className="rounded-full bg-[#f5a000] px-2 py-2 text-white">Skipped: {questions.filter((q) => answers[q.id] === undefined).length}</span></div></div>}
+              {!submitted && <div className="mt-5 space-y-3 text-sm text-slate-600"><div className="flex items-center gap-3"><span className="h-4 w-4 rounded-full bg-[#4caf50]" /> Answered</div><div className="flex items-center gap-3"><span className="h-4 w-4 rounded-full bg-[#f28c00]" /> Unanswered</div><div className="grid grid-cols-2 gap-2 pt-2 text-center text-xs font-bold"><span className="rounded-full bg-[#4caf50] px-2 py-2 text-white">Answered: {Object.keys(answers).length}</span><span className="rounded-full bg-[#2997dd] px-2 py-2 text-white">Total: {questions.length}</span></div></div>}
               {!submitted && <div className="mt-5 grid grid-cols-6 gap-2 sm:grid-cols-8 lg:grid-cols-6">
                 {questions.map((q, i) => {
                   const answered = answers[q.id] !== undefined && answers[q.id] !== null;
