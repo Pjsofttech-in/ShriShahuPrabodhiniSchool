@@ -340,7 +340,7 @@ export default function StudentRegistration() {
     <div className="min-h-[90vh] flex items-start justify-center py-6 px-3 bg-cream/40">
       <div className="container-app max-w-4xl">
         <div className="text-center mb-4">
-          <h1 className="font-display font-bold text-navy text-2xl md:text-3xl">Sankalp Scholarship Exam Registration</h1>
+          <h1 className="font-display font-bold text-navy text-2xl md:text-3xl">Maha Talent Scholarship Exam Registration</h1>
          
         </div>
 

@@ -9,7 +9,7 @@ export default function PrivacyPolicy() {
         <div className="container-app max-w-3xl prose-content space-y-6 text-muted leading-relaxed text-sm">
           <p>
             Shri Shahu Prabodhini ("we", "us") respects the privacy of every visitor, student
-            and parent using this website and the Sankalp Online Exam portal. This policy
+            and parent using this website and the Maha Talent Online Exam portal. This policy
             explains what information we collect and how it is used.
           </p>
           <div>

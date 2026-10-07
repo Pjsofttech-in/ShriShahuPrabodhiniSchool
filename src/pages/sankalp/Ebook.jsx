@@ -111,7 +111,7 @@ export default function Ebook() {
 
   return (
     <div className="min-h-screen bg-[#fffaf4]">
-      <PageHeader title="Ebooks" crumb="Sankalp" />
+      <PageHeader title="Ebooks" crumb="Maha Talent" />
       <section className="border-b border-[#f5d5b3] bg-[linear-gradient(120deg,#fff7ed_0%,#ffffff_55%,#fff0df_100%)] py-7 md:py-9">
         <div className="container-app">
           {/* <div className="mx-auto max-w-3xl text-center">

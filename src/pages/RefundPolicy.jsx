@@ -8,7 +8,7 @@ export default function RefundPolicy() {
       <section className="section-pad">
         <div className="container-app max-w-3xl space-y-6 text-muted leading-relaxed text-sm">
           <p>
-            This Refund Policy applies to the registration fee paid for the Sankalp Scholarship
+            This Refund Policy applies to the registration fee paid for the Maha Talent Scholarship
             Exam through our Razorpay payment gateway.
           </p>
           <div>

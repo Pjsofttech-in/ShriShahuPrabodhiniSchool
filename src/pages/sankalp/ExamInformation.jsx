@@ -36,7 +36,7 @@ const registrationSteps = [
 ];
 
 const prizeHighlights = [
-  { title: "Cash Rewards", description: "Win cash rewards for outstanding performance in the Sankalp Scholarship Exam.", Icon: Coins, tone: "text-[#f1b923]" },
+  { title: "Cash Rewards", description: "Win cash rewards for outstanding performance in the Maha Talent Scholarship Exam.", Icon: Coins, tone: "text-[#f1b923]" },
   { title: "Certificates", description: "Receive certificates that celebrate achievement and academic excellence.", Icon: Award, tone: "text-[#ed5a00]" },
   { title: "Up to 100% Scholarship", description: "Earn scholarship support for admission to Shri Shahu Prabodhini School, for students from 4th to 10th class.", Icon: GraduationCap, tone: "text-[#9d4c0e]" },
   { title: "Books", description: "Get valuable books to support learning and strengthen your preparation.", Icon: BookOpen, tone: "text-[#31597d]" },
@@ -82,7 +82,7 @@ export default function ExamInformation() {
 
   return (
     <div className="exam-information-page">
-      <PageHeader title="Sankalp Exam Information" crumb="Exam Information" compact />
+      <PageHeader title={liveExamInfo.name || "Maharashtra Talent Hunt"} crumb="Exam Information" compact />
 
       <section className="relative isolate overflow-hidden bg-[#102b46]">
         <img
@@ -95,10 +95,10 @@ export default function ExamInformation() {
         <div className="container-app relative flex min-h-[440px] items-center py-12 sm:min-h-[470px] md:min-h-[500px] md:py-16">
           <div className="max-w-3xl text-white">
             <div className="mb-5 inline-flex items-center gap-2 border-l-2 border-[#f3bd63] pl-3 text-xs font-bold uppercase text-white/90">
-              Sankalp {examEdition} <span className="text-[#f3bd63]" aria-hidden="true">/</span> Registrations open
+              Maha Talent {examEdition} <span className="text-[#f3bd63]" aria-hidden="true">/</span> Registrations open
             </div>
             <h1 className="max-w-3xl text-[2.6rem] font-extrabold leading-[1.05] text-white sm:text-5xl md:text-6xl">
-              {liveExamInfo.name || "Sankalp Scholarship Examination 2026"}
+              {liveExamInfo.name || "Maharashtra Talent Hunt"}
             </h1>
             <p className="mt-5 max-w-2xl text-base leading-7 text-white/85 sm:text-lg">
               Discover your academic potential through a scholarship examination designed for ambitious young learners.
@@ -147,7 +147,7 @@ export default function ExamInformation() {
           <div className="relative mb-6 rounded-[26px] border border-[#e7dcc8] bg-[#fffdf8] px-4 py-5 shadow-[0_18px_42px_rgba(23,59,95,0.09)] md:px-8 md:py-7">
             <div className="mb-6 text-center">
               <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-gold-dark">Simple registration journey</p>
-              <h2 className="mt-2 text-xl font-black text-navy sm:text-2xl md:text-3xl">Four steps to your <span className="text-gold-dark">Sankalp</span> exam</h2>
+              <h2 className="mt-2 text-xl font-black text-navy sm:text-2xl md:text-3xl">Four steps to your <span className="text-gold-dark">Maha Talent</span> exam</h2>
             </div>
 
             <div className="relative grid gap-5 md:grid-cols-4 md:gap-4">
@@ -173,7 +173,7 @@ export default function ExamInformation() {
                 <div>
                   <p className="mb-1 text-[10px] font-bold uppercase tracking-[0.2em] text-gold-dark">Scholarship examination</p>
                   <h2 className="text-xl font-black leading-tight text-navy sm:text-2xl md:text-4xl">
-                  {liveExamInfo.name || "Exam Information"}
+                  {liveExamInfo.name || "Maharashtra Talent Hunt"}
                   </h2>
                 </div>
               </div>
@@ -263,7 +263,7 @@ export default function ExamInformation() {
                   </article>
                 ))}
               </div>
-              <div className="mt-7 flex justify-center"><Link to="/register" className="inline-flex items-center gap-2 rounded-xl bg-gold px-5 py-3 text-sm font-bold text-white shadow-md transition hover:-translate-y-0.5 hover:bg-gold-dark">Register for SANKALP 2026 <ArrowRight size={16} /></Link></div>
+              <div className="mt-7 flex justify-center"><Link to="/register" className="inline-flex items-center gap-2 rounded-xl bg-gold px-5 py-3 text-sm font-bold text-white shadow-md transition hover:-translate-y-0.5 hover:bg-gold-dark">Register for MAHA TALENT 2026 <ArrowRight size={16} /></Link></div>
             </div>
           </section>
 

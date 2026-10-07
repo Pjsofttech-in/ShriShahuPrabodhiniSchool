@@ -66,7 +66,7 @@ export default function Toppers() {
 
   return (
     <div>
-      <PageHeader title="Sankalp Exam Toppers" compact crumb="Toppers" />
+      <PageHeader title="Maha Talent Exam Toppers" compact crumb="Toppers" />
 
       <section className="relative overflow-hidden bg-[#f7f8fa] py-8 md:py-12">
         <div className="pointer-events-none absolute -left-24 top-8 h-80 w-80 rounded-full bg-gold/15 blur-3xl" />
@@ -173,7 +173,7 @@ export default function Toppers() {
               <div className="relative">
                 <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-[#f3bd63]/45 bg-[#f3bd63]/10 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.2em] text-[#ffd98d]"><Sparkles size={13} /> Hall of fame</div>
                 <h2 className="max-w-xl font-display text-3xl font-bold leading-[1.08] tracking-normal text-[#fffaf0] sm:text-4xl md:text-5xl">Celebrating the minds that <span className="text-[#f3bd63]">rise higher.</span></h2>
-                <p className="mt-4 max-w-xl text-sm leading-6 text-[#d8e2df] md:text-base">Meet the students who turned preparation into performance through the Sankalp Scholarship Examination.</p>
+                <p className="mt-4 max-w-xl text-sm leading-6 text-[#d8e2df] md:text-base">Meet the students who turned preparation into performance through the Maha Talent Scholarship Examination.</p>
               </div>
               <div className="grid grid-cols-3 items-end gap-3 border-t border-white/15 pt-6 md:border-l md:border-t-0 md:pl-8 md:pt-0">
                 <div><p className="font-display text-3xl font-bold text-[#f3bd63] sm:text-4xl">{toppers.length}</p><p className="mt-1 text-[11px] leading-4 text-[#c4d0cc] sm:text-xs">Top achievers</p></div>

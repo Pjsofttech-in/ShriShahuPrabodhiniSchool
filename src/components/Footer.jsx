@@ -53,7 +53,7 @@ export default function Footer() {
             </div>
 
             <p className="max-w-xs text-sm leading-6 text-muted">
-              Empowering students through the Sankalp Scholarship Examination and quality academic guidance.
+              Empowering students through the Maha Talent Scholarship Examination and quality academic guidance.
             </p>
 
             <div className="mt-6 flex flex-wrap items-center gap-3">

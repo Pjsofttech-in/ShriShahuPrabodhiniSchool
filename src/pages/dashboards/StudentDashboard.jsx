@@ -377,8 +377,8 @@ function getPaymentHistory(student, localPayments) {
 
 function getResultTimestamp(result, type, includeMetadataFallback = true) {
   const explicitKeys = type === "started"
-    ? ["startedAt", "started_at", "startTime", "start_time", "startedOn", "started_on", "startedDate", "startedDateTime", "started_date_time", "startDate", "start_date", "startDateTime", "start_date_time", "start_datetime", "dateStarted", "date_started", "startTimestamp", "start_timestamp", "attemptStartedAt", "attempt_started_at", "attemptStartTime", "attempt_start_time", "attemptStartDate", "attemptStartDateTime", "attempt_start_date_time", "actualStartTime"]
-    : ["submittedAt", "submitted_at", "submitTime", "submit_time", "submittedTime", "submitted_time", "submitDateTime", "submit_date_time", "submitted_date_time", "submittedOn", "submitted_on", "submittedDate", "submittedDateTime", "submitDate", "submit_date", "dateSubmitted", "date_submitted", "submissionTime", "submissionDateTime", "attemptSubmittedAt", "attempt_submitted_at", "attemptSubmitTime", "attempt_submit_time", "attemptEndDateTime", "attempt_end_date_time", "completedAt", "completed_at", "completedOn", "completed_on", "completedDate", "completedDateTime", "completed_date", "completed_date_time", "dateCompleted", "date_completed", "completionTime", "completionDate", "endTime", "end_time", "endDate", "endDateTime", "end_date_time", "finishTime", "finishedAt"];
+    ? ["startedAt", "started_at", "startTime", "start_time", "startedOn", "started_on", "startedDate", "startedDateTime", "started_date_time", "startDate", "start_date", "startDateTime", "start_date_time", "start_datetime", "dateStarted", "date_started", "startTimestamp", "start_timestamp", "attemptStartedAt", "attempt_started_at", "attemptStartTime", "attempt_start_time", "attemptStartDate", "attemptStartDateTime", "attempt_start_date_time", "actualStartTime", "examStartedAt", "exam_started_at", "timeStarted", "time_started", "createdAt", "created_at", "createdOn", "created_on", "dateCreated", "date_created"]
+    : ["submittedAt", "submitted_at", "submitTime", "submit_time", "submittedTime", "submitted_time", "submitDateTime", "submit_date_time", "submitted_date_time", "submittedOn", "submitted_on", "submittedDate", "submittedDateTime", "submitDate", "submit_date", "dateSubmitted", "date_submitted", "submissionTime", "submission_time", "submissionDateTime", "attemptSubmittedAt", "attempt_submitted_at", "attemptSubmitTime", "attempt_submit_time", "attemptEndDateTime", "attempt_end_date_time", "completedAt", "completed_at", "completedOn", "completed_on", "completedDate", "completedDateTime", "completed_date", "completed_date_time", "dateCompleted", "date_completed", "completionTime", "completionDate", "endTime", "end_time", "endDate", "endDateTime", "end_date_time", "finishTime", "finishedAt", "finished_at", "updatedAt", "updated_at", "updatedOn", "updated_on", "modifiedAt", "modified_at"];
   const metadataKeys = includeMetadataFallback
     ? type === "started"
       ? ["createdAt", "created_at", "createdOn", "created_on", "createdDate", "createdDateTime", "created_date", "created_date_time", "dateCreated", "date_created"]
@@ -392,13 +392,23 @@ function getResultTimestamp(result, type, includeMetadataFallback = true) {
     const { value, depth } = pending.pop();
     if (!value || typeof value !== "object" || depth > 6 || visited.has(value)) continue;
     visited.add(value);
+
+    for (const [key, candidate] of Object.entries(value)) {
+      const normalizedKey = String(key).trim().toLowerCase();
+      const keySet = new Set([...explicitKeys, ...metadataKeys].map((item) => String(item).trim().toLowerCase()));
+      if (candidate != null && candidate !== "" && keySet.has(normalizedKey)) {
+        timestampValues.set(normalizedKey, candidate);
+      }
+    }
+
     for (const key of [...explicitKeys, ...metadataKeys]) {
-      if (!timestampValues.has(key) && value[key] != null && value[key] !== "") timestampValues.set(key, value[key]);
+      if (!timestampValues.has(String(key).trim().toLowerCase()) && value[key] != null && value[key] !== "") timestampValues.set(String(key).trim().toLowerCase(), value[key]);
     }
     Object.values(value).forEach((child) => pending.push({ value: child, depth: depth + 1 }));
   }
 
-  for (const key of [...explicitKeys, ...metadataKeys]) {
+  const candidates = [...explicitKeys, ...metadataKeys].map((key) => String(key).trim().toLowerCase());
+  for (const key of candidates) {
     if (timestampValues.has(key)) return timestampValues.get(key);
   }
   return null;
@@ -1315,8 +1325,8 @@ export default function StudentDashboard({ defaultTab = "profile" }) {
                     <div className="flex items-center justify-between gap-5 border-t border-slate-100 pt-4 sm:border-t-0 sm:pt-0">
                       <div className="text-left sm:text-right"><div className="text-2xl font-bold text-navy">{percentage != null ? `${percentage}%` : "—"}</div><div className="text-xs text-muted">Score {obtained ?? "—"}{total ? ` / ${total}` : ""}</div></div>
                       <div className="flex flex-wrap gap-2 justify-end">
-                        <button type="button" className="btn btn-sm transition group-hover:bg-gold" onClick={() => viewAttempt(r)}>View details</button>
-                        <button type="button" className="inline-flex items-center gap-1.5 rounded-md border border-gold/50 bg-gold/10 px-3 py-2 text-xs font-bold text-gold-dark transition hover:bg-gold hover:text-white" onClick={() => viewAttempt(r, "summary")}><Trophy size={14} /> Result summary</button>
+                        <button type="button" className="inline-flex items-center gap-1.5 rounded-xl border border-[#d7e4f4] bg-white px-3 py-2 text-[11px] font-bold text-[#173b5f] shadow-[0_8px_18px_rgba(23,59,95,0.07)] transition hover:-translate-y-0.5 hover:border-[#173b5f] hover:text-[#0f2947]" onClick={() => viewAttempt(r)}>View details</button>
+                        <button type="button" className="inline-flex items-center gap-1.5 rounded-xl border border-gold/50 bg-gold/10 px-3 py-2 text-[11px] font-bold text-gold-dark transition hover:bg-gold hover:text-white" onClick={() => viewAttempt(r, "summary")}><Trophy size={14} /> Result summary</button>
                         <button type="button" className="inline-flex items-center gap-1.5 rounded-xl bg-[#e86516] px-3 py-2 text-[11px] font-bold text-white shadow-[0_10px_22px_rgba(232,101,22,0.28)] transition hover:-translate-y-0.5 hover:bg-[#d95b12]" onClick={() => openPerformanceCertificate(r)}><Download size={14} /> Certificate</button>
                       </div>
                     </div>
@@ -1328,26 +1338,27 @@ export default function StudentDashboard({ defaultTab = "profile" }) {
 
           {/* Attempt Modal */}
           {showAttemptModal && selectedAttempt && (
-            <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-navy-dark/60 p-3 backdrop-blur-sm sm:p-6">
-              <div className="flex max-h-[calc(100dvh-1.5rem)] w-full max-w-4xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl sm:max-h-[calc(100dvh-3rem)]">
-                <div className="sticky top-0 z-10 flex shrink-0 items-start justify-between border-b border-slate-100 bg-white px-4 py-4 sm:px-6">
+            <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-slate-900/45 p-3 backdrop-blur-sm sm:p-6">
+              <div className="flex max-h-[calc(100dvh-1.5rem)] w-full max-w-5xl flex-col overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-[0_32px_80px_rgba(15,23,42,0.28)] sm:max-h-[calc(100dvh-3rem)]">
+                <div className="sticky top-0 z-10 flex shrink-0 items-start justify-between border-b border-slate-200 bg-[linear-gradient(135deg,#173b5f_0%,#0f2540_100%)] px-4 py-4 text-white sm:px-6">
                   <div>
-                    <h4 className="text-base font-bold text-navy sm:text-lg">{selectedAttempt.examName ?? selectedAttempt.exam_name ?? selectedAttempt.exam?.name ?? 'Exam Attempt'}</h4>
-                    <p className="mt-1 text-xs text-muted sm:text-sm">Attempt ID: {selectedAttempt.attemptId ?? selectedAttempt.id ?? selectedAttempt.resultId ?? '—'}</p>
+                    <div className="inline-flex items-center rounded-full border border-white/15 bg-white/10 px-2 py-1 text-[10px] font-bold uppercase tracking-[0.2em] text-[#f8d77e]">Attempt detail</div>
+                    <h4 className="mt-2 text-lg font-black text-white sm:text-2xl">{selectedAttempt.examName ?? selectedAttempt.exam_name ?? selectedAttempt.exam?.name ?? 'Exam Attempt'}</h4>
+                    <p className="mt-1 text-xs text-slate-200 sm:text-sm">Attempt ID: {selectedAttempt.attemptId ?? selectedAttempt.id ?? selectedAttempt.resultId ?? '—'}</p>
                   </div>
                   <div className="flex items-center gap-2">
                     <button className="inline-flex items-center gap-1.5 rounded-xl bg-[#e86516] px-3 py-1.5 text-xs font-bold text-white shadow-[0_10px_20px_rgba(232,101,22,0.28)] transition hover:-translate-y-0.5 hover:bg-[#d95b12] sm:text-sm" onClick={() => openPerformanceCertificate(selectedAttempt)} title="Open performance certificate preview">
                       <Download size={14} /> <span className="hidden sm:inline">Certificate</span>
                     </button>
-                    <button className="inline-flex items-center gap-1.5 rounded-lg border border-gold/40 bg-gold/10 px-3 py-1.5 text-xs font-semibold text-gold-dark transition hover:bg-gold hover:text-white sm:text-sm" onClick={() => downloadAttemptResult(selectedAttempt)} title="Download result details">
+                    <button className="inline-flex items-center gap-1.5 rounded-xl border border-white/20 bg-white/10 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-white/15 sm:text-sm" onClick={() => downloadAttemptResult(selectedAttempt)} title="Download result details">
                       <Download size={14} /> <span className="hidden sm:inline">Download</span>
                     </button>
-                    <button className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-muted transition hover:border-navy hover:text-navy sm:text-sm" onClick={() => setShowAttemptModal(false)}>Close</button>
+                    <button className="rounded-xl border border-white/20 bg-white/10 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-white/15 sm:text-sm" onClick={() => setShowAttemptModal(false)}>Close</button>
                   </div>
                 </div>
 
-                <div className="min-h-0 overflow-y-auto px-4 py-4 sm:px-6 sm:py-5">
-                  <div className="mb-4 flex w-fit max-w-full rounded-lg border border-slate-200 bg-slate-50 p-1" role="tablist" aria-label="Attempt result views">
+                <div className="min-h-0 overflow-y-auto bg-[#f5f7fb] px-4 py-4 sm:px-6 sm:py-5">
+                  <div className="mb-4 flex w-fit max-w-full rounded-xl border border-slate-200 bg-white p-1 shadow-sm" role="tablist" aria-label="Attempt result views">
                     {[{ id: "summary", label: "Result summary" }, { id: "questions", label: "Question details" }].map((view) => (
                       <button key={view.id} type="button" role="tab" aria-selected={attemptModalView === view.id} onClick={() => setAttemptModalView(view.id)} className={`rounded-md px-3 py-2 text-xs font-bold transition sm:text-sm ${attemptModalView === view.id ? "bg-white text-navy shadow-sm" : "text-muted hover:text-navy"}`}>
                         {view.label}
@@ -1520,9 +1531,9 @@ export default function StudentDashboard({ defaultTab = "profile" }) {
 
 function Row({ label, value }) {
   return (
-    <div className="flex justify-between border-b border-black/5 pb-2">
-      <dt className="text-muted">{label}</dt>
-      <dd className="font-semibold text-navy text-right">{value}</dd>
+    <div className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white/80 px-3 py-2.5 shadow-[0_2px_10px_rgba(15,23,42,0.02)]">
+      <dt className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">{label}</dt>
+      <dd className="text-right text-sm font-bold text-[#143256]">{value}</dd>
     </div>
   );
 }
@@ -1587,16 +1598,16 @@ function AttemptSummary({ summary, amountPaid }) {
 
   return (
     <div className="space-y-4 sm:space-y-5">
-      <section className="overflow-hidden rounded-xl bg-[#173b5f] text-white">
+      <section className="overflow-hidden rounded-[24px] border border-[#dfeaf7] bg-[linear-gradient(135deg,#173b5f_0%,#0d2540_100%)] text-white shadow-[0_18px_40px_rgba(23,59,95,0.18)]">
         <div className="flex flex-col gap-5 p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6">
           <div>
-            <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#f8d77e]">Assessment result</p>
+            <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-[#f8d77e]">Assessment result</p>
             <p className="mt-2 text-sm text-white/75">{summary.status} • {performanceStatus}</p>
-            <p className="mt-1 text-2xl font-bold">{summary.score ?? "—"}<span className="text-base font-medium text-white/70"> / {summary.totalMarks ?? "—"}</span></p>
+            <p className="mt-1 text-3xl font-black tracking-[-0.04em]">{summary.score ?? "—"}<span className="text-base font-medium text-white/70"> / {summary.totalMarks ?? "—"}</span></p>
           </div>
           <div className="flex items-center gap-4">
-            <div className="relative grid h-20 w-20 shrink-0 place-items-center rounded-full sm:h-24 sm:w-24" style={{ background: `conic-gradient(#f3bd63 ${percentage ?? 0}%, rgba(255,255,255,0.2) 0)` }}>
-              <div className="grid h-[3.75rem] w-[3.75rem] place-items-center rounded-full bg-[#173b5f] text-lg font-extrabold sm:h-[4.5rem] sm:w-[4.5rem] sm:text-xl">{percentage == null ? "—" : `${percentage}%`}</div>
+            <div className="relative grid h-20 w-20 shrink-0 place-items-center rounded-full sm:h-24 sm:w-24" style={{ background: `conic-gradient(#f3bd63 ${percentage ?? 0}%, rgba(255,255,255,0.18) 0)` }}>
+              <div className="grid h-[3.75rem] w-[3.75rem] place-items-center rounded-full bg-[#173b5f] text-lg font-extrabold shadow-inner sm:h-[4.5rem] sm:w-[4.5rem] sm:text-xl">{percentage == null ? "—" : `${percentage}%`}</div>
             </div>
             <div className="text-sm"><p className="text-white/65">Attempted</p><p className="font-bold">{summary.attemptedQuestions ?? "—"} / {summary.totalQuestions || "—"}</p></div>
           </div>
@@ -1604,16 +1615,16 @@ function AttemptSummary({ summary, amountPaid }) {
         <div className="h-1.5 bg-white/10"><div className="h-full bg-[#f3bd63] transition-[width]" style={{ width: `${percentage ?? 0}%` }} /></div>
       </section>
 
-      <section className="rounded-xl border border-slate-200 bg-white p-4 sm:p-5">
-        <div className="flex items-center justify-between gap-3"><div><h5 className="font-bold text-navy">Question breakdown</h5><p className="mt-1 text-xs text-muted">Performance across this paper</p></div><span className="text-xs font-semibold text-muted">{distributionTotal} questions</span></div>
+      <section className="rounded-[22px] border border-slate-200 bg-white p-4 shadow-[0_12px_28px_rgba(15,23,42,0.04)] sm:p-5">
+        <div className="flex items-center justify-between gap-3"><div><h5 className="font-bold text-navy">Question breakdown</h5><p className="mt-1 text-xs text-muted">Performance across this paper</p></div><span className="rounded-full bg-slate-100 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-slate-600">{distributionTotal} questions</span></div>
         {hasBreakdown ? (
           <div className="mt-5 grid min-h-40 grid-cols-3 items-end gap-4 border-b border-slate-200 px-2 pb-2" aria-label={`Correct ${correct}, incorrect ${incorrect}, unanswered ${unanswered}`}>
-            {segments.map((segment) => <div key={segment.label} className="flex h-full min-w-0 flex-col items-center justify-end gap-2"><span className={`text-sm font-extrabold ${segment.textColor}`}>{segment.value}</span><div className={`w-full max-w-16 rounded-t-md ${segment.color}`} style={{ height: distributionTotal ? `${Math.max(8, (segment.value / Math.max(...segments.map((item) => item.value), 1)) * 96)}px` : "0px" }} /><span className="text-center text-[11px] text-muted">{segment.label}</span></div>)}
+            {segments.map((segment) => <div key={segment.label} className="flex h-full min-w-0 flex-col items-center justify-end gap-2"><span className={`text-sm font-extrabold ${segment.textColor}`}>{segment.value}</span><div className={`w-full max-w-16 rounded-t-xl ${segment.color}`} style={{ height: distributionTotal ? `${Math.max(10, (segment.value / Math.max(...segments.map((item) => item.value), 1)) * 100)}px` : "0px" }} /><span className="text-center text-[11px] text-muted">{segment.label}</span></div>)}
           </div>
         ) : <p className="mt-4 text-sm text-muted">Question-level results are not available for this attempt.</p>}
       </section>
 
-      <dl className="grid gap-x-5 gap-y-3 rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm sm:grid-cols-2">
+      <dl className="grid gap-x-5 gap-y-3 rounded-[22px] border border-slate-200 bg-[linear-gradient(180deg,#f8fafc_0%,#eef5ff_100%)] p-4 text-sm shadow-[0_10px_22px_rgba(148,163,184,0.08)] sm:grid-cols-2">
         <Row label="Started" value={formatDateTime(summary.startedAt)} />
         <Row label="Submitted" value={formatDateTime(summary.submittedAt)} />
         <Row label="Total questions" value={summary.totalQuestions || "—"} />

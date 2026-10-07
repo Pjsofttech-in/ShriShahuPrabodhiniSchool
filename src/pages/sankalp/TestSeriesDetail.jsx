@@ -64,6 +64,16 @@ export default function TestSeriesDetail() {
   }
 
   function handleBuySeries() {
+    if (isFreeSeries) {
+      const firstPaper = papers && papers.length ? papers[0] : null;
+      if (firstPaper) {
+        navigate(`/exam/${firstPaper.id}/start`, { state: { exam: firstPaper } });
+        return;
+      }
+      navigate("/sankalp/test-series");
+      return;
+    }
+
     if (!user) {
       navigate("/login", { state: { next: "/student/profile", testSeries: series } });
       return;
@@ -80,8 +90,9 @@ export default function TestSeriesDetail() {
   }
 
   function handleStartPaper(paper) {
-    if (isFreeSeries) {
-      navigate(`/exam/${paper.id}/start`, { state: { exam: paper } });
+    const canAccessWithoutLogin = isFreeSeries || hasAccess;
+    if (canAccessWithoutLogin) {
+      navigate(`/exam/${paper.id}/start`, { state: { exam: { ...paper, testSeriesId: series.id } } });
       return;
     }
 

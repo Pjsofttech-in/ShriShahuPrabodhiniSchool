@@ -40,7 +40,7 @@ export default function ImageSlider({ slides, interval = 5000 }) {
           <div className="absolute inset-0 flex items-center justify-center p-4 sm:p-6 md:items-end md:justify-end md:p-10 lg:p-14">
             <div className="mt-16 w-full max-w-[92vw] rounded-2xl border border-white/10 bg-black/20 p-4 shadow-2xl backdrop-blur-sm md:mt-28 md:max-w-[500px] md:p-6 lg:p-7 md:text-right">
               <span className="mb-3 inline-block rounded-full border border-gold/40 bg-gold/20 px-2.5 py-1 text-[9px] font-semibold uppercase tracking-[0.18em] text-gold sm:text-[10px] md:text-xs">
-                Sankalp Foundation
+                Maha Talent Foundation
               </span>
 
               <h2 className="text-[clamp(1.8rem,4vw,4rem)] font-bold leading-[1.05] text-white drop-shadow-lg">

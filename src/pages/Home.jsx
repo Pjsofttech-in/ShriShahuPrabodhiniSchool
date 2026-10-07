@@ -14,14 +14,14 @@ import {
 } from "../data/siteData.js";
 import {
   fetchCourses, fetchFaculties, fetchGallery, fetchTestimonials,
-  fetchToppers, fetchAwards, fetchHeroSections, fetchMarquee, fetchSlideBars, fetchContactInfo, fetchMentors, submitContactForm,
+  fetchToppers, fetchAwards, fetchHeroSections, fetchMarquee, fetchSlideBars, fetchContactInfo, fetchMentors, fetchExamSection, submitContactForm,
 } from "../services/backendService.js";
 import { API_BASE_URL } from "../utils/api.js";
 
 const icons = { GraduationCap, Target, MapPin, FileCheck2, BookOpen, Zap, Globe, CheckCircle };
 const awardIcons = [Trophy, Medal, Award, BadgeCheck];
 const prizeHighlights = [
-  { title: "Cash Rewards", description: "Win cash rewards for outstanding performance in the Sankalp Scholarship Exam.", Icon: Coins, tone: "text-[#f1b923]" },
+  { title: "Cash Rewards", description: "Win cash rewards for outstanding performance in the Maha Talent Scholarship Exam.", Icon: Coins, tone: "text-[#f1b923]" },
   { title: "Certificates", description: "Receive certificates that celebrate achievement and academic excellence.", Icon: Award, tone: "text-[#ed5a00]" },
   { title: "Up to 100% Scholarship", description: "Earn scholarship support for admission to Shri Shahu Prabodhini School, for students from 4th to 10th class.", Icon: GraduationCap, tone: "text-[#9d4c0e]" },
   { title: "Books", description: "Get valuable books to support learning and strengthen your preparation.", Icon: BookOpen, tone: "text-[#31597d]" },
@@ -136,7 +136,7 @@ function MissingImage({ className = "" }) {
 
 export default function Home() {
   const { t } = useLanguage();
-  const [liveData, setLiveData] = React.useState({ heroSections: [], slideBars: [], marquee: [], courses: [], toppers: [], awards: [], gallery: [], faculties: [], testimonials: [], contactInfo: null });
+  const [liveData, setLiveData] = React.useState({ heroSections: [], slideBars: [], marquee: [], courses: [], toppers: [], awards: [], gallery: [], faculties: [], testimonials: [], contactInfo: null, examSection: null });
   const [mentors, setMentors] = React.useState([]);
   const [mentorQuery, setMentorQuery] = React.useState("");
   const [selectedMentor, setSelectedMentor] = React.useState(null);
@@ -145,9 +145,9 @@ export default function Home() {
 
   React.useEffect(() => {
     let active = true;
-    Promise.allSettled([fetchHeroSections(), fetchSlideBars(), fetchMarquee(), fetchCourses(), fetchToppers(), fetchAwards(), fetchGallery(), fetchFaculties(), fetchTestimonials(), fetchContactInfo()]).then((results) => {
+    Promise.allSettled([fetchHeroSections(), fetchSlideBars(), fetchMarquee(), fetchCourses(), fetchToppers(), fetchAwards(), fetchGallery(), fetchFaculties(), fetchTestimonials(), fetchContactInfo(), fetchExamSection()]).then((results) => {
       if (!active) return;
-      const [heroResult, slideBarResult, marqueeResult, coursesResult, toppersResult, awardsResult, galleryResult, facultiesResult, testimonialsResult, contactResult] = results;
+      const [heroResult, slideBarResult, marqueeResult, coursesResult, toppersResult, awardsResult, galleryResult, facultiesResult, testimonialsResult, contactResult, examSectionResult] = results;
       setLiveData({
         heroSections: heroResult.status === "fulfilled" ? heroResult.value : [],
         slideBars: slideBarResult.status === "fulfilled" ? slideBarResult.value : [],
@@ -159,6 +159,7 @@ export default function Home() {
         faculties: facultiesResult.status === "fulfilled" ? facultiesResult.value : [],
         testimonials: testimonialsResult.status === "fulfilled" ? testimonialsResult.value : [],
         contactInfo: contactResult.status === "fulfilled" ? contactResult.value : null,
+        examSection: examSectionResult.status === "fulfilled" ? examSectionResult.value : null,
       });
       setAwardsLoading(false);
     });
@@ -173,7 +174,8 @@ export default function Home() {
     return () => { active = false; };
   }, []);
 
-  const { heroSections, slideBars, marquee, courses, toppers, awards, gallery, faculties, testimonials, contactInfo } = liveData;
+  const { heroSections, slideBars, marquee, courses, toppers, awards, gallery, faculties, testimonials, contactInfo, examSection } = liveData;
+  const examInfoFromBackend = examSection || examInfo;
   const heroSlides = (slideBars.length > 0 ? slideBars : heroSections)
     .sort((first, second) => first.priority - second.priority)
     .map((slide) => ({
@@ -231,11 +233,11 @@ export default function Home() {
                 <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-gold/30 bg-white/75 px-3 py-1.5 text-xs font-bold uppercase tracking-[0.16em] text-gold-dark shadow-sm">
                   <span className="h-2 w-2 rounded-full bg-gold shadow-[0_0_0_4px_rgba(243,185,61,0.18)]" /> {t("home.registrationOpen")}
                 </div>
-                <h3 className="font-display text-2xl font-bold text-navy md:text-3xl">{examInfo.name}</h3>
-                <p className="mt-4 max-w-lg text-sm leading-7 text-[#526b7e] md:text-base">Open to students of classes {examInfo.eligibleClasses}. Compete with young minds across {examInfo.centers} and earn scholarships, certificates and recognition.</p>
+                <h3 className="font-display text-2xl font-bold text-navy md:text-3xl">{examInfoFromBackend.name}</h3>
+                <p className="mt-4 max-w-lg text-sm leading-7 text-[#526b7e] md:text-base">Open to students of classes {examInfoFromBackend.eligibleClasses}. Compete with young minds across {examInfoFromBackend.centers} and earn scholarships, certificates and recognition.</p>
                 <div className="mt-7 grid gap-3 sm:grid-cols-2">
-                  <div className="flex items-center gap-3 rounded-2xl border border-white/80 bg-white/70 px-4 py-3 text-sm font-semibold text-navy shadow-sm"><CalendarDays size={17} className="text-gold-dark" /> Exam: {examInfo.examDate}</div>
-                  <div className="flex items-center gap-3 rounded-2xl border border-white/80 bg-white/70 px-4 py-3 text-sm font-semibold text-navy shadow-sm"><CalendarDays size={17} className="text-gold-dark" /> Last date: {examInfo.registrationDeadline}</div>
+                  <div className="flex items-center gap-3 rounded-2xl border border-white/80 bg-white/70 px-4 py-3 text-sm font-semibold text-navy shadow-sm"><CalendarDays size={17} className="text-gold-dark" /> Exam: {examInfoFromBackend.examDate}</div>
+                  <div className="flex items-center gap-3 rounded-2xl border border-white/80 bg-white/70 px-4 py-3 text-sm font-semibold text-navy shadow-sm"><CalendarDays size={17} className="text-gold-dark" /> Last date: {examInfoFromBackend.registrationDeadline}</div>
                 </div>
                 <div className="mt-8 flex flex-wrap gap-3">
                   <Link to="/register" className="btn-outline">{t("home.getStarted")} <ArrowRight size={16} /></Link>
@@ -253,9 +255,9 @@ export default function Home() {
                 <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/10 text-gold-light"><GraduationCap size={23} /></div>
               </div>
               <dl className="space-y-0 text-sm">
-                <div className="flex items-center justify-between gap-4 border-t border-white/15 py-4"><dt className="text-white/65">{t("home.eligibleClasses")}</dt><dd className="text-right font-bold">{examInfo.eligibleClasses}</dd></div>
-                <div className="flex items-start justify-between gap-4 border-t border-white/15 py-4"><dt className="text-white/65">Exam Pattern</dt><dd className="max-w-[15rem] text-right font-bold leading-5">{examInfo.pattern}</dd></div>
-                <div className="flex items-center justify-between gap-4 border-y border-white/15 py-4"><dt className="text-white/65">Centers</dt><dd className="text-right font-bold">{examInfo.centers}</dd></div>
+                <div className="flex items-center justify-between gap-4 border-t border-white/15 py-4"><dt className="text-white/65">{t("home.eligibleClasses")}</dt><dd className="text-right font-bold">{examInfoFromBackend.eligibleClasses}</dd></div>
+                <div className="flex items-start justify-between gap-4 border-t border-white/15 py-4"><dt className="text-white/65">Exam Pattern</dt><dd className="max-w-[15rem] text-right font-bold leading-5">{examInfoFromBackend.pattern}</dd></div>
+                <div className="flex items-center justify-between gap-4 border-y border-white/15 py-4"><dt className="text-white/65">Centers</dt><dd className="text-right font-bold">{examInfoFromBackend.centers}</dd></div>
               </dl>
             </div>
           </div>
@@ -429,7 +431,7 @@ export default function Home() {
 
           <div className="px-4 pb-5 pt-4">
             <h3 className="font-display text-lg font-bold leading-tight text-navy">{t.name}</h3>
-            <p className="mt-1 text-sm text-muted">Class {t.className || t.post || "-"} · {t.year || "Sankalp Exam"}</p>
+            <p className="mt-1 text-sm text-muted">Class {t.className || t.post || "-"} · {t.year || "Maha Talent Exam"}</p>
             <div className="mt-4 flex items-center justify-between gap-2 border-t border-[#edf0f3] pt-3">
               <span className="text-xs font-semibold text-gold-dark">Shri Shahu Prabodhini</span>
               {t.score && <span className="rounded-full bg-[#f7f1df] px-2.5 py-1 text-xs font-bold text-gold-dark">{t.score}</span>}
@@ -473,7 +475,7 @@ export default function Home() {
               >
                 {image ? <GalleryLightbox image={image} title={g.title} compact><img src={image} alt={g.title} className="aspect-[16/8] w-full object-cover transition duration-700 hover:scale-105" /></GalleryLightbox> : <MissingImage className="aspect-[16/8]" />}
                 <div className="flex items-center justify-between gap-3 border-t border-[#eee3cf] bg-white px-4 py-3 sm:px-5">
-                  <p className="truncate text-sm font-bold text-navy sm:text-base">{g.title || "Sankalp memory"}</p>
+                  <p className="truncate text-sm font-bold text-navy sm:text-base">{g.title || "Maha Talent memory"}</p>
                   {isActive && <span className="shrink-0 rounded-full bg-gold/15 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-gold-dark">Featured</span>}
                 </div>
               </div>
@@ -579,7 +581,7 @@ export default function Home() {
             <h2 className="font-display text-3xl font-bold leading-tight text-[#ed5a00] sm:text-4xl md:text-4xl">
               What Our Students Say
             </h2>
-            <p className="mx-auto mt-3 max-w-xl text-sm leading-6 text-muted md:text-base">Real experiences from students and families who have grown with Sankalp.</p>
+            <p className="mx-auto mt-3 max-w-xl text-sm leading-6 text-muted md:text-base">Real experiences from students and families who have grown with Maha Talent.</p>
           </div>
           <div className="grid items-stretch gap-5 md:grid-cols-3">
             {testimonials.slice(0, 3).map((t, index) => (

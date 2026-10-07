@@ -33,7 +33,7 @@ export default function Download() {
       <PageHeader title="Downloads" />
       <section className="section-pad !pt-8 md:!pt-12 bg-[linear-gradient(180deg,#fffdf8_0%,#f3f6f6_100%)]">
         <div className="container-app max-w-5xl">
-          <div className="mb-8 flex items-end justify-between gap-5 border-b border-[#e7dfd1] pb-6"><div><span className="mb-3 inline-flex items-center gap-2 rounded-full border border-[#e7a064]/60 bg-[#fff4e7] px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.2em] text-[#b65318]"><Sparkles size={13} /> Resource library</span><h1 className="font-display text-3xl font-bold text-navy sm:text-4xl">Downloads</h1></div><p className="hidden max-w-xs text-right text-sm leading-6 text-muted sm:block">Keep the essential Sankalp resources close at hand.</p></div>
+          <div className="mb-8 flex items-end justify-between gap-5 border-b border-[#e7dfd1] pb-6"><div><span className="mb-3 inline-flex items-center gap-2 rounded-full border border-[#e7a064]/60 bg-[#fff4e7] px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.2em] text-[#b65318]"><Sparkles size={13} /> Resource library</span><h1 className="font-display text-3xl font-bold text-navy sm:text-4xl">Downloads</h1></div><p className="hidden max-w-xs text-right text-sm leading-6 text-muted sm:block">Keep the essential Maha Talent resources close at hand.</p></div>
           {loading ? (
             <div className="flex min-h-56 items-center justify-center gap-3 rounded-[28px] bg-white text-muted shadow-[0_18px_45px_rgba(23,59,95,0.08)]"><LoaderCircle className="animate-spin text-gold" size={24} /> Loading downloads...</div>
           ) : downloads.length === 0 ? (

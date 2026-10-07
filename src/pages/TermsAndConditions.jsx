@@ -9,7 +9,7 @@ export default function TermsAndConditions() {
         <div className="container-app max-w-3xl space-y-6 text-muted leading-relaxed text-sm">
           <p>
             These Terms and Conditions apply to the use of the Shri Shahu Prabodhini website
-            and registration for the Sankalp Scholarship Examination. By registering, the
+            and registration for the Maha Talent Scholarship Examination. By registering, the
             student and parent or guardian agree to follow these terms.
           </p>
 
@@ -26,7 +26,7 @@ export default function TermsAndConditions() {
           <div>
             <h2 className="font-display font-bold text-navy text-lg mb-2">Registration Payment</h2>
             <p>
-              The Sankalp Scholarship Examination registration fee is ₹250 per student. Payment
+              The Maha Talent Scholarship Examination registration fee is ₹250 per student. Payment
               is processed securely through Razorpay. Registration is completed only after the
               payment is successfully verified by our system. A payment receipt or transaction
               reference should be retained for future communication.

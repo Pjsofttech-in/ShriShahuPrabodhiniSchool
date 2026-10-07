@@ -140,7 +140,7 @@ export default function TestSeries() {
 
   return (
     <div className="min-h-screen bg-white">
-      <PageHeader title="Sankalp Test Series" crumb="Test Series" compact />
+      <PageHeader title="Maha Talent Test Series" crumb="Test Series" compact />
 
       <div className="mt-6 border-b border-[#f2c39d] bg-white py-3 shadow-[0_8px_22px_rgba(237,90,0,0.08)] md:mt-8">
         <div className="container-app flex max-w-full gap-2 overflow-x-auto pb-1 sm:flex-wrap sm:justify-center">

@@ -65,7 +65,7 @@ function Dropdown({ label, links }) {
     <div className="relative" ref={ref}>
       <button
         onClick={() => setOpen((o) => !o)}
-        className="sankalp-trigger flex items-center gap-1 px-3 py-2 text-sm font-semibold tracking-wide text-navy hover:text-gold rounded-md focus-ring dark:text-slate-200 dark:hover:text-gold"
+        className="maha-talent-trigger flex items-center gap-1 px-3 py-2 text-sm font-semibold tracking-wide text-navy hover:text-gold rounded-md focus-ring dark:text-slate-200 dark:hover:text-gold"
         aria-expanded={open}
       >
         {label}
@@ -268,7 +268,7 @@ export default function Navbar() {
                 <button
                   type="button"
                   onClick={() => setMobileDropdownOpen((open) => !open)}
-                  className={`sankalp-trigger flex items-center justify-center gap-1 rounded-xl px-2 py-2.5 text-xs font-semibold transition ${mobileDropdownOpen ? "bg-gold text-white shadow-md" : "text-navy hover:bg-white dark:text-slate-200 dark:hover:bg-[#263238]"}`}
+                  className={`maha-talent-trigger flex items-center justify-center gap-1 rounded-xl px-2 py-2.5 text-xs font-semibold transition ${mobileDropdownOpen ? "bg-gold text-white shadow-md" : "text-navy hover:bg-white dark:text-slate-200 dark:hover:bg-[#263238]"}`}
                   aria-expanded={mobileDropdownOpen}
                 >
                   {t("nav.sankalp")}

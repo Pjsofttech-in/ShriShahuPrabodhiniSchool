@@ -11,9 +11,9 @@ export const schoolInfo = {
 };
 
 export const sliderSlides = [
-  { id: 1, title: "Sankalp Scholarship Exam 2026", subtitle: "Registrations open for Class 5th to 10th — secure your seat today", image: "https://images.unsplash.com/photo-1523240795612-9a054b0db644?q=80&w=1600&auto=format&fit=crop", link: "/register", linkLabel: "Register Now" },
+  { id: 1, title: "Maha Talent Scholarship Exam 2026", subtitle: "Registrations open for Class 5th to 10th — secure your seat today", image: "https://images.unsplash.com/photo-1523240795612-9a054b0db644?q=80&w=1600&auto=format&fit=crop", link: "/register", linkLabel: "Register Now" },
   { id: 2, title: "Building Future Achievers Since 1987", subtitle: "Trusted by 40,000+ students across Maharashtra", image: "https://images.unsplash.com/photo-1546410531-bb4caa6b424d?q=80&w=1600&auto=format&fit=crop", link: "/about-us", linkLabel: "Know Our Story" },
-  { id: 3, title: "State Level Toppers, Every Year", subtitle: "Meet the students who topped the Sankalp exam last season", image: "https://images.unsplash.com/photo-1580582932707-520aed937b7b?q=80&w=1600&auto=format&fit=crop", link: "/toppers", linkLabel: "View Toppers" },
+  { id: 3, title: "State Level Toppers, Every Year", subtitle: "Meet the students who topped the Maha Talent exam last season", image: "https://images.unsplash.com/photo-1580582932707-520aed937b7b?q=80&w=1600&auto=format&fit=crop", link: "/toppers", linkLabel: "View Toppers" },
 ];
 
 export const featureCounts = [
@@ -25,14 +25,14 @@ export const featureCounts = [
 
 export const schoolFeatures = [
   { title: "Experienced Faculty", desc: "Subject experts with 10+ years of teaching experience.", icon: "GraduationCap" },
-  { title: "Result Oriented", desc: "Structured test series aligned to the Sankalp exam pattern.", icon: "Target" },
+  { title: "Result Oriented", desc: "Structured test series aligned to the Maha Talent exam pattern.", icon: "Target" },
   { title: "Statewide Centers", desc: "65+ exam centers across Maharashtra for easy access.", icon: "MapPin" },
   { title: "Digital Results", desc: "Instant roll number generation & downloadable result PDFs.", icon: "FileCheck2" },
 ];
 
 export const courses = [
-  { id: "c1", name: "Sankalp Foundation Batch (5th - 7th)", desc: "Builds core concepts in Maths & Science with weekly assessments.", duration: "10 Months", fee: "₹4,500 / year", image: "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?q=80&w=800&auto=format&fit=crop" },
-  { id: "c2", name: "Sankalp Scholarship Batch (8th - 10th)", desc: "Intensive scholarship-exam coaching with mock test series.", duration: "10 Months", fee: "₹6,000 / year", image: "https://images.unsplash.com/photo-1509062522246-3755977927d7?q=80&w=800&auto=format&fit=crop" },
+  { id: "c1", name: "Maha Talent Foundation Batch (5th - 7th)", desc: "Builds core concepts in Maths & Science with weekly assessments.", duration: "10 Months", fee: "₹4,500 / year", image: "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?q=80&w=800&auto=format&fit=crop" },
+  { id: "c2", name: "Maha Talent Scholarship Batch (8th - 10th)", desc: "Intensive scholarship-exam coaching with mock test series.", duration: "10 Months", fee: "₹6,000 / year", image: "https://images.unsplash.com/photo-1509062522246-3755977927d7?q=80&w=800&auto=format&fit=crop" },
   { id: "c3", name: "NTSE / NMMS Special Batch", desc: "Targeted preparation for national-level talent search exams.", duration: "8 Months", fee: "₹5,500 / year", image: "https://images.unsplash.com/photo-1509228468518-180dd4864904?q=80&w=800&auto=format&fit=crop" },
 ];
 
@@ -52,7 +52,7 @@ export const toppers = [
 ];
 
 export const gallery = [
-  { id: "g1", caption: "Sankalp Exam Day 2026", image: "https://images.unsplash.com/photo-1523050854058-8df90110c9f1?q=80&w=800&auto=format&fit=crop" },
+  { id: "g1", caption: "Maha Talent Exam Day 2026", image: "https://images.unsplash.com/photo-1523050854058-8df90110c9f1?q=80&w=800&auto=format&fit=crop" },
   { id: "g2", caption: "Annual Prize Distribution", image: "https://images.unsplash.com/photo-1523240795612-9a054b0db644?q=80&w=800&auto=format&fit=crop" },
   { id: "g3", caption: "Science Exhibition", image: "https://images.unsplash.com/photo-1554475901-4538ddfbccc2?q=80&w=800&auto=format&fit=crop" },
   { id: "g4", caption: "Sports Day Celebration", image: "https://images.unsplash.com/photo-1526676037777-05a232554f77?q=80&w=800&auto=format&fit=crop" },
@@ -70,13 +70,13 @@ export const faculties = [
 ];
 
 export const testimonials = [
-  { id: "te1", name: "Om Bhosale", role: "Student, 10th Class Topper", quote: "Sankalp's test series gave me the confidence and discipline to top my district.", photo: "https://images.unsplash.com/photo-1601412436009-d964bd02edbc?q=80&w=200&auto=format&fit=crop" },
+  { id: "te1", name: "Om Bhosale", role: "Student, 10th Class Topper", quote: "Maha Talent's test series gave me the confidence and discipline to top my district.", photo: "https://images.unsplash.com/photo-1601412436009-d964bd02edbc?q=80&w=200&auto=format&fit=crop" },
   { id: "te2", name: "Mrs. Kulkarni", role: "Parent", quote: "The coordinators kept us informed at every step — a very organised process.", photo: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=200&auto=format&fit=crop" },
-  { id: "te3", name: "Sanika Jadhav", role: "Student, 10th Class", quote: "The mock exams felt exactly like the real Sankalp paper. Huge help!", photo: "https://images.unsplash.com/photo-1595152772835-219674b2a8a6?q=80&w=200&auto=format&fit=crop" },
+  { id: "te3", name: "Sanika Jadhav", role: "Student, 10th Class", quote: "The mock exams felt exactly like the real Maha Talent paper. Huge help!", photo: "https://images.unsplash.com/photo-1595152772835-219674b2a8a6?q=80&w=200&auto=format&fit=crop" },
 ];
 
 export const examInfo = {
-  name: "Sankalp Scholarship Exam 2026",
+  name: "Maharashtra Talent Hunt",
   eligibleClasses: "5th, 6th, 7th, 8th, 9th, 10th",
   examDate: "10 January 2027",
   registrationDeadline: "20 December 2026",
@@ -92,7 +92,7 @@ export const syllabusByClass = [
 ];
 
 export const downloads = [
-  { id: "d1", title: "Sankalp Exam 2026 Brochure", file: "#", size: "1.2 MB" },
+  { id: "d1", title: "Maha Talent Exam 2026 Brochure", file: "#", size: "1.2 MB" },
   { id: "d2", title: "Syllabus PDF - All Classes", file: "#", size: "850 KB" },
   { id: "d3", title: "Previous Year Question Paper (Class 10th)", file: "#", size: "2.1 MB" },
   { id: "d4", title: "Admit Card Sample Format", file: "#", size: "300 KB" },

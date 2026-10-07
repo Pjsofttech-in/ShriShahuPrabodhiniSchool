@@ -92,6 +92,258 @@ function normalizeList(payload) {
   return [];
 }
 
+const LOCAL_TEST_SERIES = [
+  {
+    id: 15,
+    title: "TestSeries",
+    description: "Desc for ts Home",
+    image: "https://images.unsplash.com/photo-1523240795612-9a054b0db644?q=80&w=1200&auto=format&fit=crop",
+    price: 0,
+    sellingPrice: 0,
+    mrp: 0,
+    subject: "General Knowledge",
+    category: "General Knowledge",
+    categoryId: "general-knowledge",
+    featureOne: "Feature1",
+    featureTwo: "Feature2",
+    featureThree: "Feature3",
+    exams: [
+      { id: 10, name: "ज्ञानमंथन राज्यस्तरीय परीक्षा", totalMarks: 30, totalQuestions: 15, duration: 10, testSeriesId: 15, active: true },
+      { id: 11, name: "ज्ञानमंथन राज्यस्तरीय परीक्षा", totalMarks: 30, totalQuestions: 15, duration: 10, testSeriesId: 15, active: true },
+      { id: 12, name: "शाहू फुले आंबेडकर ज्ञानमंथन राज्यस्तरीय परीक्षा", totalMarks: 10, totalQuestions: 5, duration: 20, testSeriesId: 15, active: true },
+      { id: 13, name: "Maths", totalMarks: 10, totalQuestions: 5, duration: 20, testSeriesId: 15, active: true },
+    ],
+  },
+  {
+    id: 16,
+    title: "Talent Hunt",
+    description: "Practice with aptitude and reasoning drills.",
+    image: "https://images.unsplash.com/photo-1513258496099-48168024aec0?q=80&w=1200&auto=format&fit=crop",
+    price: 10,
+    sellingPrice: 10,
+    mrp: 15,
+    subject: "Reasoning",
+    category: "Aptitude",
+    categoryId: "aptitude",
+    featureOne: "Reasoning drills",
+    featureTwo: "Speed practice",
+    featureThree: "Daily mocks",
+    exams: [{ id: 20, name: "Talent Hunt Mock 1", totalMarks: 25, totalQuestions: 10, duration: 15, testSeriesId: 16, active: true }],
+  },
+  {
+    id: 17,
+    title: "DemoTest",
+    description: "A quick demo exam to test the learning flow.",
+    image: "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?q=80&w=1200&auto=format&fit=crop",
+    price: 0,
+    sellingPrice: 0,
+    mrp: 0,
+    subject: "Demo",
+    category: "Demo",
+    categoryId: "demo",
+    featureOne: "Quick practice",
+    featureTwo: "Instant result",
+    featureThree: "Beginner friendly",
+    exams: [{ id: 30, name: "Demo Assessment", totalMarks: 10, totalQuestions: 5, duration: 10, testSeriesId: 17, active: true }],
+  },
+];
+
+const LOCAL_EXAMS = LOCAL_TEST_SERIES.flatMap((series) =>
+  (series.exams || []).map((exam) => ({
+    ...exam,
+    image: exam.image || series.image,
+    examId: exam.id,
+    name: exam.name || series.title,
+    examName: exam.name || series.title,
+    active: exam.active !== false,
+    testSeriesId: exam.testSeriesId ?? series.id,
+    totalMarks: exam.totalMarks ?? 30,
+    totalQuestions: exam.totalQuestions ?? 15,
+    duration: exam.duration ?? 10,
+  }))
+);
+
+const LOCAL_QUESTION_BANK = {
+  10: [
+    { id: "q-10-1", examId: 10, question: "भारत की राजधानी है:", options: ["पुणे", "दिल्ली", "महाराष्ट्र", "कोलकाता"], correctIndex: 1, marks: 2, sequence: 1 },
+    { id: "q-10-2", examId: 10, question: "गणित में 25 + 15 = ?", options: ["30", "35", "40", "45"], correctIndex: 2, marks: 2, sequence: 2 },
+    { id: "q-10-3", examId: 10, question: "सूर्य का रंग क्या है?", options: ["नीला", "लाल", "हरा", "सुनहरा"], correctIndex: 1, marks: 2, sequence: 3 },
+    { id: "q-10-4", examId: 10, question: "2 × 8 = ?", options: ["12", "14", "16", "18"], correctIndex: 2, marks: 2, sequence: 4 },
+    { id: "q-10-5", examId: 10, question: "किस ग्रह को 'लाल ग्रह' कहा जाता है?", options: ["शनि", "मंगल", "बुध", "वरुण"], correctIndex: 1, marks: 2, sequence: 5 },
+  ],
+  11: [
+    { id: "q-11-1", examId: 11, question: "भारत का राष्ट्रीय पक्षी कौन-सा है?", options: ["मयूर", "हंस", "काक", "पेड़"], correctIndex: 0, marks: 2, sequence: 1 },
+    { id: "q-11-2", examId: 11, question: "100 ÷ 5 = ?", options: ["15", "20", "25", "30"], correctIndex: 1, marks: 2, sequence: 2 },
+    { id: "q-11-3", examId: 11, question: "भाषा के सबसे छोटे इकाई को क्या कहते हैं?", options: ["वाक्य", "शब्द", "अक्षर", "अनुच्छेद"], correctIndex: 2, marks: 2, sequence: 3 },
+    { id: "q-11-4", examId: 11, question: "पृथ्वी पर सबसे ज्यादा पानी कहाँ है?", options: ["मैदान", "समुद्र", "पहाड़", "घास"], correctIndex: 1, marks: 2, sequence: 4 },
+    { id: "q-11-5", examId: 11, question: "पश्चिमी गोलार्ध में कौन-सी ऋतु है?", options: ["शरद", "ग्रीष्म", "शीत", "वसंत"], correctIndex: 1, marks: 2, sequence: 5 },
+  ],
+  12: [
+    { id: "q-12-1", examId: 12, question: "6 + 4 = ?", options: ["8", "10", "12", "14"], correctIndex: 1, marks: 2, sequence: 1 },
+    { id: "q-12-2", examId: 12, question: "कौन-सा प्राणी पानी में रहता है?", options: ["गाय", "मछली", "बिल्ली", "पश्ला"], correctIndex: 1, marks: 2, sequence: 2 },
+    { id: "q-12-3", examId: 12, question: "निम्न में से कौन-सा चित्र है?", options: ["सूरज", "चाँद", "तारा", "पेड़"], correctIndex: 0, marks: 2, sequence: 3 },
+    { id: "q-12-4", examId: 12, question: "5 × 3 = ?", options: ["10", "12", "15", "18"], correctIndex: 2, marks: 2, sequence: 4 },
+    { id: "q-12-5", examId: 12, question: "भारतीय राष्ट्रीय झंडे में कुल रंग कितने हैं?", options: ["2", "3", "4", "5"], correctIndex: 1, marks: 2, sequence: 5 },
+  ],
+  13: [
+    { id: "q-13-1", examId: 13, question: "9 - 4 = ?", options: ["3", "4", "5", "6"], correctIndex: 2, marks: 2, sequence: 1 },
+    { id: "q-13-2", examId: 13, question: "7 × 2 = ?", options: ["12", "13", "14", "16"], correctIndex: 2, marks: 2, sequence: 2 },
+    { id: "q-13-3", examId: 13, question: "मेरा देश कौन-सा है?", options: ["भारत", "जर्मनी", "अमेरिका", "फ्रांस"], correctIndex: 0, marks: 2, sequence: 3 },
+    { id: "q-13-4", examId: 13, question: "12 + 8 = ?", options: ["18", "20", "22", "24"], correctIndex: 1, marks: 2, sequence: 4 },
+    { id: "q-13-5", examId: 13, question: "कौन-सा पद्मा शब्द सही है?", options: ["पद्म", "पदमा", "पद्मा", "पदम"], correctIndex: 2, marks: 2, sequence: 5 },
+  ],
+  20: [
+    { id: "q-20-1", examId: 20, question: "यदि 2, 4, 8, 16 है, तो अगला पद क्या होगा?", options: ["18", "24", "32", "36"], correctIndex: 2, marks: 2, sequence: 1 },
+    { id: "q-20-2", examId: 20, question: "A, C, E, G, ?", options: ["H", "I", "J", "K"], correctIndex: 2, marks: 2, sequence: 2 },
+    { id: "q-20-3", examId: 20, question: "जैसा: घोड़ा: टट्टू, तो बिल्ली: ?", options: ["बिल्ली", "बच्चा", "कूकर", "किल्ली"], correctIndex: 0, marks: 2, sequence: 3 },
+    { id: "q-20-4", examId: 20, question: "5, 10, 15, 20, ?", options: ["22", "24", "25", "30"], correctIndex: 3, marks: 2, sequence: 4 },
+    { id: "q-20-5", examId: 20, question: "विलोम का सही मिलान है: बड़ा है ?", options: ["नाटा", "छोटा", "काला", "उच्च"], correctIndex: 1, marks: 2, sequence: 5 },
+  ],
+  30: [
+    { id: "q-30-1", examId: 30, question: "कंप्यूटर का मुख्य भाग क्या है?", options: ["माउस", "किबोर्ड", "CPU", "मॉनिटर"], correctIndex: 2, marks: 2, sequence: 1 },
+    { id: "q-30-2", examId: 30, question: "2 + 2 = ?", options: ["3", "4", "5", "6"], correctIndex: 1, marks: 2, sequence: 2 },
+    { id: "q-30-3", examId: 30, question: "जिनेमा का सही नाम क्या है?", options: ["कंप्यूटर", "विद्युत", "किसी तक"], correctIndex: 2, marks: 2, sequence: 3 },
+    { id: "q-30-4", examId: 30, question: "जलेबी का रंग क्या है?", options: ["लाल", "नीला", "गुलाबी", "हरा"], correctIndex: 2, marks: 2, sequence: 4 },
+    { id: "q-30-5", examId: 30, question: "11 + 9 = ?", options: ["18", "19", "20", "21"], correctIndex: 2, marks: 2, sequence: 5 },
+  ],
+};
+
+function readLocalStorageObject(key, fallback = {}) {
+  try {
+    const raw = sessionStorage.getItem(key);
+    if (!raw) return fallback;
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === "object" ? parsed : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+function writeLocalStorageObject(key, value) {
+  sessionStorage.setItem(key, JSON.stringify(value));
+}
+
+function getLocalTestSeriesFallback() {
+  return LOCAL_TEST_SERIES.map((series) => ({
+    id: series.id,
+    title: series.title,
+    description: series.description,
+    image: series.image,
+    price: series.price,
+    sellingPrice: series.sellingPrice,
+    mrp: series.mrp,
+    subject: series.subject,
+    category: series.category,
+    categoryId: series.categoryId,
+    featureOne: series.featureOne,
+    featureTwo: series.featureTwo,
+    featureThree: series.featureThree,
+    features: [series.featureOne, series.featureTwo, series.featureThree].filter(Boolean),
+    startDate: "",
+    endDate: "",
+    exams: (series.exams || []).map((exam) => ({
+      id: exam.id,
+      name: exam.name,
+      image: exam.image,
+      totalMarks: exam.totalMarks,
+      totalQuestions: exam.totalQuestions,
+      duration: exam.duration,
+      active: exam.active !== false,
+      testSeriesId: exam.testSeriesId,
+    })),
+  }));
+}
+
+function getLocalExamFallbackById(id) {
+  const exam = LOCAL_EXAMS.find((entry) => String(entry.id) === String(id));
+  return exam ? {
+    id: exam.id,
+    name: exam.name,
+    examName: exam.name,
+    image: exam.image,
+    totalMarks: exam.totalMarks,
+    totalQuestions: exam.totalQuestions,
+    duration: exam.duration,
+    maxAttempts: 1,
+    startTime: "",
+    endTime: "",
+    testSeriesId: exam.testSeriesId,
+    active: exam.active !== false,
+    downloadTestPaper: false,
+  } : null;
+}
+
+function getLocalSeriesFallbackById(id) {
+  const item = LOCAL_TEST_SERIES.find((series) => String(series.id) === String(id));
+  if (!item) return null;
+  return {
+    id: item.id,
+    title: item.title,
+    description: item.description,
+    image: item.image,
+    price: item.price,
+    sellingPrice: item.sellingPrice,
+    mrp: item.mrp,
+    subject: item.subject,
+    featureOne: item.featureOne,
+    featureTwo: item.featureTwo,
+    featureThree: item.featureThree,
+    features: [item.featureOne, item.featureTwo, item.featureThree].filter(Boolean),
+    exams: (item.exams || []).map((exam) => ({
+      id: exam.id,
+      name: exam.name,
+      image: exam.image,
+      totalMarks: exam.totalMarks,
+      totalQuestions: exam.totalQuestions,
+      duration: exam.duration,
+      active: exam.active !== false,
+      testSeriesId: exam.testSeriesId,
+    })),
+  };
+}
+
+function getLocalQuestionsForExam(examId) {
+  if (!examId) return [];
+
+  const fallbackIds = new Set([
+    String(examId),
+    String(examId).trim(),
+    String(Number(examId) || examId),
+  ]);
+
+  const legacyMap = {
+    101: "10",
+    102: "11",
+    103: "12",
+    104: "13",
+    201: "20",
+    301: "30",
+  };
+
+  const legacyKey = legacyMap[String(examId)];
+  if (legacyKey) fallbackIds.add(legacyKey);
+
+  const directQuestions = Array.from(fallbackIds)
+    .map((key) => LOCAL_QUESTION_BANK[key])
+    .find((questions) => Array.isArray(questions)) || [];
+
+  return directQuestions.map((question, index) => ({
+    ...question,
+    id: question.id || `local-question-${examId}-${index + 1}`,
+    questionId: question.id || `local-question-${examId}-${index + 1}`,
+    questionText: question.question,
+    correctAnswer: question.options[question.correctIndex],
+    questionType: "MCQ",
+    answerExplanation: "Demo solution",
+    sequence: question.sequence ?? index + 1,
+  }));
+}
+
+function getLocalAttemptRecord(attemptId) {
+  const attempts = readLocalStorageObject("ssp_local_attempts", {});
+  return attempts[String(attemptId)] || null;
+}
+
 async function requestFirstAvailable(endpoints, label) {
   let lastError = null;
 
@@ -580,27 +832,31 @@ export async function fetchTestSeries() {
     "/api/testseries/list",
   ], "test series");
 
-  return seriesList.map((series, index) => ({
-    id: series?.id ?? series?.testSeriesId ?? index + 1,
-    title: series?.title ?? series?.name ?? "Test Series",
-    description: series?.description ?? "",
-    image: series?.image ?? series?.imageUrl ?? "",
-    price: series?.price ?? null,
-    sellingPrice: series?.sellingPrice ?? series?.salePrice ?? null,
-    mrp: series?.mrp ?? null,
-    subject: series?.subject ?? "",
-    category: typeof (series?.category ?? series?.testCategory ?? series?.testSeriesCategory) === "object"
-      ? (series?.category?.categoryName ?? series?.category?.name ?? series?.category?.title ?? series?.category?.category ?? series?.testCategory?.categoryName ?? series?.testCategory?.name ?? series?.testSeriesCategory?.categoryName ?? series?.testSeriesCategory?.name ?? "")
-      : series?.category ?? series?.categoryName ?? series?.testCategory ?? series?.testSeriesCategory ?? series?.type ?? series?.testType ?? series?.subject ?? "",
-    categoryId: series?.categoryId ?? series?.testCategoryId ?? series?.testSeriesCategoryId ?? series?.category?.id ?? series?.category?.categoryId ?? series?.testCategory?.id ?? series?.testSeriesCategory?.id ?? "",
-    featureOne: series?.testFeatureOne ?? series?.featureOne ?? "",
-    featureTwo: series?.testFeatureTwo ?? series?.featureTwo ?? "",
-    featureThree: series?.testFeatureThree ?? series?.featureThree ?? "",
-    features: normalizeTestFeatures(series),
-    startDate: series?.startDate ?? "",
-    endDate: series?.endDate ?? "",
-    exams: extractLinkedExams(series),
-  }));
+  if (seriesList.length > 0) {
+    return seriesList.map((series, index) => ({
+      id: series?.id ?? series?.testSeriesId ?? index + 1,
+      title: series?.title ?? series?.name ?? "Test Series",
+      description: series?.description ?? "",
+      image: series?.image ?? series?.imageUrl ?? "",
+      price: series?.price ?? null,
+      sellingPrice: series?.sellingPrice ?? series?.salePrice ?? null,
+      mrp: series?.mrp ?? null,
+      subject: series?.subject ?? "",
+      category: typeof (series?.category ?? series?.testCategory ?? series?.testSeriesCategory) === "object"
+        ? (series?.category?.categoryName ?? series?.category?.name ?? series?.category?.title ?? series?.category?.category ?? series?.testCategory?.categoryName ?? series?.testCategory?.name ?? series?.testSeriesCategory?.categoryName ?? series?.testSeriesCategory?.name ?? "")
+        : series?.category ?? series?.categoryName ?? series?.testCategory ?? series?.testSeriesCategory ?? series?.type ?? series?.testType ?? series?.subject ?? "",
+      categoryId: series?.categoryId ?? series?.testCategoryId ?? series?.testSeriesCategoryId ?? series?.category?.id ?? series?.category?.categoryId ?? series?.testCategory?.id ?? series?.testSeriesCategory?.id ?? "",
+      featureOne: series?.testFeatureOne ?? series?.featureOne ?? "",
+      featureTwo: series?.testFeatureTwo ?? series?.featureTwo ?? "",
+      featureThree: series?.testFeatureThree ?? series?.featureThree ?? "",
+      features: normalizeTestFeatures(series),
+      startDate: series?.startDate ?? "",
+      endDate: series?.endDate ?? "",
+      exams: extractLinkedExams(series),
+    }));
+  }
+
+  return getLocalTestSeriesFallback();
 }
 
 export async function fetchTestSeriesCategories() {
@@ -614,16 +870,21 @@ export async function fetchTestSeriesCategories() {
     "https://shrishahuprabodhini.in/api/categories",
   ], "test series categories");
 
-  return categories.map((category, index) => ({
-    id: category?.id ?? category?._id ?? category?.categoryId ?? index + 1,
-    name: category?.categoryName ?? category?.name ?? category?.title ?? category?.category ?? category?.label ?? `Category ${index + 1}`,
-  })).filter((category) => category.name);
+  if (categories.length > 0) {
+    return categories.map((category, index) => ({
+      id: category?.id ?? category?._id ?? category?.categoryId ?? index + 1,
+      name: category?.categoryName ?? category?.name ?? category?.title ?? category?.category ?? category?.label ?? `Category ${index + 1}`,
+    })).filter((category) => category.name);
+  }
+
+  return [...new Set(LOCAL_TEST_SERIES.map((series) => series.category))]
+    .filter(Boolean)
+    .map((name, index) => ({ id: `${String(name).toLowerCase().replace(/\s+/g, "-")}-${index + 1}`, name }));
 }
 
 export async function fetchTestSeriesById(id) {
   let payload = null;
   let lastError = null;
-  let lastResponse = null;
 
   const candidates = [
     `/api/api/test-series/${id}`,
@@ -644,18 +905,19 @@ export async function fetchTestSeriesById(id) {
 
       if (candidate && ((Array.isArray(candidate) && candidate.length) || (typeof candidate === "object" && Object.keys(candidate).length))) {
         payload = candidate;
-        lastResponse = response;
         break;
       }
 
       payload = candidate;
-      lastResponse = response;
     } catch (error) {
       lastError = error;
     }
   }
 
+  const localFallback = getLocalSeriesFallbackById(id);
+
   if (!payload) {
+    if (localFallback) return localFallback;
     throw lastError || new Error(`Unable to load test series ${id}`);
   }
 
@@ -752,33 +1014,52 @@ export async function fetchEbookSubcategories() {
 }
 
 export async function fetchExams() {
-  const response = await api.get("/api/exams");
-  return normalizeList(response.data).map((exam, index) => ({
-    id: exam?.examId ?? exam?.exam_id ?? exam?.id ?? index + 1,
-    name: exam?.examName ?? exam?.name ?? "Exam",
-    image: exam?.image ?? exam?.imageUrl ?? "",
-    totalMarks: exam?.totalMarks ?? "",
-    totalQuestions: exam?.totalQuestions ?? "",
-    duration: exam?.duration ?? "",
-    maxAttempts: exam?.maxAttempts ?? 1,
-    startTime: exam?.startTime ?? "",
-    endTime: exam?.endTime ?? "",
-    testSeriesId: exam?.testSeriesId ?? exam?.testSeries?.id ?? "",
-    active: exam?.active !== false,
-    downloadTestPaper: exam?.downloadTestPaper === true,
-  }));
+  try {
+    const response = await api.get("/api/exams");
+    const exams = normalizeList(response.data);
+    if (exams.length > 0) {
+      return exams.map((exam, index) => ({
+        id: exam?.examId ?? exam?.exam_id ?? exam?.id ?? index + 1,
+        name: exam?.examName ?? exam?.name ?? "Exam",
+        image: exam?.image ?? exam?.imageUrl ?? "",
+        totalMarks: exam?.totalMarks ?? "",
+        totalQuestions: exam?.totalQuestions ?? "",
+        duration: exam?.duration ?? "",
+        maxAttempts: exam?.maxAttempts ?? 1,
+        startTime: exam?.startTime ?? "",
+        endTime: exam?.endTime ?? "",
+        testSeriesId: exam?.testSeriesId ?? exam?.testSeries?.id ?? "",
+        active: exam?.active !== false,
+        downloadTestPaper: exam?.downloadTestPaper === true,
+      }));
+    }
+  } catch (error) {
+    console.warn("fetchExams failed; using local fallback dataset.", error?.message || error);
+  }
+
+  return LOCAL_EXAMS;
 }
 
 export async function fetchQuestionsByExamId(examId) {
-  const response = await api.get("/api/questions");
-  const questions = normalizeList(response.data);
-  return questions
-    .filter((question) => question?.active !== false)
-    .filter((question) => {
-      const questionExamId = question?.examId ?? question?.exam_id ?? question?.examID ?? question?.exam?.id ?? question?.exam?.examId ?? question?.exam?.exam_id;
-      return !examId || String(questionExamId ?? "") === String(examId);
-    })
-    .sort((first, second) => Number(first?.sequence ?? first?.questionSequence ?? first?.question_sequence ?? 0) - Number(second?.sequence ?? second?.questionSequence ?? second?.question_sequence ?? 0));
+  try {
+    const response = await api.get("/api/questions");
+    const questions = normalizeList(response.data);
+    const filteredQuestions = questions
+      .filter((question) => question?.active !== false)
+      .filter((question) => {
+        const questionExamId = question?.examId ?? question?.exam_id ?? question?.examID ?? question?.exam?.id ?? question?.exam?.examId ?? question?.exam?.exam_id;
+        return !examId || String(questionExamId ?? "") === String(examId);
+      })
+      .sort((first, second) => Number(first?.sequence ?? first?.questionSequence ?? first?.question_sequence ?? 0) - Number(second?.sequence ?? second?.questionSequence ?? second?.question_sequence ?? 0));
+
+    if (filteredQuestions.length > 0) {
+      return filteredQuestions;
+    }
+  } catch (error) {
+    console.warn("fetchQuestionsByExamId failed; using local fallback dataset.", error?.message || error);
+  }
+
+  return getLocalQuestionsForExam(examId);
 }
 
 function unwrapResponse(data) {
@@ -790,42 +1071,174 @@ function getAttemptId(attempt) {
   return value?.attemptId ?? value?.id ?? value?.attempt_id ?? null;
 }
 
+function getIsoNow() {
+  return new Date().toISOString();
+}
+
+function normalizeAttemptTimingFields(value) {
+  const source = unwrapResponse(value) || value || {};
+  const startedAt =
+    source?.startedAt ??
+    source?.started_at ??
+    source?.startTime ??
+    source?.start_time ??
+    source?.startDateTime ??
+    source?.start_date_time ??
+    source?.startedOn ??
+    source?.started_on ??
+    source?.dateStarted ??
+    source?.date_started ??
+    source?.attemptStartedAt ??
+    source?.attempt_started_at ??
+    source?.createdAt ??
+    source?.created_at ??
+    source?.examStartedAt ??
+    source?.exam_started_at ??
+    null;
+  const submittedAt =
+    source?.submittedAt ??
+    source?.submitted_at ??
+    source?.submitTime ??
+    source?.submit_time ??
+    source?.submittedTime ??
+    source?.submitted_time ??
+    source?.submissionTime ??
+    source?.submission_time ??
+    source?.submittedOn ??
+    source?.submitted_on ??
+    source?.completedAt ??
+    source?.completed_at ??
+    source?.finishedAt ??
+    source?.finished_at ??
+    source?.endTime ??
+    source?.end_time ??
+    source?.attemptSubmittedAt ??
+    source?.attempt_submitted_at ??
+    source?.updatedAt ??
+    source?.updated_at ??
+    null;
+  return { ...source, startedAt, submittedAt };
+}
+
 export async function startExamAttempt(examId, testSeriesId) {
-  const params = { examId };
+  const startedAt = getIsoNow();
+  const params = { examId, startedAt };
   if (testSeriesId) params.testSeriesId = testSeriesId;
-  const response = await api.post("/api/exam-attempts/start", null, { params });
-  const attempt = unwrapResponse(response.data);
-  const attemptId = getAttemptId(attempt);
-  if (!attemptId) throw new Error("The backend did not return an exam attempt ID.");
-  return { ...attempt, attemptId };
+
+  try {
+    const response = await api.post("/api/exam-attempts/start", { examId, testSeriesId: testSeriesId ?? null, startedAt }, { params });
+    const attempt = normalizeAttemptTimingFields(response.data);
+    const attemptId = getAttemptId(attempt);
+    if (!attemptId) throw new Error("The backend did not return an exam attempt ID.");
+    return { ...attempt, attemptId, startedAt: attempt.startedAt ?? startedAt };
+  } catch (error) {
+    const attemptId = `local-attempt-${Date.now()}`;
+    const attempts = readLocalStorageObject("ssp_local_attempts", {});
+    attempts[attemptId] = { attemptId, examId, testSeriesId: testSeriesId ?? null, startedAt };
+    writeLocalStorageObject("ssp_local_attempts", attempts);
+    return { attemptId, examId, testSeriesId: testSeriesId ?? null, startedAt, offline: true };
+  }
 }
 
 export async function fetchAttemptQuestions(attemptId) {
-  const response = await api.get(`/api/exam-attempts/${encodeURIComponent(attemptId)}/questions`);
-  return normalizeList(response.data);
+  try {
+    const response = await api.get(`/api/exam-attempts/${encodeURIComponent(attemptId)}/questions`);
+    return normalizeList(response.data);
+  } catch (error) {
+    const attempt = getLocalAttemptRecord(attemptId);
+    const examId = attempt?.examId;
+    if (!examId) return [];
+    return getLocalQuestionsForExam(examId);
+  }
 }
 
 export async function saveAttemptAnswer(attemptId, answer) {
-  const response = await api.post(
-    `/api/exam-attempts/${encodeURIComponent(attemptId)}/answers`,
-    answer
-  );
-  return response.data;
+  try {
+    const response = await api.post(
+      `/api/exam-attempts/${encodeURIComponent(attemptId)}/answers`,
+      answer
+    );
+    return response.data;
+  } catch (error) {
+    const answers = readLocalStorageObject("ssp_local_answers", {});
+    const key = String(attemptId);
+    answers[key] = answers[key] || {};
+    answers[key][String(answer?.questionId ?? "")] = answer;
+    writeLocalStorageObject("ssp_local_answers", answers);
+    return { success: true, offline: true };
+  }
 }
 
 export async function submitExamAttempt(attemptId) {
-  const response = await api.post(`/api/exam-attempts/${encodeURIComponent(attemptId)}/submit`);
-  return unwrapResponse(response.data);
+  const submittedAt = getIsoNow();
+
+  try {
+    const response = await api.post(
+      `/api/exam-attempts/${encodeURIComponent(attemptId)}/submit`,
+      { attemptId, submittedAt, finishedAt: submittedAt, status: "SUBMITTED" }
+    );
+    return normalizeAttemptTimingFields(response.data);
+  } catch (error) {
+    const attempt = getLocalAttemptRecord(attemptId);
+    const examId = attempt?.examId;
+    const questions = getLocalQuestionsForExam(examId);
+    const savedAnswers = readLocalStorageObject("ssp_local_answers", {});
+    const answerMap = savedAnswers[String(attemptId)] || {};
+
+    let obtainedMarks = 0;
+    const questionResults = questions.map((question) => {
+      const answerValue = answerMap[String(question.id)]?.selectedAnswer ?? answerMap[String(question.questionId)]?.selectedAnswer ?? null;
+      const selectedIndex = question.options.findIndex((option) => String(option) === String(answerValue));
+      const isCorrect = selectedIndex === Number(question.correctIndex ?? question.correct_index ?? -1);
+      if (isCorrect) obtainedMarks += Number(question.marks || 1);
+      return {
+        questionId: question.id,
+        selectedAnswer: answerValue,
+        correctAnswer: question.options[question.correctIndex],
+        isCorrect,
+        marksObtained: isCorrect ? Number(question.marks || 1) : 0,
+      };
+    });
+
+    const result = {
+      resultId: `local-result-${attemptId}`,
+      attemptId,
+      examId,
+      obtainedMarks,
+      startedAt: attempt?.startedAt ?? null,
+      submittedAt,
+      totalMarks: questions.reduce((total, question) => total + Number(question.marks || 1), 0),
+      percentage: questions.length ? Math.round((obtainedMarks / questions.reduce((total, question) => total + Number(question.marks || 1), 0)) * 100) : 0,
+      questions: questionResults,
+      offline: true,
+    };
+
+    const persistedResults = readLocalStorageObject("ssp_local_results", {});
+    persistedResults[result.resultId] = result;
+    writeLocalStorageObject("ssp_local_results", persistedResults);
+    return result;
+  }
 }
 
 export async function fetchExamAttemptResult(attemptId) {
-  const response = await api.get(`/api/exam-attempts/${encodeURIComponent(attemptId)}/result`);
-  return unwrapResponse(response.data);
+  try {
+    const response = await api.get(`/api/exam-attempts/${encodeURIComponent(attemptId)}/result`);
+    return normalizeAttemptTimingFields(response.data);
+  } catch (error) {
+    const results = readLocalStorageObject("ssp_local_results", {});
+    const resultId = Object.keys(results).find((key) => String(results[key]?.attemptId) === String(attemptId));
+    return resultId ? results[resultId] : { attemptId, startedAt: null, submittedAt: null, offline: true };
+  }
 }
 
 export async function fetchStudentResultById(resultId) {
-  const response = await api.get(`/api/results/${encodeURIComponent(resultId)}`);
-  return unwrapResponse(response.data);
+  try {
+    const response = await api.get(`/api/results/${encodeURIComponent(resultId)}`);
+    return unwrapResponse(response.data);
+  } catch (error) {
+    const results = readLocalStorageObject("ssp_local_results", {});
+    return results[String(resultId)] || { resultId, offline: true };
+  }
 }
 
 export function rememberExamAttempt(attemptId, startedAt = new Date().toISOString()) {
