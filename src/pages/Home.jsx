@@ -130,6 +130,23 @@ function getMapEmbedUrl(mapLink, address = "Shri Shahu Prabodhini School, Pune")
   return `https://www.google.com/maps?q=${encodeURIComponent(address)}&output=embed`;
 }
 
+function formatDisplayDate(value) {
+  if (!value) return "—";
+
+  const text = String(value).trim();
+  const isoMatch = text.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (isoMatch) return `${isoMatch[3]}/${isoMatch[2]}/${isoMatch[1]}`;
+
+  const parsed = new Date(text);
+  if (Number.isNaN(parsed.getTime())) return text;
+
+  const day = String(parsed.getDate()).padStart(2, "0");
+  const month = String(parsed.getMonth() + 1).padStart(2, "0");
+  const year = parsed.getFullYear();
+
+  return `${day}/${month}/${year}`;
+}
+
 function MissingImage({ className = "" }) {
   return <div className={`flex h-full min-h-24 flex-col items-center justify-center gap-2 bg-navy-light text-white/70 ${className}`}><ImageOff className="text-gold" size={28} /><span className="text-xs">Image not available</span></div>;
 }
@@ -236,8 +253,8 @@ export default function Home() {
                 <h3 className="font-display text-2xl font-bold text-navy md:text-3xl">{examInfoFromBackend.name}</h3>
                 <p className="mt-4 max-w-lg text-sm leading-7 text-[#526b7e] md:text-base">Open to students of classes {examInfoFromBackend.eligibleClasses}. Compete with young minds across {examInfoFromBackend.centers} and earn scholarships, certificates and recognition.</p>
                 <div className="mt-7 grid gap-3 sm:grid-cols-2">
-                  <div className="flex items-center gap-3 rounded-2xl border border-white/80 bg-white/70 px-4 py-3 text-sm font-semibold text-navy shadow-sm"><CalendarDays size={17} className="text-gold-dark" /> Exam: {examInfoFromBackend.examDate}</div>
-                  <div className="flex items-center gap-3 rounded-2xl border border-white/80 bg-white/70 px-4 py-3 text-sm font-semibold text-navy shadow-sm"><CalendarDays size={17} className="text-gold-dark" /> Last date: {examInfoFromBackend.registrationDeadline}</div>
+                  <div className="flex items-center gap-3 rounded-2xl border border-white/80 bg-white/70 px-4 py-3 text-sm font-semibold text-navy shadow-sm"><CalendarDays size={17} className="text-gold-dark" /> Exam: {formatDisplayDate(examInfoFromBackend.examDate)}</div>
+                  <div className="flex items-center gap-3 rounded-2xl border border-white/80 bg-white/70 px-4 py-3 text-sm font-semibold text-navy shadow-sm"><CalendarDays size={17} className="text-gold-dark" /> Last date: {formatDisplayDate(examInfoFromBackend.registrationDeadline)}</div>
                 </div>
                 <div className="mt-8 flex flex-wrap gap-3">
                   <Link to="/register" className="btn-outline">{t("home.getStarted")} <ArrowRight size={16} /></Link>
