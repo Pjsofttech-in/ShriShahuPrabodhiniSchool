@@ -50,6 +50,46 @@ body, button, input, textarea, select {
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
 }
+main, header, nav, section, article, form, div, aside {
+  max-width: 100%;
+  min-width: 0;
+}
+button, a, input, textarea, select {
+  min-height: 2.75rem;
+}
+@media (max-width: 767px) {
+  body {
+    font-size: 0.95rem;
+  }
+  button, a, input, textarea, select {
+    min-height: 2.75rem;
+  }
+  .container-app {
+    padding-left: 0.875rem;
+    padding-right: 0.875rem;
+  }
+  .login-stage {
+    min-height: calc(100svh - 4rem);
+    height: auto;
+  }
+  .login-card {
+    max-width: 100%;
+    overflow: hidden;
+  }
+}
+@media (max-width: 420px) {
+  .container-app {
+    padding-left: 0.7rem;
+    padding-right: 0.7rem;
+  }
+  .login-method {
+    font-size: 0.7rem;
+    letter-spacing: 0.01em;
+  }
+  .login-submit {
+    font-size: 0.9rem;
+  }
+}
 h1,h2,h3,h4 { @apply font-display; line-height: 1.1; }
 p { margin: 0; }
 a { transition: color 200ms ease, opacity 200ms ease, transform 200ms ease; }

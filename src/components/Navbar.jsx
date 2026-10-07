@@ -107,11 +107,11 @@ function LanguageSelector() {
       <button
         type="button"
         onClick={() => setOpen((value) => !value)}
-        className="flex items-center gap-2 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-navy transition hover:border-[#e86516] hover:text-gold dark:border-slate-600 dark:bg-[#1d2a30] dark:text-slate-200 dark:hover:border-[#ffb36b]"
+        className="flex items-center gap-2 rounded-md border border-slate-200 bg-white px-2.5 py-2 text-sm font-semibold text-navy transition hover:border-[#e86516] hover:text-gold dark:border-slate-600 dark:bg-[#1d2a30] dark:text-slate-200 dark:hover:border-[#ffb36b] sm:px-3"
         aria-expanded={open}
       >
         <Languages size={16} />
-        <span>{language === "mr" ? t("common.marathi") : t("common.english")}</span>
+        <span className="hidden sm:inline">{language === "mr" ? t("common.marathi") : t("common.english")}</span>
         <ChevronDown size={14} className={`transition-transform ${open ? "rotate-180" : ""}`} />
       </button>
 

@@ -18,13 +18,27 @@ export default function ResultCheck() {
   const [result, setResult] = useState(null);
   const [searched, setSearched] = useState(false);
 
+  function getPerformanceStatus(percentage) {
+    if (!Number.isFinite(percentage)) return "Performance unavailable";
+    if (percentage > 80) return "Best Performance";
+    if (percentage >= 50) return "Good Performance";
+    if (percentage >= 35) return "Average Performance";
+    return "Needs Improvement";
+  }
+
   function handleSearch(e) {
     e.preventDefault();
     setSearched(true);
     const student = studentsData.find((s) => s.rollNo.toLowerCase() === rollNo.trim().toLowerCase());
     if (student) {
       const marks = 70 + (student.rollNo.charCodeAt(student.rollNo.length - 1) % 30);
-      setResult({ ...student, marks, status: marks >= 35 ? "Pass" : "Fail" });
+      const status = marks >= 35 ? "Pass" : "Fail";
+      setResult({
+        ...student,
+        marks,
+        status,
+        performanceStatus: getPerformanceStatus(marks),
+      });
     } else {
       setResult(null);
     }
@@ -77,6 +91,7 @@ export default function ResultCheck() {
                   <div className="flex justify-between"><dt className="text-muted">Class</dt><dd className="font-bold">{result.class}</dd></div>
                   <div className="flex justify-between"><dt className="text-muted">Marks Obtained</dt><dd className="font-bold">{result.marks}</dd></div>
                   <div className="flex justify-between"><dt className="text-muted">Status</dt><dd className={`font-bold ${result.status === "Pass" ? "text-green-600" : "text-red-600"}`}>{result.status}</dd></div>
+                  <div className="flex justify-between"><dt className="text-muted">Performance</dt><dd className="font-bold text-amber-700">{result.performanceStatus}</dd></div>
                 </dl>
               </div>
             )}

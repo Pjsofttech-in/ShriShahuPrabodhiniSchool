@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { BadgeCheck, BookOpen, Building2, CheckCircle2, CreditCard, Download, FileText, GraduationCap, LayoutDashboard, Mail, ShieldCheck, Trophy, User } from "lucide-react";
+import schoolLogo from "../../asset/logo.png";
 import DashboardShell from "../../components/DashboardShell.jsx";
 import { useAuth } from "../../context/AuthContext.jsx";
 import {
@@ -274,6 +275,15 @@ function getPassFailStatus(percentage, fallback = "Submitted") {
   return numericPercentage >= 35 ? "Pass" : "Fail";
 }
 
+function getPerformanceStatus(percentage) {
+  const numericPercentage = Number(String(percentage ?? "").trim().replace(/%$/, ""));
+  if (!Number.isFinite(numericPercentage)) return "Performance unavailable";
+  if (numericPercentage > 80) return "Best Performance";
+  if (numericPercentage >= 50) return "Good Performance";
+  if (numericPercentage >= 35) return "Average Performance";
+  return "Needs Improvement";
+}
+
 function getAttemptSummary(attempt) {
   const result = attempt?.result && typeof attempt.result === "object" ? attempt.result : attempt;
   const metadata = { ...attempt, ...attempt?.data, ...attempt?.attempt, ...result, ...result?.data };
@@ -442,6 +452,9 @@ export default function StudentDashboard({ defaultTab = "profile" }) {
   const [selectedAttempt, setSelectedAttempt] = useState(null);
   const [showAttemptModal, setShowAttemptModal] = useState(false);
   const [attemptModalView, setAttemptModalView] = useState("summary");
+  const [certificatePreviewUrl, setCertificatePreviewUrl] = useState("");
+  const [certificateFileName, setCertificateFileName] = useState("performance-certificate.pdf");
+  const [showCertificatePreview, setShowCertificatePreview] = useState(false);
   const [testSeries, setTestSeries] = useState([]);
   const [ebooks, setEbooks] = useState([]);
   const [paymentTarget, setPaymentTarget] = useState(null);
@@ -664,6 +677,139 @@ export default function StudentDashboard({ defaultTab = "profile" }) {
       setSelectedAttempt({ ...attempt, attemptId });
     }
     setShowAttemptModal(true);
+  }
+
+  async function generatePerformanceCertificateDocument(attempt) {
+    const { jsPDF } = await import("jspdf");
+    const result = attempt.result ?? attempt;
+    const metadata = { ...attempt, ...attempt.data, ...attempt.attempt, ...result, ...result.data };
+    const summary = getAttemptSummary(attempt);
+    const studentName = metadata.studentName ?? metadata.name ?? student?.studentName ?? student?.name ?? "Student";
+    const studentClass = metadata.studentClass ?? metadata.class ?? student?.studentClass ?? student?.class ?? "—";
+    const examName = metadata.examName ?? metadata.exam_name ?? metadata.exam?.name ?? metadata.title ?? "Sankalp Scholarship Exam";
+    const percentage = summary.percentage ?? 0;
+    const issuedDate = new Date().toLocaleDateString("en-IN", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    });
+    const pdf = new jsPDF({ unit: "mm", format: "a4", orientation: "landscape" });
+    const width = pdf.internal.pageSize.getWidth();
+    const height = pdf.internal.pageSize.getHeight();
+    const orange = [233, 108, 24];
+    const orangeDark = [204, 72, 16];
+    const cream = [246, 241, 234];
+    const navy = [21, 54, 91];
+
+    const logoImage = await fetch(schoolLogo)
+      .then(async (response) => {
+        const blob = await response.blob();
+        return await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result);
+          reader.onerror = reject;
+          reader.readAsDataURL(blob);
+        });
+      })
+      .catch(() => null);
+
+    pdf.setFillColor(255, 255, 255);
+    pdf.rect(0, 0, width, height, "F");
+
+    pdf.setFillColor(...orange);
+    pdf.roundedRect(0, 0, width, 30, 0, 0, "F");
+    pdf.setFillColor(255, 255, 255);
+    pdf.roundedRect(20, 15, width - 40, 200, 10, 10, "F");
+
+    if (logoImage) {
+      pdf.addImage(logoImage, "PNG", width / 2 - 15, 8, 30, 30);
+    }
+
+    pdf.setTextColor(...navy);
+    pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(16);
+    pdf.text("SHRI SHAHU PRABODHINI", width / 2, 48, { align: "center" });
+    pdf.setFontSize(9);
+    pdf.text("School of Excellence", width / 2, 54, { align: "center" });
+
+    pdf.setFillColor(...cream);
+    pdf.roundedRect(28, 62, width - 56, 128, 10, 10, "F");
+    pdf.setDrawColor(...orange);
+    pdf.setLineWidth(1.6);
+    pdf.roundedRect(30, 64, width - 60, 124, 10, 10, "S");
+
+    pdf.setTextColor(...navy);
+    pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(18);
+    pdf.text("CERTIFICATE OF ACADEMIC EXCELLENCE", width / 2, 82, { align: "center" });
+
+    pdf.setTextColor(...orange);
+    pdf.setFont("helvetica", "normal");
+    pdf.setFontSize(10);
+    pdf.text("This is to recognize", width / 2, 97, { align: "center" });
+
+    pdf.setTextColor(...navy);
+    pdf.setFont("times", "bolditalic");
+    pdf.setFontSize(26);
+    pdf.text(String(studentName), width / 2, 116, { align: "center" });
+
+    pdf.setTextColor(...navy);
+    pdf.setFont("helvetica", "normal");
+    pdf.setFontSize(9.5);
+    const descriptor = `for outstanding academic achievement during the ${new Date().getFullYear() - 1}-${new Date().getFullYear()} academic year at Shri Shahu Prabodhini School.`;
+    const descriptorLines = pdf.splitTextToSize(descriptor, 150);
+    pdf.text(descriptorLines, width / 2, 132, { align: "center" });
+
+    pdf.setTextColor(...navy);
+    pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(11);
+    pdf.text(`Class: ${studentClass}`, width / 2, 154, { align: "center" });
+
+    pdf.setFont("helvetica", "normal");
+    pdf.setFontSize(8);
+    pdf.text(`Academic Session: ${new Date().getFullYear() - 1}-${new Date().getFullYear()}`, width / 2, 166, { align: "center" });
+    pdf.text(`Issued on: ${issuedDate}`, width / 2, 172, { align: "center" });
+    pdf.text(`Percentage: ${percentage}%`, width / 2, 178, { align: "center" });
+
+    pdf.setDrawColor(...orange);
+    pdf.setLineWidth(0.8);
+    pdf.line(42, 188, 118, 188);
+    pdf.line(width - 118, 188, width - 42, 188);
+    pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(8.5);
+    pdf.text("AUTHORIZED SIGNATORY", 80, 198, { align: "center" });
+    pdf.text("PRINCIPAL", width - 80, 198, { align: "center" });
+
+    const fileName = `performance-certificate-${String(studentName).replace(/\s+/g, "-").toLowerCase()}.pdf`;
+    const pdfBlob = pdf.output("blob");
+    return { fileName, blob: pdfBlob, url: URL.createObjectURL(pdfBlob) };
+  }
+
+  async function openPerformanceCertificate(attempt) {
+    try {
+      const { url, fileName } = await generatePerformanceCertificateDocument(attempt);
+      setCertificatePreviewUrl(url);
+      setCertificateFileName(fileName);
+      setShowCertificatePreview(true);
+    } catch (error) {
+      console.error("Unable to generate certificate preview.", error);
+    }
+  }
+
+  async function downloadPerformanceCertificate(attempt) {
+    try {
+      const { url, fileName } = await generatePerformanceCertificateDocument(attempt);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = fileName;
+      link.rel = "noopener noreferrer";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      setTimeout(() => URL.revokeObjectURL(url), 5000);
+    } catch (error) {
+      console.error("Unable to download certificate.", error);
+    }
   }
 
   async function downloadAttemptResult(attempt) {
@@ -1090,6 +1236,30 @@ export default function StudentDashboard({ defaultTab = "profile" }) {
           </div>
         </div>
       )}
+      {showCertificatePreview && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/75 p-4 backdrop-blur-[2px]" role="dialog" aria-modal="true">
+          <div className="relative w-full max-w-5xl overflow-hidden rounded-[24px] border border-slate-200 bg-white shadow-[0_28px_80px_rgba(15,23,42,0.35)]">
+            <div className="flex items-center justify-between gap-3 border-b border-slate-200 bg-slate-50 px-4 py-3 sm:px-6">
+              <div className="text-xs font-bold uppercase tracking-[0.18em] text-[#e86516]">Certificate</div>
+              <div className="flex items-center gap-2">
+                <button type="button" onClick={() => downloadPerformanceCertificate(selectedAttempt ?? results[0])} className="inline-flex items-center gap-2 rounded-xl bg-[#e86516] px-3 py-2 text-xs font-bold text-white shadow-[0_10px_20px_rgba(232,101,22,0.25)] transition hover:bg-[#d95b12]">
+                  <Download size={14} /> Download
+                </button>
+                <button type="button" onClick={() => { setShowCertificatePreview(false); setCertificatePreviewUrl(""); }} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600 transition hover:border-slate-400 hover:text-slate-900">
+                  Close
+                </button>
+              </div>
+            </div>
+            <div className="max-h-[80vh] overflow-auto bg-[#f3f4f6] p-3 sm:p-5">
+              {certificatePreviewUrl ? (
+                <iframe title="Performance certificate preview" src={certificatePreviewUrl} className="h-[70vh] w-full rounded-2xl border border-slate-200 bg-white" />
+              ) : (
+                <div className="grid min-h-[300px] place-items-center rounded-2xl border border-dashed border-slate-300 bg-white text-sm text-slate-500">Certificate preview unavailable.</div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
       {tab === "result" && (
         <div className="space-y-5">
           <section className="card overflow-hidden border-0 bg-[#173b5f] p-6 text-white shadow-[0_14px_30px_rgba(23,59,95,0.16)] sm:p-8">
@@ -1117,6 +1287,7 @@ export default function StudentDashboard({ defaultTab = "profile" }) {
                 const resultAmount = resultData.amount ?? resultData.amountPaid ?? resultData.paidAmount ?? resultData.paymentAmount ?? paymentAmount;
                 const percentage = resultData.percentage ?? resultData.percent ?? (obtained != null && total ? Math.round((Number(obtained) / Number(total)) * 100) : null);
                 const resultStatus = getPassFailStatus(percentage, resultData.status ?? resultData.resultStatus ?? resultData.result ?? "Submitted");
+                const performanceStatus = getPerformanceStatus(percentage);
                 const startedAt = getResultTimestamp(r, "started");
                 const submittedAt = getResultTimestamp(r, "submitted");
                 const attemptedCount = r.attemptedCount ?? r.attemptedQuestions ?? r.answeredCount ?? null;
@@ -1127,7 +1298,7 @@ export default function StudentDashboard({ defaultTab = "profile" }) {
                 return (
                   <div key={String(attemptId || resultIndex)} className="card group flex flex-col gap-5 border-l-4 border-l-gold p-5 transition hover:-translate-y-0.5 hover:shadow-[0_12px_28px_rgba(23,59,95,0.12)] sm:flex-row sm:items-center sm:justify-between">
                     <div className="min-w-0">
-                      <div className="flex flex-wrap items-center gap-2"><div className="font-display text-lg font-bold text-navy">{examName}</div><span className={`rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide ${resultStatus === "Pass" ? "bg-emerald-50 text-emerald-700" : resultStatus === "Fail" ? "bg-rose-50 text-rose-700" : "bg-slate-100 text-slate-600"}`}>{resultStatus}</span></div>
+                      <div className="flex flex-wrap items-center gap-2"><div className="font-display text-lg font-bold text-navy">{examName}</div><span className={`rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide ${resultStatus === "Pass" ? "bg-emerald-50 text-emerald-700" : resultStatus === "Fail" ? "bg-rose-50 text-rose-700" : "bg-slate-100 text-slate-600"}`}>{resultStatus}</span><span className="rounded-full bg-amber-50 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-amber-700">{performanceStatus}</span></div>
                       <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-slate-500">
                         <span>Started: {formatDateTime(startedAt)}</span>
                         <span>Submitted: {formatDateTime(submittedAt)}</span>
@@ -1146,6 +1317,7 @@ export default function StudentDashboard({ defaultTab = "profile" }) {
                       <div className="flex flex-wrap gap-2 justify-end">
                         <button type="button" className="btn btn-sm transition group-hover:bg-gold" onClick={() => viewAttempt(r)}>View details</button>
                         <button type="button" className="inline-flex items-center gap-1.5 rounded-md border border-gold/50 bg-gold/10 px-3 py-2 text-xs font-bold text-gold-dark transition hover:bg-gold hover:text-white" onClick={() => viewAttempt(r, "summary")}><Trophy size={14} /> Result summary</button>
+                        <button type="button" className="inline-flex items-center gap-1.5 rounded-xl bg-[#e86516] px-3 py-2 text-[11px] font-bold text-white shadow-[0_10px_22px_rgba(232,101,22,0.28)] transition hover:-translate-y-0.5 hover:bg-[#d95b12]" onClick={() => openPerformanceCertificate(r)}><Download size={14} /> Certificate</button>
                       </div>
                     </div>
                   </div>
@@ -1164,6 +1336,9 @@ export default function StudentDashboard({ defaultTab = "profile" }) {
                     <p className="mt-1 text-xs text-muted sm:text-sm">Attempt ID: {selectedAttempt.attemptId ?? selectedAttempt.id ?? selectedAttempt.resultId ?? '—'}</p>
                   </div>
                   <div className="flex items-center gap-2">
+                    <button className="inline-flex items-center gap-1.5 rounded-xl bg-[#e86516] px-3 py-1.5 text-xs font-bold text-white shadow-[0_10px_20px_rgba(232,101,22,0.28)] transition hover:-translate-y-0.5 hover:bg-[#d95b12] sm:text-sm" onClick={() => openPerformanceCertificate(selectedAttempt)} title="Open performance certificate preview">
+                      <Download size={14} /> <span className="hidden sm:inline">Certificate</span>
+                    </button>
                     <button className="inline-flex items-center gap-1.5 rounded-lg border border-gold/40 bg-gold/10 px-3 py-1.5 text-xs font-semibold text-gold-dark transition hover:bg-gold hover:text-white sm:text-sm" onClick={() => downloadAttemptResult(selectedAttempt)} title="Download result details">
                       <Download size={14} /> <span className="hidden sm:inline">Download</span>
                     </button>
@@ -1408,6 +1583,7 @@ function AttemptSummary({ summary, amountPaid }) {
     { label: "Unanswered", value: unanswered, color: "bg-slate-300", textColor: "text-slate-600" },
   ];
   const percentage = summary.percentage == null ? null : Math.min(100, Math.max(0, Number(summary.percentage)));
+  const performanceStatus = getPerformanceStatus(percentage);
 
   return (
     <div className="space-y-4 sm:space-y-5">
@@ -1415,7 +1591,7 @@ function AttemptSummary({ summary, amountPaid }) {
         <div className="flex flex-col gap-5 p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6">
           <div>
             <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#f8d77e]">Assessment result</p>
-            <p className="mt-2 text-sm text-white/75">{summary.status}</p>
+            <p className="mt-2 text-sm text-white/75">{summary.status} • {performanceStatus}</p>
             <p className="mt-1 text-2xl font-bold">{summary.score ?? "—"}<span className="text-base font-medium text-white/70"> / {summary.totalMarks ?? "—"}</span></p>
           </div>
           <div className="flex items-center gap-4">
