@@ -10,11 +10,13 @@ import {
 } from "react-icons/fa";
 
 import { fetchFooter } from "../services/backendService";
+import { useLanguage } from "../context/LanguageContext.jsx";
 import pjLogo from "../asset/image.png";
 import Logo from "../asset/logo.png";
 
 export default function Footer() {
   const [footer, setFooter] = useState(null);
+  const { t } = useLanguage();
 
   useEffect(() => {
     let active = true;
@@ -65,7 +67,7 @@ export default function Footer() {
                 <a
                   key={network}
                   href={href || "#"}
-                  aria-label="Social media"
+                  aria-label={t("footer.social")}
                   className={`social-icon group flex h-11 w-11 items-center justify-center rounded-full border border-[#d9e1e8] bg-white text-muted shadow-[0_8px_18px_rgba(23,59,95,0.08)] transition-all duration-300 hover:text-white ${className}`}
                 >
                   <Icon className="text-base transition-transform duration-300 group-hover:scale-110" />
@@ -75,30 +77,30 @@ export default function Footer() {
           </div>
 
           <div className="footer-column">
-            <h3 className="mb-5 font-display text-lg font-bold text-navy">Quick Links</h3>
+            <h3 className="mb-5 font-display text-lg font-bold text-navy">{t("footer.quickLinks")}</h3>
             <ul className="space-y-3 text-sm text-muted">
-              <li><Link to="/courses" className="hover:text-gold transition">Courses</Link></li>
-              <li><Link to="/toppers" className="hover:text-gold transition">Toppers</Link></li>
-              <li><Link to="/gallery" className="hover:text-gold transition">Gallery</Link></li>
-              <li><Link to="/faculties" className="hover:text-gold transition">Faculties</Link></li>
-              <li><Link to="/download" className="hover:text-gold transition">Downloads</Link></li>
-              <li><Link to="/register" className="hover:text-gold transition">Student Registration</Link></li>
+              <li><Link to="/courses" className="hover:text-gold transition">{t("nav.courses")}</Link></li>
+              <li><Link to="/toppers" className="hover:text-gold transition">{t("nav.toppers")}</Link></li>
+              <li><Link to="/gallery" className="hover:text-gold transition">{t("nav.gallery")}</Link></li>
+              <li><Link to="/faculties" className="hover:text-gold transition">{t("nav.faculty")}</Link></li>
+              <li><Link to="/download" className="hover:text-gold transition">{t("nav.downloads")}</Link></li>
+              <li><Link to="/register" className="hover:text-gold transition">{t("common.registration")}</Link></li>
             </ul>
           </div>
 
           <div className="footer-column">
-            <h3 className="mb-5 font-display text-lg font-bold text-navy">Sankalp Exam</h3>
+            <h3 className="mb-5 font-display text-lg font-bold text-navy">{t("footer.sankalpExam")}</h3>
             <ul className="space-y-3 text-sm text-muted">
-              <li><Link to="/sankalp/exam-information" className="hover:text-gold transition">Exam Information</Link></li>
-              <li><Link to="/sankalp/syllabus" className="hover:text-gold transition">Syllabus</Link></li>
-              <li><Link to="/sankalp/answer-key" className="hover:text-gold transition">Answer Key</Link></li>
-              <li><Link to="/sankalp/result-check" className="hover:text-gold transition">Result Check</Link></li>
-              <li><Link to="/sankalp/results-pdf" className="hover:text-gold transition">Results PDF</Link></li>
+              <li><Link to="/sankalp/exam-information" className="hover:text-gold transition">{t("exam.information")}</Link></li>
+              <li><Link to="/sankalp/syllabus" className="hover:text-gold transition">{t("exam.syllabus")}</Link></li>
+              <li><Link to="/sankalp/answer-key" className="hover:text-gold transition">{t("exam.answerKey")}</Link></li>
+              <li><Link to="/sankalp/result-check" className="hover:text-gold transition">{t("exam.resultCheck")}</Link></li>
+              <li><Link to="/sankalp/results-pdf" className="hover:text-gold transition">{t("exam.resultsPdf")}</Link></li>
             </ul>
           </div>
 
           <div className="footer-column">
-            <h3 className="mb-5 font-display text-lg font-bold text-navy">Contact</h3>
+            <h3 className="mb-5 font-display text-lg font-bold text-navy">{t("footer.contact")}</h3>
             <div className="space-y-4 text-sm text-muted">
               <div className="flex gap-3">
                 <MapPin size={18} className="mt-1 shrink-0 text-gold" />
@@ -117,10 +119,10 @@ export default function Footer() {
             </div>
 
             <div className="mt-6 flex flex-wrap gap-4 text-sm text-muted">
-              <Link to="/privacy-policy" className="hover:text-gold transition">Privacy Policy</Link>
-              <Link to="/terms-and-conditions" className="hover:text-gold transition">Terms and Conditions</Link>
-              <Link to="/refund-policy" className="hover:text-gold transition">Refund Policy</Link>
-              <Link to="/contact-us" className="hover:text-gold transition">Contact Us</Link>
+              <Link to="/privacy-policy" className="hover:text-gold transition">{t("footer.privacy")}</Link>
+              <Link to="/terms-and-conditions" className="hover:text-gold transition">{t("footer.terms")}</Link>
+              <Link to="/refund-policy" className="hover:text-gold transition">{t("footer.refund")}</Link>
+              <Link to="/contact-us" className="hover:text-gold transition">{t("footer.contactUs")}</Link>
             </div>
           </div>
         </div>
@@ -128,10 +130,10 @@ export default function Footer() {
 
       <div className="border-t border-[#dfe7ed] bg-white/65 py-5">
         <div className="container-app flex flex-col items-center justify-center gap-3 text-center text-sm text-muted md:flex-row">
-          <span>© {new Date().getFullYear()} All Rights Reserved.</span>
+          <span>© {new Date().getFullYear()} {t("footer.rights")}</span>
           <span className="hidden text-[#bdc9d2] md:block">|</span>
           <div className="flex items-center justify-center gap-2">
-            <span>Designed By</span>
+            <span>{t("footer.designedBy")}</span>
             <img src={pjLogo} alt="PJSoftTech" className="h-6 w-auto object-contain" />
             <a
               href="https://pjsofttech.com/"

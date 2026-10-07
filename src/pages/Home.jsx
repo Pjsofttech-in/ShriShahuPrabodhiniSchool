@@ -8,6 +8,7 @@ import {
 import ImageSlider from "../components/ImageSlider.jsx";
 import CourseCard from "../components/CourseCard.jsx";
 import GalleryLightbox from "../components/GalleryLightbox.jsx";
+import { useLanguage } from "../context/LanguageContext.jsx";
 import {
   sliderSlides, featureCounts, schoolFeatures, examInfo, schoolInfo,
 } from "../data/siteData.js";
@@ -134,6 +135,7 @@ function MissingImage({ className = "" }) {
 }
 
 export default function Home() {
+  const { t } = useLanguage();
   const [liveData, setLiveData] = React.useState({ heroSections: [], slideBars: [], marquee: [], courses: [], toppers: [], awards: [], gallery: [], faculties: [], testimonials: [], contactInfo: null });
   const [mentors, setMentors] = React.useState([]);
   const [mentorQuery, setMentorQuery] = React.useState("");
@@ -227,7 +229,7 @@ export default function Home() {
               <div className="absolute right-8 top-8 h-16 w-16 rounded-full bg-gold/15 blur-xl" />
               <div className="relative max-w-xl">
                 <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-gold/30 bg-white/75 px-3 py-1.5 text-xs font-bold uppercase tracking-[0.16em] text-gold-dark shadow-sm">
-                  <span className="h-2 w-2 rounded-full bg-gold shadow-[0_0_0_4px_rgba(243,185,61,0.18)]" /> Now open for registration
+                  <span className="h-2 w-2 rounded-full bg-gold shadow-[0_0_0_4px_rgba(243,185,61,0.18)]" /> {t("home.registrationOpen")}
                 </div>
                 <h3 className="font-display text-2xl font-bold text-navy md:text-3xl">{examInfo.name}</h3>
                 <p className="mt-4 max-w-lg text-sm leading-7 text-[#526b7e] md:text-base">Open to students of classes {examInfo.eligibleClasses}. Compete with young minds across {examInfo.centers} and earn scholarships, certificates and recognition.</p>
@@ -236,8 +238,8 @@ export default function Home() {
                   <div className="flex items-center gap-3 rounded-2xl border border-white/80 bg-white/70 px-4 py-3 text-sm font-semibold text-navy shadow-sm"><CalendarDays size={17} className="text-gold-dark" /> Last date: {examInfo.registrationDeadline}</div>
                 </div>
                 <div className="mt-8 flex flex-wrap gap-3">
-                  <Link to="/register" className="btn-outline">Registration <ArrowRight size={16} /></Link>
-                  <Link to="/sankalp/exam-information" className="inline-flex items-center gap-2 rounded-md border-2 border-navy/15 px-6 py-3 font-bold text-navy transition hover:border-navy hover:bg-navy hover:text-white">Exam Details <ArrowRight size={16} /></Link>
+                  <Link to="/register" className="btn-outline">{t("home.getStarted")} <ArrowRight size={16} /></Link>
+                  <Link to="/sankalp/exam-information" className="inline-flex items-center gap-2 rounded-md border-2 border-navy/15 px-6 py-3 font-bold text-navy transition hover:border-navy hover:bg-navy hover:text-white">{t("home.examDetails")} <ArrowRight size={16} /></Link>
                 </div>
               </div>
             </div>
@@ -245,13 +247,13 @@ export default function Home() {
             <div className="bg-[#173b5f] p-6 text-white sm:p-8 md:p-10">
               <div className="mb-7 flex items-center justify-between gap-3">
                 <div>
-                  <p className="text-xs font-bold uppercase tracking-[0.18em] text-gold-light">At a glance</p>
-                  <h3 className="mt-1 font-display text-2xl font-bold">Exam Snapshot</h3>
+                  <p className="text-xs font-bold uppercase tracking-[0.18em] text-gold-light">{t("home.atAGlance")}</p>
+                  <h3 className="mt-1 font-display text-2xl font-bold">{t("home.examSnapshot")}</h3>
                 </div>
                 <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/10 text-gold-light"><GraduationCap size={23} /></div>
               </div>
               <dl className="space-y-0 text-sm">
-                <div className="flex items-center justify-between gap-4 border-t border-white/15 py-4"><dt className="text-white/65">Eligible Classes</dt><dd className="text-right font-bold">{examInfo.eligibleClasses}</dd></div>
+                <div className="flex items-center justify-between gap-4 border-t border-white/15 py-4"><dt className="text-white/65">{t("home.eligibleClasses")}</dt><dd className="text-right font-bold">{examInfo.eligibleClasses}</dd></div>
                 <div className="flex items-start justify-between gap-4 border-t border-white/15 py-4"><dt className="text-white/65">Exam Pattern</dt><dd className="max-w-[15rem] text-right font-bold leading-5">{examInfo.pattern}</dd></div>
                 <div className="flex items-center justify-between gap-4 border-y border-white/15 py-4"><dt className="text-white/65">Centers</dt><dd className="text-right font-bold">{examInfo.centers}</dd></div>
               </dl>

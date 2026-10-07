@@ -16,46 +16,24 @@ import {
   BookOpen,
   GraduationCap,
   Info,
-  Target
+  Target,
+  Languages,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext.jsx";
+import { useLanguage } from "../context/LanguageContext.jsx";
 import logo from "../asset/logo.png";
 
-const examLinks = [
-  { to: "/sankalp/exam-information", label: "Exam Information" },
-  { to: "/sankalp/ebook", label: "Ebook" },
-  { to: "/sankalp/test-series", label: "Test Series" },
-  { to: "/sankalp/syllabus", label: "Syllabus" },
-  { to: "/sankalp/answer-key", label: "Answer Key" },
-  { to: "/sankalp/result-check", label: "Result Check" },
-  { to: "/sankalp/results-pdf", label: "Results PDF" },
-  { to: "/contact-us", label: "Contact Us" }
+const getExamLinks = (t) => [
+  { to: "/sankalp/exam-information", label: t("exam.information") },
+  { to: "/sankalp/ebook", label: t("exam.ebook") },
+  { to: "/sankalp/test-series", label: t("exam.testSeries") },
+  { to: "/sankalp/syllabus", label: t("exam.syllabus") },
+  { to: "/sankalp/answer-key", label: t("exam.answerKey") },
+  { to: "/sankalp/result-check", label: t("exam.resultCheck") },
+  { to: "/sankalp/results-pdf", label: t("exam.resultsPdf") },
+  { to: "/contact-us", label: t("exam.contact") },
 ];
 
-const moreLinks = [
-  { to: "/about-us", label: "About Us" },
-  { to: "/vision-mission", label: "Vision & Mission" },
-  { to: "/download", label: "Downloads" },
-];
-const mobilePrimaryLinks = [
-  { to: "/home", label: "Home" },
-  { to: "/courses", label: "Courses" },
-  { to: "/features", label: "Mentors" },
-  { to: "/toppers", label: "Toppers" },
-];
-const mobileUtilityLinks = [
-  { to: "/awards", label: "Awards", Icon: Award },
-  { to: "/gallery", label: "Gallery", Icon: Images },
-  { to: "/contact-us", label: "Contact", Icon: MessageCircle },
-  { to: "/download", label: "Downloads", Icon: Download },
-  { to: "/notifications", label: "Notifications", Icon: Bell },
-];
-const mobileMoreLinks = [
-  { to: "/faculties", label: "Faculty", Icon: GraduationCap },
-  { to: "/testimonials", label: "Testimonials", Icon: MessageCircle },
-  { to: "/about-us", label: "About Us", Icon: Info },
-  { to: "/vision-mission", label: "Vision & Mission", Icon: Target },
-];
 const navItemClass = ({ isActive }) =>
   `px-2 xl:px-3 py-2 text-sm font-semibold transition-all duration-300 rounded-md hover:-translate-y-0.5 hover:bg-[#fff0df] hover:shadow-[0_6px_14px_rgba(232,101,22,0.10)] ${
     isActive
@@ -111,11 +89,85 @@ function Dropdown({ label, links }) {
   );
 }
 
+function LanguageSelector() {
+  const { language, setLanguage, t } = useLanguage();
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+
+  useEffect(() => {
+    function onClick(e) {
+      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
+    }
+    document.addEventListener("click", onClick);
+    return () => document.removeEventListener("click", onClick);
+  }, []);
+
+  return (
+    <div className="relative" ref={ref}>
+      <button
+        type="button"
+        onClick={() => setOpen((value) => !value)}
+        className="flex items-center gap-2 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-navy transition hover:border-[#e86516] hover:text-gold dark:border-slate-600 dark:bg-[#1d2a30] dark:text-slate-200 dark:hover:border-[#ffb36b]"
+        aria-expanded={open}
+      >
+        <Languages size={16} />
+        <span>{language === "mr" ? t("common.marathi") : t("common.english")}</span>
+        <ChevronDown size={14} className={`transition-transform ${open ? "rotate-180" : ""}`} />
+      </button>
+
+      {open && (
+        <div className="absolute right-0 z-50 mt-2 w-40 rounded-lg border border-black/5 bg-white py-2 shadow-xl dark:border-white/10 dark:bg-[#1b2a2f]">
+          {[
+            { value: "en", label: "English" },
+            { value: "mr", label: "मराठी" },
+          ].map((option) => (
+            <button
+              key={option.value}
+              type="button"
+              onClick={() => {
+                setLanguage(option.value);
+                setOpen(false);
+              }}
+              className={`block w-full px-3 py-2 text-left text-sm font-medium transition ${
+                language === option.value ? "bg-cream text-navy dark:bg-[#263238] dark:text-gold" : "text-ink hover:bg-cream hover:text-navy dark:text-slate-100 dark:hover:bg-[#263238]"
+              }`}
+            >
+              {option.label}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [darkMode, setDarkMode] = useState(() => localStorage.getItem("theme") === "dark");
   const [mobileDropdownOpen, setMobileDropdownOpen] = useState(false);
   const { user } = useAuth();
+  const { t } = useLanguage();
+
+  const examLinks = getExamLinks(t);
+  const mobilePrimaryLinks = [
+    { to: "/home", label: t("nav.home") },
+    { to: "/courses", label: t("nav.courses") },
+    { to: "/features", label: t("nav.mentors") },
+    { to: "/toppers", label: t("nav.toppers") },
+  ];
+  const mobileUtilityLinks = [
+    { to: "/awards", label: t("nav.awards"), Icon: Award },
+    { to: "/gallery", label: t("nav.gallery"), Icon: Images },
+    { to: "/contact-us", label: t("nav.contact"), Icon: MessageCircle },
+    { to: "/download", label: t("nav.downloads"), Icon: Download },
+    { to: "/notifications", label: t("nav.notifications"), Icon: Bell },
+  ];
+  const mobileMoreLinks = [
+    { to: "/faculties", label: t("nav.faculty"), Icon: GraduationCap },
+    { to: "/testimonials", label: t("nav.testimonial"), Icon: MessageCircle },
+    { to: "/about-us", label: t("nav.about"), Icon: Info },
+    { to: "/vision-mission", label: t("nav.vision"), Icon: Target },
+  ];
 
   useEffect(() => {
     document.documentElement.classList.toggle("dark", darkMode);
@@ -132,12 +184,17 @@ export default function Navbar() {
 
   return (
     <header className="fixed inset-x-0 top-0 z-50 shadow-[0_10px_30px_rgba(23,59,95,0.10)]">
-      {/* Top strip */}
       <div className="hidden overflow-hidden border-b border-[#d87838]/40 bg-[linear-gradient(90deg,#f6a23a_0%,#ed6a16_48%,#f3bd63_100%)] text-xs text-white shadow-[0_4px_14px_rgba(232,101,22,0.16)] md:block">
         <div className="container-app overflow-hidden py-1.5">
           <div className="announcement-track flex w-max items-center gap-16 whitespace-nowrap text-white hover:[animation-play-state:paused]">
-            <span className="flex items-center gap-2 font-semibold text-white"><Phone size={12} className="text-white" /> 020-24451234 <span className="text-white/60">|</span> info@ssprabodhini.org <span className="text-white/60">|</span> Sankalp Scholarship Exam 2026 Registrations Open</span>
-            <span className="flex items-center gap-2 font-semibold text-white" aria-hidden="true"><Phone size={12} className="text-white" /> 020-24451234 <span className="text-white/60">|</span> info@ssprabodhini.org <span className="text-white/60">|</span> Sankalp Scholarship Exam 2026 Registrations Open</span>
+            <span className="flex items-center gap-2 font-semibold text-white">
+              <Phone size={12} className="text-white" />
+              {t("announcement")}
+            </span>
+            <span className="flex items-center gap-2 font-semibold text-white" aria-hidden="true">
+              <Phone size={12} className="text-white" />
+              {t("announcement")}
+            </span>
           </div>
         </div>
       </div>
@@ -149,35 +206,43 @@ export default function Navbar() {
           </Link>
 
           <div className="hidden min-w-0 flex-1 items-center justify-end gap-0 xl:flex xl:ml-6">
-            <NavLink to="/home" className={navItemClass}>Home</NavLink>
-            <Dropdown label="Sankalp" links={examLinks} />
-            <NavLink to="/courses" className={navItemClass}>Courses</NavLink>
-            <NavLink to="/features" className={navItemClass}>Mentors</NavLink>
-            <NavLink to="/awards" className={navItemClass}>Awards</NavLink>
-            <NavLink to="/toppers" className={navItemClass}>Toppers</NavLink>
-            <NavLink to="/gallery" className={navItemClass}>Gallery</NavLink>
-            <NavLink to="/faculties" className={navItemClass}>Faculty</NavLink>
-            <NavLink to="/testimonials" className={navItemClass}>Testimonial</NavLink>
-            <NavLink to="/contact-us" className={navItemClass}>Contact</NavLink>
-            <NavLink to="/about-us" className={navItemClass}>About</NavLink>
-            <NavLink to="/vision-mission" className={navItemClass}>Vision</NavLink>
+            <NavLink to="/home" className={navItemClass}>{t("nav.home")}</NavLink>
+            <Dropdown label={t("nav.sankalp")} links={examLinks} />
+            <NavLink to="/courses" className={navItemClass}>{t("nav.courses")}</NavLink>
+            <NavLink to="/features" className={navItemClass}>{t("nav.mentors")}</NavLink>
+            <NavLink to="/awards" className={navItemClass}>{t("nav.awards")}</NavLink>
+            <NavLink to="/toppers" className={navItemClass}>{t("nav.toppers")}</NavLink>
+            <NavLink to="/gallery" className={navItemClass}>{t("nav.gallery")}</NavLink>
+            <NavLink to="/faculties" className={navItemClass}>{t("nav.faculty")}</NavLink>
+            <NavLink to="/testimonials" className={navItemClass}>{t("nav.testimonial")}</NavLink>
+            <NavLink to="/contact-us" className={navItemClass}>{t("nav.contact")}</NavLink>
+            <NavLink to="/about-us" className={navItemClass}>{t("nav.about")}</NavLink>
+            <NavLink to="/vision-mission" className={navItemClass}>{t("nav.vision")}</NavLink>
 
-            <Link to="/download" className="flex h-10 w-10 items-center justify-center rounded-full transition hover:bg-cream group dark:hover:bg-[#263238]" title="Downloads">
+            <Link to="/download" className="flex h-10 w-10 items-center justify-center rounded-full transition hover:bg-cream group dark:hover:bg-[#263238]" title={t("nav.downloads")}>
               <Download size={20} className="text-navy transition group-hover:text-gold dark:text-slate-200 dark:group-hover:text-gold" />
             </Link>
 
-            <Link to="/notifications" className="relative flex h-10 w-10 items-center justify-center rounded-full transition hover:bg-cream group dark:hover:bg-[#263238]" title="Notifications">
+            <Link to="/notifications" className="relative flex h-10 w-10 items-center justify-center rounded-full transition hover:bg-cream group dark:hover:bg-[#263238]" title={t("nav.notifications")}>
               <Bell size={20} className="text-navy transition group-hover:text-gold dark:text-slate-200 dark:group-hover:text-gold" />
               <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-red-500 animate-pulse" />
             </Link>
 
-            <button type="button" onClick={() => setDarkMode((value) => !value)} className="theme-toggle flex h-10 w-10 items-center justify-center rounded-full text-navy transition hover:bg-cream hover:text-gold dark:text-slate-200 dark:hover:bg-[#263238] dark:hover:text-gold" title={darkMode ? "Switch to light theme" : "Switch to dark theme"} aria-label={darkMode ? "Switch to light theme" : "Switch to dark theme"}>
+            <button
+              type="button"
+              onClick={() => setDarkMode((value) => !value)}
+              className="theme-toggle flex h-10 w-10 items-center justify-center rounded-full text-navy transition hover:bg-cream hover:text-gold dark:text-slate-200 dark:hover:bg-[#263238] dark:hover:text-gold"
+              title={darkMode ? t("nav.theme.light") : t("nav.theme.dark")}
+              aria-label={darkMode ? t("nav.theme.light") : t("nav.theme.dark")}
+            >
               {darkMode ? <Sun size={19} /> : <Moon size={19} />}
             </button>
 
+            <LanguageSelector />
+
             <Link to={loginTarget} className="ml-3 flex items-center gap-2 rounded-lg bg-[#e86516] px-4 py-2 font-semibold text-white shadow-[0_8px_18px_rgba(232,101,22,0.22)] transition-all duration-300 hover:-translate-y-0.5 hover:bg-[#c84c0b] hover:shadow-[0_12px_24px_rgba(232,101,22,0.30)]">
               <LogIn size={16} />
-              {user ? (user.role === "student" ? "Profile" : "Dashboard") : "Login"}
+              {user ? (user.role === "student" ? t("common.profile") : t("common.dashboard")) : t("common.login")}
             </Link>
           </div>
 
@@ -186,7 +251,6 @@ export default function Navbar() {
           </button>
         </div>
 
-        {/* Mobile nav */}
         {mobileOpen && (
           <div className="xl:hidden max-h-[calc(100dvh-4rem)] overflow-y-auto border-t border-black/10 bg-white px-3 pb-4 pt-3 dark:border-white/10 dark:bg-[#172126]">
             <div className="rounded-2xl border border-black/5 bg-slate-50 p-2 shadow-[0_12px_30px_rgba(38,50,56,0.12)] dark:border-white/10 dark:bg-[#1d2a30]">
@@ -207,7 +271,7 @@ export default function Navbar() {
                   className={`sankalp-trigger flex items-center justify-center gap-1 rounded-xl px-2 py-2.5 text-xs font-semibold transition ${mobileDropdownOpen ? "bg-gold text-white shadow-md" : "text-navy hover:bg-white dark:text-slate-200 dark:hover:bg-[#263238]"}`}
                   aria-expanded={mobileDropdownOpen}
                 >
-                  Sankalp
+                  {t("nav.sankalp")}
                   <ChevronDown size={13} className={`transition-transform ${mobileDropdownOpen ? "rotate-180" : ""}`} />
                 </button>
               </div>
@@ -248,18 +312,18 @@ export default function Navbar() {
                   type="button"
                   onClick={() => setDarkMode((value) => !value)}
                   className="theme-toggle group flex min-w-0 flex-1 flex-col items-center gap-1 rounded-xl px-1 py-1.5 text-[9px] font-medium text-muted transition hover:bg-white hover:text-gold-dark dark:text-slate-300 dark:hover:bg-[#263238] dark:hover:text-gold"
-                  title={darkMode ? "Switch to light theme" : "Switch to dark theme"}
-                  aria-label={darkMode ? "Switch to light theme" : "Switch to dark theme"}
+                  title={darkMode ? t("nav.theme.light") : t("nav.theme.dark")}
+                  aria-label={darkMode ? t("nav.theme.light") : t("nav.theme.dark")}
                 >
                   {darkMode ? <Sun size={17} /> : <Moon size={17} />}
-                  <span className="truncate">Theme</span>
+                  <span className="truncate">{t("common.theme")}</span>
                 </button>
               </div>
 
               <div className="mt-2 flex items-center justify-between border-t border-black/5 px-2 pt-2 dark:border-white/10">
                 <div className="flex items-center gap-1.5 text-[10px] text-muted dark:text-slate-400">
                   <BookOpen size={13} className="text-gold" />
-                  Explore more
+                  {t("nav.explore")}
                 </div>
                 <div className="flex items-center gap-3">
                   {mobileMoreLinks.map(({ to, label, Icon }) => (
@@ -268,7 +332,7 @@ export default function Navbar() {
                     </Link>
                   ))}
                   <Link to={loginTarget} onClick={() => setMobileOpen(false)} className="rounded-lg bg-gold px-2.5 py-1 text-[10px] font-semibold text-white transition hover:bg-gold-dark">
-                    {user ? (user.role === "student" ? "Profile" : "Dashboard") : "Login"}
+                    {user ? (user.role === "student" ? t("common.profile") : t("common.dashboard")) : t("common.login")}
                   </Link>
                 </div>
               </div>
