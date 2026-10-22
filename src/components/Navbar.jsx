@@ -34,6 +34,14 @@ const getExamLinks = (t) => [
   { to: "/contact-us", label: t("exam.contact") },
 ];
 
+const getContactLinks = (t) => [
+  { to: "/contact-us", label: t("nav.contact") },
+  { to: "/about-us", label: t("nav.about") },
+  { to: "/privacy-policy", label: t("footer.privacy") },
+  { to: "/refund-policy", label: t("footer.refund") },
+  { to: "/terms-and-conditions", label: t("footer.terms") },
+];
+
 const navItemClass = ({ isActive }) =>
   `px-2 xl:px-3 py-2 text-sm font-semibold transition-all duration-300 rounded-md hover:-translate-y-0.5 hover:bg-[#fff0df] hover:shadow-[0_6px_14px_rgba(232,101,22,0.10)] ${
     isActive
@@ -149,9 +157,11 @@ export default function Navbar() {
   const { t } = useLanguage();
 
   const examLinks = getExamLinks(t);
+  const contactLinks = getContactLinks(t);
   const mobilePrimaryLinks = [
     { to: "/home", label: t("nav.home") },
     { to: "/courses", label: t("nav.courses") },
+    { to: "/sankalp/ebook", label: t("exam.ebook") },
     { to: "/features", label: t("nav.mentors") },
     { to: "/toppers", label: t("nav.toppers") },
   ];
@@ -209,14 +219,14 @@ export default function Navbar() {
             <NavLink to="/home" className={navItemClass}>{t("nav.home")}</NavLink>
             <Dropdown label={t("nav.sankalp")} links={examLinks} />
             <NavLink to="/courses" className={navItemClass}>{t("nav.courses")}</NavLink>
+            <NavLink to="/sankalp/ebook" className={navItemClass}>{t("exam.ebook")}</NavLink>
             <NavLink to="/features" className={navItemClass}>{t("nav.mentors")}</NavLink>
             <NavLink to="/awards" className={navItemClass}>{t("nav.awards")}</NavLink>
             <NavLink to="/toppers" className={navItemClass}>{t("nav.toppers")}</NavLink>
             <NavLink to="/gallery" className={navItemClass}>{t("nav.gallery")}</NavLink>
             <NavLink to="/faculties" className={navItemClass}>{t("nav.faculty")}</NavLink>
             <NavLink to="/testimonials" className={navItemClass}>{t("nav.testimonial")}</NavLink>
-            <NavLink to="/contact-us" className={navItemClass}>{t("nav.contact")}</NavLink>
-            <NavLink to="/about-us" className={navItemClass}>{t("nav.about")}</NavLink>
+            <Dropdown label={t("nav.contact")} links={contactLinks} />
             <NavLink to="/vision-mission" className={navItemClass}>{t("nav.vision")}</NavLink>
 
             <Link to="/download" className="flex h-10 w-10 items-center justify-center rounded-full transition hover:bg-cream group dark:hover:bg-[#263238]" title={t("nav.downloads")}>
