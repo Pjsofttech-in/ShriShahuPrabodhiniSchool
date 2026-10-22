@@ -13,6 +13,7 @@ import {
   fetchCenters,
   fetchQuestionsByExamId,
   fetchStudentResults,
+  fetchStudentPayments,
   fetchExamAttemptResult,
   fetchStudentResultById,
   getRememberedExamTimestamps,
@@ -457,6 +458,7 @@ export default function StudentDashboard({ defaultTab = "profile" }) {
   const [coordinator, setCoordinator] = useState(null);
   const { user, refreshProfile } = useAuth();
   const [results, setResults] = useState([]);
+  const [apiPayments, setApiPayments] = useState([]);
   const [loadingResults, setLoadingResults] = useState(false);
   const [resultsError, setResultsError] = useState("");
   const [selectedAttempt, setSelectedAttempt] = useState(null);
@@ -564,6 +566,15 @@ export default function StudentDashboard({ defaultTab = "profile" }) {
     fetchEbookMaterials().then((items) => setEbooks(items.map(normaliseStudentEbook).filter((item) => item.id != null))).catch(() => setEbooks([]));
   }, []);
 
+  // Payments stored in the live DB for this student (amount paid, status, date)
+  useEffect(() => {
+    const id = student?.id ?? student?.studentId ?? user?.studentId;
+    if (!id) return;
+    let active = true;
+    fetchStudentPayments(id).then((payments) => { if (active) setApiPayments(payments); });
+    return () => { active = false; };
+  }, [student?.id, student?.studentId, user?.studentId]);
+
   // Load student results/attempts
   useEffect(() => {
     async function loadResults() {
@@ -620,7 +631,7 @@ export default function StudentDashboard({ defaultTab = "profile" }) {
   const rollNo = student.rollNo || student.roll_number || student.rollNumber || student.id || student.studentId || "—";
   const studentId = student.id ?? student.studentId ?? user?.studentId ?? user?.id;
   const paymentRecords = getTestSeriesPayments(studentId);
-  const paymentHistory = getPaymentHistory(student, paymentRecords);
+  const paymentHistory = getPaymentHistory(student, { ...paymentRecords, ...Object.fromEntries(apiPayments.map((payment, index) => [`api-${payment.id ?? index}`, payment])) });
   const latestSuccessfulPayment = paymentHistory.find(isSuccessfulPayment);
   const paymentStatusFromApi =
     (isPaymentFlagSet(student) ? "PAID" : "") ||

@@ -1040,7 +1040,47 @@ export async function fetchExams() {
   return LOCAL_EXAMS;
 }
 
-export async function fetchQuestionsByExamId(examId) {
+export async function fetchQuestionsByExamId(examId, { useLocalFallback = true } = {}) {
+  let questionLinks = [];
+  if (examId != null) {
+    try {
+      const linksResponse = await api.get(`/api/exams/${encodeURIComponent(examId)}/questions`);
+      questionLinks = normalizeList(linksResponse.data)
+        .filter((link) => link?.active !== false)
+        .sort((first, second) => Number(first?.sequence ?? 0) - Number(second?.sequence ?? 0));
+    } catch (error) {
+      console.warn("Could not load exam-linked live questions.", error?.message || error);
+    }
+  }
+
+  if (questionLinks.length > 0) {
+    const bankResponse = await api.get("/api/questions");
+    const questionBank = normalizeList(bankResponse.data);
+    const linkedQuestions = questionLinks.map((link, index) => {
+      const questionId = link?.questionId ?? link?.question_id ?? link?.question?.id ?? link?.question?.questionId;
+      const question = questionBank.find((candidate) => {
+        const candidateId = candidate?.questionId ?? candidate?.question_id ?? candidate?.id;
+        return questionId != null && candidateId != null && String(candidateId) === String(questionId);
+      });
+
+      if (!question) return null;
+      return {
+        ...question,
+        id: questionId,
+        questionId,
+        examId: link?.examId ?? link?.exam_id ?? examId,
+        sequence: link?.sequence ?? question?.sequence ?? index + 1,
+        marks: link?.marks ?? question?.marks,
+      };
+    });
+    const missingQuestionCount = linkedQuestions.filter((question) => question == null).length;
+    if (missingQuestionCount > 0) {
+      throw new Error(`The exam question list contains ${missingQuestionCount} question(s) missing from the question bank.`);
+    }
+
+    return linkedQuestions;
+  }
+
   try {
     const response = await api.get("/api/questions");
     const questions = normalizeList(response.data);
@@ -1056,10 +1096,15 @@ export async function fetchQuestionsByExamId(examId) {
       return filteredQuestions;
     }
   } catch (error) {
-    console.warn("fetchQuestionsByExamId failed; using local fallback dataset.", error?.message || error);
+    console.warn(
+      useLocalFallback
+        ? "fetchQuestionsByExamId failed; using local fallback dataset."
+        : "Could not fetch live questions by exam ID.",
+      error?.message || error
+    );
   }
 
-  return getLocalQuestionsForExam(examId);
+  return useLocalFallback ? getLocalQuestionsForExam(examId) : [];
 }
 
 function unwrapResponse(data) {
@@ -1130,7 +1175,9 @@ export async function startExamAttempt(examId, testSeriesId) {
     const attempt = normalizeAttemptTimingFields(response.data);
     const attemptId = getAttemptId(attempt);
     if (!attemptId) throw new Error("The backend did not return an exam attempt ID.");
-    return { ...attempt, attemptId, startedAt: attempt.startedAt ?? startedAt };
+    const confirmedStartedAt = attempt.startedAt ?? startedAt;
+    rememberExamStartedAt(attemptId, confirmedStartedAt);
+    return { ...attempt, attemptId, startedAt: confirmedStartedAt };
   } catch (error) {
     const attemptId = `local-attempt-${Date.now()}`;
     const attempts = readLocalStorageObject("ssp_local_attempts", {});
@@ -1177,6 +1224,7 @@ export async function submitExamAttempt(attemptId) {
       `/api/exam-attempts/${encodeURIComponent(attemptId)}/submit`,
       { attemptId, submittedAt, finishedAt: submittedAt, status: "SUBMITTED" }
     );
+    rememberExamSubmittedAt(attemptId, submittedAt);
     return normalizeAttemptTimingFields(response.data);
   } catch (error) {
     const attempt = getLocalAttemptRecord(attemptId);
@@ -1241,12 +1289,19 @@ export async function fetchStudentResultById(resultId) {
   }
 }
 
+export function getRememberedAttemptIds() {
+  const ids = new Set();
+  for (const storage of [localStorage, sessionStorage]) {
+    try { JSON.parse(storage.getItem("ssp_attempt_ids") || "[]").forEach((id) => ids.add(String(id))); } catch { /* ignore */ }
+  }
+  return [...ids];
+}
+
 export function rememberExamAttempt(attemptId, startedAt = new Date().toISOString()) {
   if (!attemptId) return;
-  let saved = [];
-  try { saved = JSON.parse(sessionStorage.getItem("ssp_attempt_ids") || "[]"); } catch { saved = []; }
-  const ids = [String(attemptId), ...saved.filter((id) => String(id) !== String(attemptId))].slice(0, 20);
-  sessionStorage.setItem("ssp_attempt_ids", JSON.stringify(ids));
+  const saved = getRememberedAttemptIds();
+  const ids = [String(attemptId), ...saved.filter((id) => String(id) !== String(attemptId))].slice(0, 100);
+  try { localStorage.setItem("ssp_attempt_ids", JSON.stringify(ids)); } catch { /* storage unavailable */ }
   rememberExamStartedAt(attemptId, startedAt);
 }
 
@@ -1254,11 +1309,17 @@ const ATTEMPT_TIMESTAMPS_KEY = "ssp_exam_attempt_timestamps";
 
 function readAttemptTimestamps() {
   try {
-    const value = JSON.parse(sessionStorage.getItem(ATTEMPT_TIMESTAMPS_KEY) || "{}");
+    const value = JSON.parse(localStorage.getItem(ATTEMPT_TIMESTAMPS_KEY) || sessionStorage.getItem(ATTEMPT_TIMESTAMPS_KEY) || "{}");
     return value && typeof value === "object" && !Array.isArray(value) ? value : {};
   } catch {
     return {};
   }
+}
+
+function writeAttemptTimestamps(timestamps) {
+  const serialized = JSON.stringify(timestamps);
+  try { localStorage.setItem(ATTEMPT_TIMESTAMPS_KEY, serialized); } catch { /* storage unavailable */ }
+  try { sessionStorage.setItem(ATTEMPT_TIMESTAMPS_KEY, serialized); } catch { /* storage unavailable */ }
 }
 
 export function getRememberedExamTimestamps(attemptId) {
@@ -1270,7 +1331,7 @@ export function rememberExamStartedAt(attemptId, startedAt = new Date().toISOStr
   const timestamps = readAttemptTimestamps();
   const key = String(attemptId);
   timestamps[key] = { ...timestamps[key], startedAt: timestamps[key]?.startedAt || startedAt };
-  sessionStorage.setItem(ATTEMPT_TIMESTAMPS_KEY, JSON.stringify(timestamps));
+  writeAttemptTimestamps(timestamps);
 }
 
 export function rememberExamSubmittedAt(attemptId, submittedAt = new Date().toISOString()) {
@@ -1278,32 +1339,84 @@ export function rememberExamSubmittedAt(attemptId, submittedAt = new Date().toIS
   const timestamps = readAttemptTimestamps();
   const key = String(attemptId);
   timestamps[key] = { ...timestamps[key], submittedAt };
-  sessionStorage.setItem(ATTEMPT_TIMESTAMPS_KEY, JSON.stringify(timestamps));
+  writeAttemptTimestamps(timestamps);
 }
 
 export function rememberExamResult(result) {
   if (!result?.attemptId) return;
-  const saved = JSON.parse(sessionStorage.getItem("ssp_attempt_results") || "[]");
+  const saved = getRememberedExamResults();
   const attemptId = String(result.attemptId);
   const results = [result, ...saved.filter((item) => String(item?.attemptId) !== attemptId)].slice(0, 50);
-  sessionStorage.setItem("ssp_attempt_results", JSON.stringify(results));
+  try { localStorage.setItem("ssp_attempt_results", JSON.stringify(results)); } catch { /* storage unavailable */ }
+}
+
+// Scored results saved in this browser when an exam was submitted.
+export function getRememberedExamResults() {
+  try {
+    const saved = JSON.parse(localStorage.getItem("ssp_attempt_results") || "[]");
+    return Array.isArray(saved) ? saved : [];
+  } catch {
+    return [];
+  }
+}
+
+// Payments the backend has recorded for a student (GET /api/payments, PaymentResponse rows).
+export async function fetchStudentPayments(studentId) {
+  if (!studentId) return [];
+  try {
+    const response = await api.get("/api/payments");
+    return normalizeList(response.data).filter((payment) => String(payment?.studentId ?? payment?.student_id) === String(studentId));
+  } catch (error) {
+    console.warn("fetchStudentPayments failed", error?.response?.status || error?.message);
+    return [];
+  }
 }
 
 // Fetch the complete result history for the authenticated student.
 export async function fetchStudentResults(studentId, profile = null) {
   if (!studentId) return [];
   const id = encodeURIComponent(studentId);
+  let listedResults = [];
+  let listError = null;
   try {
     const response = await api.get(`/api/results/student/${id}`);
-    const persistedResults = normalizeList(response.data);
+    listedResults = normalizeList(response.data);
+  } catch (error) {
+    listError = error;
+    console.warn("fetchStudentResults: persisted result history failed", error?.response?.status || error?.message);
+  }
+
+  // The student list can omit attempts that are not published yet, so also load the attempts
+  // this browser started directly from the attempt result endpoint.
+  const listedAttemptIds = new Set(listedResults.map((item) => String(item?.attemptId ?? item?.attempt_id ?? "")));
+  const extraResults = (await Promise.all(getRememberedAttemptIds()
+    .filter((attemptId) => !listedAttemptIds.has(attemptId) && !attemptId.startsWith("local-"))
+    .map(async (attemptId) => {
+      try {
+        const response = await api.get(`/api/exam-attempts/${encodeURIComponent(attemptId)}/result`);
+        const result = normalizeAttemptTimingFields(response.data);
+        const belongsToStudent = result.studentId == null || String(result.studentId) === String(studentId);
+        const hasScore = result.resultId != null || result.obtainedMarks != null;
+        return belongsToStudent && hasScore ? { ...result, attemptId: result.attemptId ?? attemptId } : null;
+      } catch {
+        return null;
+      }
+    }))).filter(Boolean);
+
+  // Fallback: results scored in the player at submit time, for attempts the backend did not return.
+  const knownAttemptIds = new Set([...listedResults, ...extraResults].map((item) => String(item?.attemptId ?? item?.attempt_id ?? "")));
+  const savedResults = getRememberedExamResults().filter((item) =>
+    item?.attemptId != null && !knownAttemptIds.has(String(item.attemptId)) && String(item.studentId ?? studentId) === String(studentId));
+
+  if (listError && extraResults.length === 0 && savedResults.length === 0) throw listError;
+
+  {
+    const persistedResults = [...extraResults, ...savedResults, ...listedResults];
     return persistedResults.filter(Boolean).filter((item, index, list) => {
       const itemId = item.attemptId ?? item.id ?? item.resultId ?? item.attempt_id;
       if (!itemId) return true;
       return list.findIndex((candidate) => String(candidate.attemptId ?? candidate.id ?? candidate.resultId ?? candidate.attempt_id) === String(itemId)) === index;
     });
-  } catch (error) {
-    console.warn("fetchStudentResults: persisted result history failed", error?.response?.status || error?.message);
-    throw error;
   }
 }
 

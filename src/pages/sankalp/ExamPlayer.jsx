@@ -11,9 +11,19 @@ import {
   fetchStudentResultById,
   fetchExamAttemptResult,
   rememberExamAttempt,
+  rememberExamResult,
+  getRememberedExamTimestamps,
   rememberExamSubmittedAt,
 } from "../../services/backendService.js";
 import { useAuth } from "../../context/AuthContext.jsx";
+
+// The backend grades by comparing selectedAnswer with the question's correctAnswer, so send
+// the same format the answer key uses: an option letter (A-D) or the option text.
+function answerPayloadValue(question, optionIndex) {
+  const key = question?.correctAnswer;
+  if (typeof key === "string" && /^[a-d]$/i.test(key.trim())) return String.fromCharCode(65 + optionIndex);
+  return question.options[optionIndex];
+}
 
 function answerOptionIndex(value, options) {
   if (value == null || !Array.isArray(options) || options.length === 0) return -1;
@@ -66,11 +76,14 @@ export default function ExamPlayer() {
   const submittingRef = useRef(false);
   const pendingAnswerSavesRef = useRef(new Set());
 
-  function normalizeQuestion(item, index) {
+  function normalizeQuestion(item, index, answerKeyQuestion = null) {
     const question = item?.question && typeof item.question === "object" ? item.question : item;
-    const questionId = question?.questionId ?? question?.id ?? item?.questionId ?? `${id}-q-${index + 1}`;
-    const text = question?.question ?? question?.questionText ?? question?.text ?? item?.questionText ?? `Question ${index + 1}`;
-    let options = question?.options ?? question?.choices ?? question?.optionList ?? item?.options;
+    const answerKey = answerKeyQuestion?.question && typeof answerKeyQuestion.question === "object"
+      ? answerKeyQuestion.question
+      : answerKeyQuestion;
+    const questionId = question?.questionId ?? question?.question_id ?? question?.id ?? item?.questionId ?? item?.question_id ?? `${id}-q-${index + 1}`;
+    const text = question?.question ?? question?.questionText ?? question?.question_text ?? question?.text ?? item?.questionText ?? answerKey?.question ?? answerKey?.questionText ?? answerKey?.question_text ?? answerKey?.text ?? `Question ${index + 1}`;
+    let options = question?.options ?? question?.choices ?? question?.optionList ?? item?.options ?? answerKey?.options ?? answerKey?.choices ?? answerKey?.optionList;
 
     if (typeof options === "string") {
       try { options = JSON.parse(options); } catch { options = options.split("|").map((option) => option.trim()).filter(Boolean); }
@@ -79,14 +92,14 @@ export default function ExamPlayer() {
     if (options && !Array.isArray(options) && typeof options === "object") options = Object.values(options);
     if (!Array.isArray(options) || options.length === 0) {
       options = [
-        question?.optionA ?? item?.optionA,
-        question?.optionB ?? item?.optionB,
-        question?.optionC ?? item?.optionC,
-        question?.optionD ?? item?.optionD,
+        question?.optionA ?? item?.optionA ?? answerKey?.optionA,
+        question?.optionB ?? item?.optionB ?? answerKey?.optionB,
+        question?.optionC ?? item?.optionC ?? answerKey?.optionC,
+        question?.optionD ?? item?.optionD ?? answerKey?.optionD,
       ].filter((option) => option != null && option !== "");
     }
     if (options.length === 0) {
-      const optionsJson = question?.optionsJson ?? item?.optionsJson ?? question?.options_json ?? item?.options_json;
+      const optionsJson = question?.optionsJson ?? item?.optionsJson ?? question?.options_json ?? item?.options_json ?? answerKey?.optionsJson ?? answerKey?.options_json;
       if (typeof optionsJson === "string") {
         try { options = JSON.parse(optionsJson); } catch { options = optionsJson.split("|").map((option) => option.trim()).filter(Boolean); }
       } else if (Array.isArray(optionsJson)) {
@@ -99,22 +112,45 @@ export default function ExamPlayer() {
       throw new Error(`Question ${index + 1} has no options in the database.`);
     }
 
-    const rawCorrectAnswer = question?.correctAnswer ?? question?.correct_answer ?? question?.correctOption ?? question?.answer ?? item?.correctAnswer ?? item?.correct_answer ?? null;
-    const rawCorrectIndex = question?.correctIndex ?? question?.answerIndex ?? question?.correctAnswerIndex ?? item?.correctIndex ?? item?.answerIndex ?? null;
-    const correctAnswerLetterIndex = typeof rawCorrectAnswer === "string" && /^[A-D]$/i.test(rawCorrectAnswer.trim())
-      ? rawCorrectAnswer.trim().toUpperCase().charCodeAt(0) - 65
-      : null;
-    const resolvedCorrectIndex = rawCorrectIndex !== null && rawCorrectIndex !== undefined
-      ? (/^[A-D]$/i.test(String(rawCorrectIndex).trim()) ? String(rawCorrectIndex).trim().toUpperCase().charCodeAt(0) - 65 : Number(rawCorrectIndex))
-      : (rawCorrectAnswer !== null && rawCorrectAnswer !== undefined
-        ? correctAnswerLetterIndex ?? options.findIndex((option) => String(option).trim() === String(rawCorrectAnswer).trim())
-        : null);
+    const answerSources = [question, item, answerKey];
+    const rawCorrectAnswer = answerSources.flatMap((source) => [
+      source?.correctAnswer,
+      source?.correct_answer,
+      source?.correctOption,
+      source?.correct_option,
+      source?.answerKey,
+      source?.answer_key,
+      source?.answerExplanationKey,
+      source?.answer_explanation_key,
+      source?.answer,
+    ]).find((answer) => answer !== null && answer !== undefined) ?? null;
+    const rawCorrectIndex = answerSources.flatMap((source) => [
+      source?.correctIndex,
+      source?.correct_index,
+      source?.correctAnswerIndex,
+      source?.correct_answer_index,
+      source?.correctOptionIndex,
+      source?.correct_option_index,
+      source?.answerIndex,
+      source?.answer_index,
+    ]).find((answerIndex) => answerIndex !== null && answerIndex !== undefined) ?? null;
+    const resolvedCorrectIndex = rawCorrectIndex !== null
+      ? answerOptionIndex(rawCorrectIndex, options)
+      : answerOptionIndex(rawCorrectAnswer, options);
 
     return {
       id: questionId,
       text,
       options,
-      marks: Number(item?.marks ?? question?.marks ?? question?.weight ?? 1) || 1,
+      marks: Number(
+        item?.marks ??
+        question?.marksPerQuestion ?? question?.marks_per_question ??
+        question?.questionMarks ?? question?.question_marks ??
+        question?.marks ?? question?.weight ??
+        answerKey?.marksPerQuestion ?? answerKey?.marks_per_question ??
+        answerKey?.questionMarks ?? answerKey?.question_marks ??
+        answerKey?.marks ?? answerKey?.weight ?? 1
+      ) || 1,
       sequence: Number(question?.sequence ?? item?.sequence ?? index + 1),
       sectionName: question?.sectionName ?? item?.sectionName ?? "",
       examName: question?.examName ?? item?.examName ?? "",
@@ -159,8 +195,20 @@ export default function ExamPlayer() {
         } catch (questionError) {
           console.warn("Attempt questions endpoint unavailable; loading live questions by exam.", questionError);
         }
-        if (!backendQs.length) backendQs = await fetchQuestionsByExamId(id);
-        const normalized = backendQs.map(normalizeQuestion);
+        const questionBank = await fetchQuestionsByExamId(id, { useLocalFallback: false });
+        if (!backendQs.length) backendQs = questionBank;
+        const getQuestionId = (item) => {
+          const nested = item?.question && typeof item.question === "object" ? item.question : {};
+          return item?.questionId ?? item?.question_id ?? item?.id ?? nested.questionId ?? nested.question_id ?? nested.id;
+        };
+        const normalized = backendQs.map((question, index) => {
+          const questionId = getQuestionId(question);
+          const answerKeyQuestion = questionBank.find((candidate) => {
+            const candidateId = getQuestionId(candidate);
+            return questionId != null && candidateId != null && String(candidateId) === String(questionId);
+          });
+          return normalizeQuestion(question, index, answerKeyQuestion);
+        });
 
         if (!normalized.length) throw new Error("This exam has no questions in the database.");
 
@@ -225,7 +273,7 @@ export default function ExamPlayer() {
     if (attemptId && question) {
       const savePromise = saveAttemptAnswer(attemptId, {
         questionId: qid,
-        selectedAnswer: question.options[optionIndex],
+        selectedAnswer: answerPayloadValue(question, optionIndex),
       }).catch((error) => {
         console.warn("Failed to save answer:", error);
         setSubmitError("An answer could not be saved. Please try again.");
@@ -249,7 +297,7 @@ export default function ExamPlayer() {
     try {
       await saveAttemptAnswer(attemptId, {
         questionId: question.id,
-        selectedAnswer: question.options[selectedIndex],
+        selectedAnswer: answerPayloadValue(question, selectedIndex),
       });
       setSavedQuestionId(question.id);
     } catch (error) {
@@ -329,39 +377,56 @@ export default function ExamPlayer() {
       let submittedResult = await submitExamAttempt(attemptId);
       rememberExamSubmittedAt(attemptId);
       try {
-        submittedResult = await fetchExamAttemptResult(attemptId);
+        submittedResult = mergeResultResponses(submittedResult, await fetchExamAttemptResult(attemptId));
       } catch (refreshError) {
         console.warn("Exam was submitted, but the persisted attempt result could not be refreshed.", refreshError);
       }
       const persistedResultId = submittedResult?.resultId ?? submittedResult?.id ?? submittedResult?.result?.id;
       if (persistedResultId) {
         try {
-          submittedResult = await fetchStudentResultById(persistedResultId);
+          submittedResult = mergeResultResponses(submittedResult, await fetchStudentResultById(persistedResultId));
         } catch (refreshError) {
           console.warn("Submitted result was saved, but the persisted result refresh failed.", refreshError);
         }
       }
       const responseData = submittedResult?.data ?? submittedResult?.result ?? submittedResult;
       const responseObject = responseData && typeof responseData === "object" && !Array.isArray(responseData) ? responseData : {};
-      const serverQuestionRows = [responseObject.questions, responseObject.questionResponses, responseObject.resultQuestions, responseObject.resultQuestionResponses, responseObject.details, responseObject.answers]
+      const serverQuestionRows = [responseObject.questions, responseObject.questionsList, responseObject.questions_list, responseObject.questionResponses, responseObject.question_responses, responseObject.resultQuestions, responseObject.result_questions, responseObject.resultQuestionResponses, responseObject.result_question_responses, responseObject.questionResults, responseObject.question_results, responseObject.details, responseObject.answers]
         .find((items) => Array.isArray(items) && items.length > 0) || [];
       const questionResults = questions.map((question) => {
-        const serverRow = serverQuestionRows.find((row) => String(row.questionId ?? row.question_id ?? row.id) === String(question.id)) || {};
+        const serverRow = serverQuestionRows.find((row) => {
+          const nested = row?.question && typeof row.question === "object" ? row.question : {};
+          const rowQuestionId = row?.questionId ?? row?.question_id ?? row?.id ?? nested.questionId ?? nested.question_id ?? nested.id;
+          return rowQuestionId != null && String(rowQuestionId) === String(question.id);
+        }) || {};
         const selectedIndex = answers[question.id] ?? null;
         const selectedAnswer = selectedIndex == null ? null : question.options[selectedIndex];
+        const serverCorrect = [serverRow.isCorrect, serverRow.is_correct, serverRow.correctness, typeof serverRow.correct === "boolean" ? serverRow.correct : undefined]
+          .find((value) => typeof value === "boolean");
         const isCorrect = selectedIndex == null || !Number.isInteger(question.correctIndex)
           ? null
           : selectedIndex === question.correctIndex;
+        const rawServerCorrect = serverRow.correctAnswer ?? serverRow.correct_answer ?? serverRow.correctOption ?? serverRow.correct_option ?? serverRow.answerKey ?? serverRow.answer_key ?? (typeof serverRow.correct === "boolean" ? null : serverRow.correct) ?? serverRow.answer;
+        const correctAnswer = Number.isInteger(question.correctIndex)
+          ? question.options[question.correctIndex]
+          : rawServerCorrect;
+        const resolvedIsCorrect = isCorrect ?? serverCorrect;
         return {
           ...serverRow,
           ...question,
           id: question.id,
           questionId: question.id,
           selectedIndex,
-          selectedAnswer: selectedAnswer ?? serverRow.selectedAnswer ?? serverRow.studentAnswer ?? null,
-          correctAnswer: Number.isInteger(question.correctIndex) ? question.options[question.correctIndex] : serverRow.correctAnswer ?? serverRow.correct_answer,
-          isCorrect: isCorrect ?? serverRow.isCorrect ?? serverRow.is_correct,
-          marksObtained: isCorrect === true ? Number(question.marks || 1) : isCorrect === false ? 0 : serverRow.marksObtained ?? serverRow.marks_obtained,
+          selectedAnswer: selectedAnswer ?? serverRow.selectedAnswer ?? serverRow.selected_answer ?? serverRow.studentAnswer ?? serverRow.student_answer ?? serverRow.answerText ?? null,
+          correctAnswer,
+          isCorrect: resolvedIsCorrect,
+          marksObtained: selectedIndex == null && Number.isInteger(question.correctIndex)
+            ? 0
+            : resolvedIsCorrect === true
+              ? Number(question.marks || 1)
+              : resolvedIsCorrect === false
+                ? 0
+                : serverRow.marksObtained ?? serverRow.marks_obtained ?? serverRow.obtainedMarks ?? serverRow.obtained_marks,
           marks: question.marks || serverRow.marks || 1,
         };
       });
@@ -389,8 +454,8 @@ export default function ExamPlayer() {
         attemptId,
         examId: id,
         examName: exam?.name ?? responseObject.examName ?? responseObject.exam_name,
-        score: score ?? 0,
-        obtainedMarks: score ?? 0,
+        score,
+        obtainedMarks: score,
         maxScore,
         totalMarks: maxScore,
         total: questions.length,
@@ -400,6 +465,11 @@ export default function ExamPlayer() {
         details: questionResults,
       };
       setResult(finalResult);
+      rememberExamResult({
+        ...finalResult,
+        ...getRememberedExamTimestamps(attemptId),
+        studentId: finalResult.studentId ?? user?.studentId ?? user?.id,
+      });
       setDetailedResults(questionResults);
       setResultTab("summary");
       try { await refreshProfile(); } catch (e) { /* ignore */ }
@@ -408,6 +478,38 @@ export default function ExamPlayer() {
       setSubmitError(err?.response?.data?.message || err?.message || "Unable to submit this exam.");
       setSubmitted(false);
       submittingRef.current = false;
+    }
+
+    function mergeResultResponses(previous, next) {
+      const unwrap = (value) => {
+        const payload = value?.data ?? value?.result ?? value;
+        return payload && typeof payload === "object" && !Array.isArray(payload) ? payload : {};
+      };
+      const previousData = unwrap(previous);
+      const nextData = unwrap(next);
+      const merged = { ...previousData, ...nextData };
+      const questionCollections = [
+        "questions",
+        "questionsList",
+        "questions_list",
+        "questionResponses",
+        "question_responses",
+        "resultQuestions",
+        "result_questions",
+        "resultQuestionResponses",
+        "result_question_responses",
+        "questionResults",
+        "question_results",
+        "details",
+        "answers",
+      ];
+      if (!questionCollections.some((key) => Array.isArray(nextData[key]) && nextData[key].length > 0)) {
+        const priorCollection = questionCollections
+          .map((key) => previousData[key])
+          .find((items) => Array.isArray(items) && items.length > 0);
+        if (priorCollection) merged.questions = priorCollection;
+      }
+      return merged;
     }
   }
 
