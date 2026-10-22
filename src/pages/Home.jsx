@@ -153,7 +153,11 @@ function MissingImage({ className = "" }) {
 
 export default function Home() {
   const { t } = useLanguage();
-  const [liveData, setLiveData] = React.useState({ heroSections: [], slideBars: [], marquee: [], courses: [], toppers: [], awards: [], gallery: [], faculties: [], testimonials: [], contactInfo: null, examSection: null });
+  // Start from the last live data this browser saw, so returning visitors get the real content instantly.
+  const [liveData, setLiveData] = React.useState(() => {
+    const empty = { heroSections: [], slideBars: [], marquee: [], courses: [], toppers: [], awards: [], gallery: [], faculties: [], testimonials: [], contactInfo: null, examSection: null };
+    try { return { ...empty, ...JSON.parse(localStorage.getItem("ssp_home_cache") || "{}") }; } catch { return empty; }
+  });
   const [mentors, setMentors] = React.useState([]);
   const [mentorQuery, setMentorQuery] = React.useState("");
   const [selectedMentor, setSelectedMentor] = React.useState(null);
@@ -162,10 +166,12 @@ export default function Home() {
 
   React.useEffect(() => {
     let active = true;
-    Promise.allSettled([fetchHeroSections(), fetchSlideBars(), fetchMarquee(), fetchCourses(), fetchToppers(), fetchAwards(), fetchGallery(), fetchFaculties(), fetchTestimonials(), fetchContactInfo(), fetchExamSection()]).then((results) => {
+    // The hero, ticker and exam info show as soon as their own calls settle, not after every call on the page.
+    const heroGroup = [fetchHeroSections(), fetchSlideBars(), fetchMarquee(), fetchExamSection()];
+    Promise.allSettled([heroGroup[0], heroGroup[1], heroGroup[2], fetchCourses(), fetchToppers(), fetchAwards(), fetchGallery(), fetchFaculties(), fetchTestimonials(), fetchContactInfo(), heroGroup[3]]).then((results) => {
       if (!active) return;
       const [heroResult, slideBarResult, marqueeResult, coursesResult, toppersResult, awardsResult, galleryResult, facultiesResult, testimonialsResult, contactResult, examSectionResult] = results;
-      setLiveData({
+      const nextData = {
         heroSections: heroResult.status === "fulfilled" ? heroResult.value : [],
         slideBars: slideBarResult.status === "fulfilled" ? slideBarResult.value : [],
         marquee: marqueeResult.status === "fulfilled" ? marqueeResult.value : [],
@@ -177,7 +183,9 @@ export default function Home() {
         testimonials: testimonialsResult.status === "fulfilled" ? testimonialsResult.value : [],
         contactInfo: contactResult.status === "fulfilled" ? contactResult.value : null,
         examSection: examSectionResult.status === "fulfilled" ? examSectionResult.value : null,
-      });
+      };
+      setLiveData(nextData);
+      try { localStorage.setItem("ssp_home_cache", JSON.stringify(nextData)); } catch { /* storage full or unavailable */ }
       setAwardsLoading(false);
     });
     return () => { active = false; };
