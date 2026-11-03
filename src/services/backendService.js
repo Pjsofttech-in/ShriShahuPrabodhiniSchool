@@ -1135,8 +1135,6 @@ function normalizeAttemptTimingFields(value) {
     source?.date_started ??
     source?.attemptStartedAt ??
     source?.attempt_started_at ??
-    source?.createdAt ??
-    source?.created_at ??
     source?.examStartedAt ??
     source?.exam_started_at ??
     null;
@@ -1159,8 +1157,6 @@ function normalizeAttemptTimingFields(value) {
     source?.end_time ??
     source?.attemptSubmittedAt ??
     source?.attempt_submitted_at ??
-    source?.updatedAt ??
-    source?.updated_at ??
     null;
   return { ...source, startedAt, submittedAt };
 }
@@ -1179,11 +1175,7 @@ export async function startExamAttempt(examId, testSeriesId) {
     rememberExamStartedAt(attemptId, confirmedStartedAt);
     return { ...attempt, attemptId, startedAt: confirmedStartedAt };
   } catch (error) {
-    const attemptId = `local-attempt-${Date.now()}`;
-    const attempts = readLocalStorageObject("ssp_local_attempts", {});
-    attempts[attemptId] = { attemptId, examId, testSeriesId: testSeriesId ?? null, startedAt };
-    writeLocalStorageObject("ssp_local_attempts", attempts);
-    return { attemptId, examId, testSeriesId: testSeriesId ?? null, startedAt, offline: true };
+    throw error;
   }
 }
 
@@ -1207,12 +1199,7 @@ export async function saveAttemptAnswer(attemptId, answer) {
     );
     return response.data;
   } catch (error) {
-    const answers = readLocalStorageObject("ssp_local_answers", {});
-    const key = String(attemptId);
-    answers[key] = answers[key] || {};
-    answers[key][String(answer?.questionId ?? "")] = answer;
-    writeLocalStorageObject("ssp_local_answers", answers);
-    return { success: true, offline: true };
+    throw error;
   }
 }
 
@@ -1227,44 +1214,7 @@ export async function submitExamAttempt(attemptId) {
     rememberExamSubmittedAt(attemptId, submittedAt);
     return normalizeAttemptTimingFields(response.data);
   } catch (error) {
-    const attempt = getLocalAttemptRecord(attemptId);
-    const examId = attempt?.examId;
-    const questions = getLocalQuestionsForExam(examId);
-    const savedAnswers = readLocalStorageObject("ssp_local_answers", {});
-    const answerMap = savedAnswers[String(attemptId)] || {};
-
-    let obtainedMarks = 0;
-    const questionResults = questions.map((question) => {
-      const answerValue = answerMap[String(question.id)]?.selectedAnswer ?? answerMap[String(question.questionId)]?.selectedAnswer ?? null;
-      const selectedIndex = question.options.findIndex((option) => String(option) === String(answerValue));
-      const isCorrect = selectedIndex === Number(question.correctIndex ?? question.correct_index ?? -1);
-      if (isCorrect) obtainedMarks += Number(question.marks || 1);
-      return {
-        questionId: question.id,
-        selectedAnswer: answerValue,
-        correctAnswer: question.options[question.correctIndex],
-        isCorrect,
-        marksObtained: isCorrect ? Number(question.marks || 1) : 0,
-      };
-    });
-
-    const result = {
-      resultId: `local-result-${attemptId}`,
-      attemptId,
-      examId,
-      obtainedMarks,
-      startedAt: attempt?.startedAt ?? null,
-      submittedAt,
-      totalMarks: questions.reduce((total, question) => total + Number(question.marks || 1), 0),
-      percentage: questions.length ? Math.round((obtainedMarks / questions.reduce((total, question) => total + Number(question.marks || 1), 0)) * 100) : 0,
-      questions: questionResults,
-      offline: true,
-    };
-
-    const persistedResults = readLocalStorageObject("ssp_local_results", {});
-    persistedResults[result.resultId] = result;
-    writeLocalStorageObject("ssp_local_results", persistedResults);
-    return result;
+    throw error;
   }
 }
 
@@ -1273,9 +1223,7 @@ export async function fetchExamAttemptResult(attemptId) {
     const response = await api.get(`/api/exam-attempts/${encodeURIComponent(attemptId)}/result`);
     return normalizeAttemptTimingFields(response.data);
   } catch (error) {
-    const results = readLocalStorageObject("ssp_local_results", {});
-    const resultId = Object.keys(results).find((key) => String(results[key]?.attemptId) === String(attemptId));
-    return resultId ? results[resultId] : { attemptId, startedAt: null, submittedAt: null, offline: true };
+    throw error;
   }
 }
 
@@ -1284,8 +1232,7 @@ export async function fetchStudentResultById(resultId) {
     const response = await api.get(`/api/results/${encodeURIComponent(resultId)}`);
     return unwrapResponse(response.data);
   } catch (error) {
-    const results = readLocalStorageObject("ssp_local_results", {});
-    return results[String(resultId)] || { resultId, offline: true };
+    throw error;
   }
 }
 

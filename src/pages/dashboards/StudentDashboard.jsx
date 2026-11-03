@@ -256,14 +256,14 @@ function applyCalculatedScore(attempt, questions) {
   const result = attempt?.result && typeof attempt.result === "object" ? attempt.result : attempt;
   const scoredResult = {
     ...result,
-    obtainedMarks: calculated.score,
-    score: calculated.score,
-    totalMarks: calculated.maxScore,
-    maxScore: calculated.maxScore,
-    percentage: calculated.percentage,
-    correctQuestions: calculated.correctCount,
-    incorrectQuestions: calculated.incorrectCount,
-    unattemptedQuestions: calculated.unansweredCount,
+    obtainedMarks: result.obtainedMarks ?? result.obtained_marks ?? calculated.score,
+    score: result.score ?? result.obtainedMarks ?? result.obtained_marks ?? calculated.score,
+    totalMarks: result.totalMarks ?? result.total_marks ?? calculated.maxScore,
+    maxScore: result.maxScore ?? result.max_score ?? result.totalMarks ?? result.total_marks ?? calculated.maxScore,
+    percentage: result.percentage ?? result.percent ?? calculated.percentage,
+    correctQuestions: result.correctQuestions ?? result.correct_questions ?? calculated.correctCount,
+    incorrectQuestions: result.incorrectQuestions ?? result.incorrect_questions ?? calculated.incorrectCount,
+    unattemptedQuestions: result.unsolvedQuestions ?? result.unsolved_questions ?? result.unattemptedQuestions ?? calculated.unansweredCount,
   };
   return attempt?.result && typeof attempt.result === "object"
     ? { ...attempt, result: scoredResult }
@@ -298,16 +298,26 @@ function getAttemptSummary(attempt) {
     }
     return null;
   };
-  const score = calculated?.score ?? readNumber(metadata.obtainedMarks, metadata.obtained_marks, metadata.score, metadata.marks, metadata.totalMarksObtained);
-  const totalMarks = calculated?.maxScore ?? readNumber(metadata.maxScore, metadata.totalMarks, metadata.total_marks, metadata.maxMarks, metadata.total);
+  // The backend result is authoritative when it supplies evaluated values.
+  // Recalculate only fields that are absent from the persisted result.
+  const score = readNumber(metadata.obtainedMarks, metadata.obtained_marks, metadata.score, metadata.marks, metadata.totalMarksObtained)
+    ?? calculated?.score;
+  const totalMarks = readNumber(metadata.totalMarks, metadata.total_marks, metadata.maxMarks, metadata.maxScore, metadata.total)
+    ?? calculated?.maxScore;
   const totalQuestions = readNumber(metadata.totalQuestions, metadata.total_questions, questions.length) ?? questions.length;
   const attemptedQuestions = readNumber(metadata.attemptedCount, metadata.attemptedQuestions, metadata.answeredCount, metadata.solvedQuestions, metadata.solved_questions)
+    ?? (calculated ? calculated.correctCount + calculated.incorrectCount : null)
     ?? questions.filter((question) => question.selectedAnswer ?? question.selected_answer ?? question.studentAnswer ?? question.student_answer ?? question.answerText ?? question.response ?? question.answer).length;
-  const correctCount = calculated?.correctCount ?? readNumber(metadata.correctQuestions, metadata.correct_questions, metadata.correctCount, metadata.correct_count);
-  const incorrectCount = calculated?.incorrectCount ?? readNumber(metadata.incorrectQuestions, metadata.incorrect_questions, metadata.incorrectCount, metadata.incorrect_count);
-  const unansweredCount = calculated?.unansweredCount ?? readNumber(metadata.unattemptedCount, metadata.unattemptedQuestions, metadata.unansweredCount, metadata.unanswered_questions)
+  const correctCount = readNumber(metadata.correctQuestions, metadata.correct_questions, metadata.correctCount, metadata.correct_count)
+    ?? calculated?.correctCount;
+  const incorrectCount = readNumber(metadata.incorrectQuestions, metadata.incorrect_questions, metadata.incorrectCount, metadata.incorrect_count)
+    ?? calculated?.incorrectCount;
+  const unansweredCount = readNumber(metadata.unsolvedQuestions, metadata.unsolved_questions, metadata.unattemptedCount, metadata.unattemptedQuestions, metadata.unansweredCount, metadata.unanswered_questions)
+    ?? calculated?.unansweredCount
     ?? (totalQuestions > 0 ? Math.max(0, totalQuestions - attemptedQuestions) : null);
-  const percentage = calculated?.percentage ?? readNumber(metadata.percentage, metadata.percent) ?? (score != null && totalMarks ? Math.round((score / totalMarks) * 100) : null);
+  const percentage = readNumber(metadata.percentage, metadata.percent)
+    ?? calculated?.percentage
+    ?? (score != null && totalMarks ? Math.round((score / totalMarks) * 100) : null);
 
   return {
     status: getPassFailStatus(percentage, metadata.status ?? metadata.resultStatus ?? "Submitted"),
@@ -378,13 +388,9 @@ function getPaymentHistory(student, localPayments) {
 
 function getResultTimestamp(result, type, includeMetadataFallback = true) {
   const explicitKeys = type === "started"
-    ? ["startedAt", "started_at", "startTime", "start_time", "startedOn", "started_on", "startedDate", "startedDateTime", "started_date_time", "startDate", "start_date", "startDateTime", "start_date_time", "start_datetime", "dateStarted", "date_started", "startTimestamp", "start_timestamp", "attemptStartedAt", "attempt_started_at", "attemptStartTime", "attempt_start_time", "attemptStartDate", "attemptStartDateTime", "attempt_start_date_time", "actualStartTime", "examStartedAt", "exam_started_at", "timeStarted", "time_started", "createdAt", "created_at", "createdOn", "created_on", "dateCreated", "date_created"]
-    : ["submittedAt", "submitted_at", "submitTime", "submit_time", "submittedTime", "submitted_time", "submitDateTime", "submit_date_time", "submitted_date_time", "submittedOn", "submitted_on", "submittedDate", "submittedDateTime", "submitDate", "submit_date", "dateSubmitted", "date_submitted", "submissionTime", "submission_time", "submissionDateTime", "attemptSubmittedAt", "attempt_submitted_at", "attemptSubmitTime", "attempt_submit_time", "attemptEndDateTime", "attempt_end_date_time", "completedAt", "completed_at", "completedOn", "completed_on", "completedDate", "completedDateTime", "completed_date", "completed_date_time", "dateCompleted", "date_completed", "completionTime", "completionDate", "endTime", "end_time", "endDate", "endDateTime", "end_date_time", "finishTime", "finishedAt", "finished_at", "updatedAt", "updated_at", "updatedOn", "updated_on", "modifiedAt", "modified_at"];
-  const metadataKeys = includeMetadataFallback
-    ? type === "started"
-      ? ["createdAt", "created_at", "createdOn", "created_on", "createdDate", "createdDateTime", "created_date", "created_date_time", "dateCreated", "date_created"]
-      : ["updatedAt", "updated_at", "updatedOn", "updated_on", "updatedDate", "updatedDateTime", "modifiedAt", "modified_at", "modifiedDate", "modified_date"]
-    : [];
+    ? ["startedAt", "started_at", "startTime", "start_time", "startedOn", "started_on", "startedDate", "startedDateTime", "started_date_time", "startDate", "start_date", "startDateTime", "start_date_time", "start_datetime", "dateStarted", "date_started", "startTimestamp", "start_timestamp", "attemptStartedAt", "attempt_started_at", "attemptStartTime", "attempt_start_time", "attemptStartDate", "attemptStartDateTime", "attempt_start_date_time", "actualStartTime", "examStartedAt", "exam_started_at", "timeStarted", "time_started"]
+    : ["submittedAt", "submitted_at", "submitTime", "submit_time", "submittedTime", "submitted_time", "submitDateTime", "submit_date_time", "submitted_date_time", "submittedOn", "submitted_on", "submittedDate", "submittedDateTime", "submitDate", "submit_date", "dateSubmitted", "date_submitted", "submissionTime", "submission_time", "submissionDateTime", "attemptSubmittedAt", "attempt_submitted_at", "attemptSubmitTime", "attempt_submit_time", "attemptEndDateTime", "attempt_end_date_time", "completedAt", "completed_at", "completedOn", "completed_on", "completedDate", "completedDateTime", "completed_date", "completed_date_time", "dateCompleted", "date_completed", "completionTime", "completionDate", "endTime", "end_time", "endDate", "endDateTime", "end_date_time", "finishTime", "finishedAt", "finished_at"];
+  const metadataKeys = [];
   const timestampValues = new Map();
   const visited = new Set();
   const pending = [{ value: result, depth: 0 }];

@@ -75,6 +75,7 @@ export default function ExamPlayer() {
   const initialDurationRef = useRef(0);
   const submittingRef = useRef(false);
   const pendingAnswerSavesRef = useRef(new Set());
+  const failedAnswerSavesRef = useRef(new Set());
 
   function normalizeQuestion(item, index, answerKeyQuestion = null) {
     const question = item?.question && typeof item.question === "object" ? item.question : item;
@@ -187,8 +188,14 @@ export default function ExamPlayer() {
         if (examDetails) setExam(examDetails);
 
         const attempt = await startExamAttempt(id, examDetails?.testSeriesId);
+        if (!attempt?.attemptId || attempt.offline || String(attempt.attemptId).startsWith("local-attempt-")) {
+          throw new Error("A valid examination attempt could not be created. Please try again or contact support.");
+        }
         setAttemptId(attempt.attemptId);
-        rememberExamAttempt(attempt.attemptId, attempt.startedAt ?? attempt.started_at ?? attempt.startTime ?? attempt.start_time ?? attempt.startDateTime ?? attempt.start_date_time ?? attempt.createdAt ?? attempt.createdOn ?? new Date().toISOString());
+        rememberExamAttempt(
+          attempt.attemptId,
+          attempt.startedAt ?? attempt.started_at ?? attempt.startTime ?? attempt.start_time ?? attempt.startDateTime ?? attempt.start_date_time ?? new Date().toISOString()
+        );
         let backendQs = [];
         try {
           backendQs = await fetchAttemptQuestions(attempt.attemptId);
@@ -274,9 +281,15 @@ export default function ExamPlayer() {
       const savePromise = saveAttemptAnswer(attemptId, {
         questionId: qid,
         selectedAnswer: answerPayloadValue(question, optionIndex),
+      }).then(() => {
+        failedAnswerSavesRef.current.delete(String(qid));
+        setSubmitError("");
+        return true;
       }).catch((error) => {
         console.warn("Failed to save answer:", error);
-        setSubmitError("An answer could not be saved. Please try again.");
+        failedAnswerSavesRef.current.add(String(qid));
+        setSubmitError(error?.response?.data?.message || "An answer could not be saved. Please try again before submitting.");
+        return false;
       });
       pendingAnswerSavesRef.current.add(savePromise);
       savePromise.finally(() => pendingAnswerSavesRef.current.delete(savePromise));
@@ -299,9 +312,11 @@ export default function ExamPlayer() {
         questionId: question.id,
         selectedAnswer: answerPayloadValue(question, selectedIndex),
       });
+      failedAnswerSavesRef.current.delete(String(question.id));
       setSavedQuestionId(question.id);
     } catch (error) {
       console.warn("Failed to save answer:", error);
+      failedAnswerSavesRef.current.add(String(question.id));
       setSubmitError(error?.response?.data?.message || "An answer could not be saved. Please try again.");
     } finally {
       setSavingAnswer(false);
@@ -369,11 +384,14 @@ export default function ExamPlayer() {
     }
     submittingRef.current = true;
     setSubmitConfirmOpen(false);
-    setSubmitted(true);
     clearInterval(timerRef.current);
 
     try {
-      await Promise.allSettled([...pendingAnswerSavesRef.current]);
+      await Promise.all([...pendingAnswerSavesRef.current]);
+      if (failedAnswerSavesRef.current.size > 0) {
+        throw new Error("One or more answers could not be saved. Please revisit those questions, save your answers, and try submitting again.");
+      }
+      setSubmitted(true);
       let submittedResult = await submitExamAttempt(attemptId);
       rememberExamSubmittedAt(attemptId);
       try {
